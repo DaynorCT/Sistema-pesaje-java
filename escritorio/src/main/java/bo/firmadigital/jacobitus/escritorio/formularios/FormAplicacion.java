@@ -545,18 +545,6 @@ public class FormAplicacion extends Application {
         firmaMenu.getItems().addAll(firmarItem, firmarPKCS7Item, firmarXmlItem, firmarJwsItem);
         menuBar.getMenus().add(firmaMenu);
 
-        Menu pdfMenu = new Menu("PDF");
-        MenuItem nuevoItem = new MenuItem("Nuevo");
-        nuevoItem.setOnAction((ActionEvent e) -> {
-            FormPdf formPdf = new FormPdf(stage);
-            formPdf.showAndWait();
-            if (formPdf.getPath() != null) {
-                tbvArchivos.getItems().add(new ValidadorExtendidoPdf(new File(formPdf.getPath()), this.getConfigValidador()));
-            }
-        });
-        pdfMenu.getItems().addAll(nuevoItem);
-        menuBar.getMenus().add(pdfMenu);
-
         Menu ayudaMenu = new Menu("Ayuda");
         MenuItem servicioItem = new MenuItem("Verificar servicio");
         servicioItem.setOnAction((ActionEvent e) -> {
