@@ -23,8 +23,6 @@ import java.util.logging.Logger;
 
 import org.codehaus.jettison.json.JSONArray;
 
-import com.itextpdf.kernel.exceptions.PdfException;
-
 import bo.firmadigital.jacobitus.comun.InfoCertificado;
 import bo.firmadigital.jacobitus.comun.JacobitusException;
 import bo.firmadigital.jacobitus.escritorio.Informacion;
@@ -953,14 +951,10 @@ public class FormAplicacion extends Application {
                             }
                             updateProgress(i + 1, archivos.size());
                             tbvArchivos.getItems().set(i, new ValidadorExtendidoPdf(archivoFirmado, getConfigValidador()));
-                        } catch (PdfException ex) {
+                        } catch (Exception ex) {
                             updateProgress(i + 1, archivos.size());
                             errores.append(archivos.get(i).getAbsolutePath()).append(": ")
                                     .append(ex.getCause() != null ? ex.getCause().getMessage() : ex.getMessage()).append("\n");
-                        } catch (Exception ex) {
-                            updateProgress(i + 1, archivos.size());
-                            errores.append(archivos.get(i).getAbsolutePath()).append(": ").append(ex.getMessage())
-                                    .append("\n");
                         }
                     }
                     updateProgress(100, 100);

@@ -1,7 +1,8 @@
 package bo.firmadigital.jacobitus.escritorio.formularios;
 
-import com.itextpdf.io.exceptions.IOException;
+import java.io.IOException;
 
+import bo.firmadigital.jacobitus.comun.JacobitusException;
 import bo.firmadigital.jacobitus.escritorio.comun.Config;
 import bo.firmadigital.jacobitus.firmador.base.ConfiguracionFirmador;
 import bo.firmadigital.jacobitus.token.GestorSlot;
@@ -120,7 +121,7 @@ public class FormCambiarContrasena extends Stage {
                     gestorSlot.setConfigFirmador(this.getConfigFirmador());
                     Slot oSlot = gestorSlot.obtenerSlot(slot);
                     if (oSlot == null) {
-                        throw new IOException("El slot " + slot + " no se encuentra disponible.");
+                        throw new JacobitusException("El slot " + slot + " no se encuentra disponible.");
                     }
                     IToken token = oSlot.getToken();
                     try {
@@ -140,7 +141,7 @@ public class FormCambiarContrasena extends Stage {
                         alert.showAndWait();
                         close();
                         return;
-                    } catch (RuntimeException ex) {
+                    } catch (Exception ex) {
                         error = ex.getMessage();
                     }
                 }
