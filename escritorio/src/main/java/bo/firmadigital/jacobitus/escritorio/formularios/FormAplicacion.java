@@ -897,6 +897,29 @@ public class FormAplicacion extends Application {
             alert.showAndWait();
             stage.getScene().setCursor(Cursor.DEFAULT);
         });
+        task.setOnSucceeded((WorkerStateEvent evt) -> {
+            StringBuilder advertencias = new StringBuilder();
+            for (ValidadorExtendido validador : tbvArchivos.getItems()) {
+                if (validador instanceof ValidadorExtendidoPdf) {
+                    List<String> mensajes = ((ValidadorExtendidoPdf) validador).getAdvertenciasEstructura();
+                    if (mensajes != null && !mensajes.isEmpty()) {
+                        advertencias.append(new File(validador.getPath()).getName()).append(":\n");
+                        for (String mensaje : mensajes) {
+                            advertencias.append(" - ").append(mensaje).append("\n");
+                        }
+                        advertencias.append("\n");
+                    }
+                }
+            }
+            if (advertencias.length() > 0) {
+                Alert alert = new Alert(AlertType.WARNING, advertencias.toString(), ButtonType.OK);
+                alert.initOwner(stage);
+                alert.initModality(Modality.APPLICATION_MODAL);
+                alert.setTitle("Jacobitus");
+                alert.setHeaderText("Se detectaron inconsistencias en la estructura de uno o más documentos");
+                alert.showAndWait();
+            }
+        });
         return task;
     }
 
