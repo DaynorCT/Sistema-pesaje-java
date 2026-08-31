@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -59,7 +60,9 @@ import bo.firmadigital.jacobitus.token.IToken;
 import bo.firmadigital.jacobitus.token.Slot;
 import bo.firmadigital.jacobitus.utilidades.CertificadoHelper;
 import bo.firmadigital.jacobitus.utilidades.SistemaOperativoHelper;
+import bo.firmadigital.jacobitus.validador.ValidadorEstructuraPdf;
 import bo.firmadigital.jacobitus.validador.base.ConfiguracionValidador;
+import bo.firmadigital.jacobitus.validador.comun.Firma;
 import javafx.application.Application;
 import javafx.application.HostServices;
 import javafx.application.Platform;
@@ -418,6 +421,20 @@ public class FormAplicacion extends Application {
                         FormFirmante formFirmante = new FormFirmante(stage, itemSeleccionado.getSlot(), Constants.PDF);
                         formFirmante.showAndWait();
                         if (formFirmante.getLabel() != null) {
+                            try {
+                                if (!confirmarEstructuraPdfAntesDeFirmar()) {
+                                    return;
+                                }
+                            } catch (IOException ex) {
+                                Alert alert = new Alert(AlertType.WARNING,
+                                        "No se pudo verificar la estructura del documento: " + ex.getMessage(),
+                                        ButtonType.OK);
+                                alert.initOwner(stage);
+                                alert.initModality(Modality.APPLICATION_MODAL);
+                                alert.setTitle("Jacobitus");
+                                alert.showAndWait();
+                                return;
+                            }
                             new Thread(firmarPdf(formFirmante.isBloquea(), itemSeleccionado.getSlot(), formFirmante.getLabel(),
                                     formFirmante.getPass())).start();
                         }
@@ -897,30 +914,32 @@ public class FormAplicacion extends Application {
             alert.showAndWait();
             stage.getScene().setCursor(Cursor.DEFAULT);
         });
-        task.setOnSucceeded((WorkerStateEvent evt) -> {
-            StringBuilder advertencias = new StringBuilder();
-            for (ValidadorExtendido validador : tbvArchivos.getItems()) {
-                if (validador instanceof ValidadorExtendidoPdf) {
-                    List<String> mensajes = ((ValidadorExtendidoPdf) validador).getAdvertenciasEstructura();
-                    if (mensajes != null && !mensajes.isEmpty()) {
-                        advertencias.append(new File(validador.getPath()).getName()).append(":\n");
-                        for (String mensaje : mensajes) {
-                            advertencias.append(" - ").append(mensaje).append("\n");
-                        }
-                        advertencias.append("\n");
-                    }
-                }
-            }
-            if (advertencias.length() > 0) {
-                Alert alert = new Alert(AlertType.WARNING, advertencias.toString(), ButtonType.OK);
-                alert.initOwner(stage);
-                alert.initModality(Modality.APPLICATION_MODAL);
-                alert.setTitle("Jacobitus");
-                alert.setHeaderText("Se detectaron inconsistencias en la estructura de uno o más documentos");
-                alert.showAndWait();
-            }
-        });
         return task;
+    }
+
+    /**
+     * Valida la estructura de los PDF en la lista antes de firmar.
+     *
+     * @return true para continuar con la firma; false si el usuario cancela.
+     */
+    private boolean confirmarEstructuraPdfAntesDeFirmar() throws IOException {
+        List<File> archivosPdf = new ArrayList<>();
+        List<List<Firma>> firmasPorArchivo = new ArrayList<>();
+        for (ValidadorExtendido item : tbvArchivos.getItems()) {
+            if (MagicBytes.PDF.is(item.getFile())) {
+                archivosPdf.add(item.getFile());
+                List<Firma> firmas = new ArrayList<>();
+                for (Firma firma : item) {
+                    firmas.add(firma);
+                }
+                firmasPorArchivo.add(firmas);
+            }
+        }
+        Optional<String> advertencias = ValidadorEstructuraPdf.revisarAntesDeFirmar(archivosPdf, firmasPorArchivo);
+        if (advertencias.isEmpty()) {
+            return true;
+        }
+        return AlertaEstructuraPdf.confirmarFirmaConAdvertencias(stage, advertencias.get());
     }
 
     public Task<Boolean> firmarPdf(boolean bloquear, long slotID, String alias, String contrasenia) {
