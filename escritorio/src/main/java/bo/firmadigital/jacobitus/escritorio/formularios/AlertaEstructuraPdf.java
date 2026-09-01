@@ -25,23 +25,47 @@ public final class AlertaEstructuraPdf {
 
   private AlertaEstructuraPdf() {}
 
-  /**
-   * @return true si el usuario elige firmar de todos modos (tras el countdown); false si cancela.
-   */
-  public static boolean confirmarFirmaConAdvertencias(Stage owner, String detalleAdvertencias) {
+  public enum Resultado {
+    CANCELAR,
+    REPARAR_Y_FIRMAR
+  }
+
+  // "Reparar y firmar" solo se habilita tras el countdown.
+  public static Resultado mostrar(Stage owner, String detalleAdvertencias) {
+    boolean confirmado = mostrarConCountdown(
+        owner,
+        "Revise estos documentos antes de firmar",
+        detalleAdvertencias,
+        "La firma podría no ser válida o el documento podría alterarse después.",
+        "Reparar y firmar");
+    return confirmado ? Resultado.REPARAR_Y_FIRMAR : Resultado.CANCELAR;
+  }
+
+  // Respaldo cuando la reparación automática no dejó todo íntegro.
+  public static boolean mostrarFalloReparacion(Stage owner, String detalleFallos) {
+    return mostrarConCountdown(
+        owner,
+        "No se pudo reparar completamente",
+        detalleFallos,
+        "Puede cancelar para revisar los documentos, o firmar de todos modos bajo su responsabilidad.",
+        "Firmar de todos modos");
+  }
+
+  private static boolean mostrarConCountdown(
+      Stage owner, String headerText, String detalle, String textoPie, String textoBotonPrincipal) {
     Alert alert = new Alert(AlertType.WARNING);
     alert.initOwner(owner);
     alert.initModality(Modality.APPLICATION_MODAL);
     alert.setTitle("Jacobitus");
-    alert.setHeaderText("Revise estos documentos antes de firmar");
+    alert.setHeaderText(headerText);
 
-    TextArea areaDetalle = new TextArea(detalleAdvertencias);
+    TextArea areaDetalle = new TextArea(detalle);
     areaDetalle.setEditable(false);
     areaDetalle.setWrapText(true);
-    areaDetalle.setPrefRowCount(Math.min(12, detalleAdvertencias.split("\n", -1).length + 1));
+    areaDetalle.setPrefRowCount(Math.min(12, detalle.split("\n", -1).length + 1));
     areaDetalle.setMaxWidth(Double.MAX_VALUE);
 
-    Label pie = new Label("La firma podría no ser válida o el documento podría alterarse después.");
+    Label pie = new Label(textoPie);
     pie.setWrapText(true);
     pie.setMaxWidth(Double.MAX_VALUE);
 
@@ -49,12 +73,12 @@ public final class AlertaEstructuraPdf {
     dialogPane.setContent(new javafx.scene.layout.VBox(12, areaDetalle, pie));
 
     ButtonType cancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
-    ButtonType firmarDeTodosModos =
-        new ButtonType("Firmar de todos modos (" + COUNTDOWN_SEGUNDOS + "s)", ButtonBar.ButtonData.OK_DONE);
-    dialogPane.getButtonTypes().setAll(cancelar, firmarDeTodosModos);
+    ButtonType botonPrincipalTipo =
+        new ButtonType(textoBotonPrincipal + " (" + COUNTDOWN_SEGUNDOS + "s)", ButtonBar.ButtonData.OK_DONE);
+    dialogPane.getButtonTypes().setAll(cancelar, botonPrincipalTipo);
 
-    Button botonFirmar = (Button) dialogPane.lookupButton(firmarDeTodosModos);
-    botonFirmar.setDisable(true);
+    Button botonPrincipal = (Button) dialogPane.lookupButton(botonPrincipalTipo);
+    botonPrincipal.setDisable(true);
 
     final int[] segundosRestantes = {COUNTDOWN_SEGUNDOS};
     Timeline countdown = new Timeline(
@@ -63,10 +87,10 @@ public final class AlertaEstructuraPdf {
             event -> {
               segundosRestantes[0]--;
               if (segundosRestantes[0] <= 0) {
-                botonFirmar.setDisable(false);
-                botonFirmar.setText("Firmar de todos modos");
+                botonPrincipal.setDisable(false);
+                botonPrincipal.setText(textoBotonPrincipal);
               } else {
-                botonFirmar.setText("Firmar de todos modos (" + segundosRestantes[0] + "s)");
+                botonPrincipal.setText(textoBotonPrincipal + " (" + segundosRestantes[0] + "s)");
               }
             }));
     countdown.setCycleCount(COUNTDOWN_SEGUNDOS);
@@ -76,6 +100,6 @@ public final class AlertaEstructuraPdf {
 
     Optional<ButtonType> resultado = alert.showAndWait();
     countdown.stop();
-    return resultado.isPresent() && resultado.get() == firmarDeTodosModos && !botonFirmar.isDisable();
+    return resultado.isPresent() && resultado.get() == botonPrincipalTipo && !botonPrincipal.isDisable();
   }
 }

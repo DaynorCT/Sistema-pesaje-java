@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.security.Security;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -39,8 +40,9 @@ public class ValidadorExtendidoPdf extends ValidadorExtendido {
             try (InputStream is = new FileInputStream(archivo)) {
                 firmas = listarCertificados(is);
             }
-        } catch (Exception ignore) {
-            LOG.severe(ignore.getMessage());
+        } catch (Exception ex) {
+            firmas = List.of();
+            LOG.log(Level.SEVERE, "No se pudo leer/validar " + archivo.getName(), ex);
         }
     }
 
@@ -55,8 +57,9 @@ public class ValidadorExtendidoPdf extends ValidadorExtendido {
             try (InputStream is = new FileInputStream(archivo)) {
                 firmas = listarCertificados(is);
             }
-        } catch (Exception ignore) {
-            LOG.severe(ignore.getMessage());
+        } catch (Exception ex) {
+            firmas = List.of();
+            LOG.log(Level.SEVERE, "No se pudo leer/validar " + archivo.getName(), ex);
         }
     }
 
@@ -79,8 +82,9 @@ public class ValidadorExtendidoPdf extends ValidadorExtendido {
             } else {
                 throw new JacobitusException("Contraseña inválida.");
             }
-        } catch (Exception ignore) {
-            LOG.severe(ignore.getMessage());
+        } catch (Exception ex) {
+            firmas = List.of();
+            LOG.log(Level.SEVERE, "No se pudo leer/validar el documento", ex);
         }
     }
 
@@ -98,8 +102,9 @@ public class ValidadorExtendidoPdf extends ValidadorExtendido {
             } else {
                 throw new JacobitusException("Contraseña inválida.");
             }
-        } catch (Exception ignore) {
-            LOG.severe(ignore.getMessage());
+        } catch (Exception ex) {
+            firmas = List.of();
+            LOG.log(Level.SEVERE, "No se pudo leer/validar el documento", ex);
         }
     }
 
