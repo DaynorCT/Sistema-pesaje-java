@@ -38,12 +38,6 @@ public class FormConfiguracion extends Stage {
     private TextField textFieldPort;
     private TextField textFieldToken;
     private final Button buttonControlador;
-    // private final CheckBox checkBoxHsm;
-    // private TextField textFieldHsmCloud;
-    // private TextField textFieldHsmJWT;
-    // private final CheckBox checkBoxTS;
-    // private TextField textFieldTS;
-    // private TextField textFieldTSJWT;
 
     private ConfiguracionFirmador getConfigFirmador() {
         Config config = Config.getInstance();
@@ -52,13 +46,6 @@ public class FormConfiguracion extends Stage {
         configFirmador.setSoftoken(config.getToken());
         configFirmador.setDirectorioControladores(config.getDirectorioControladores());
         configFirmador.setDispositivosCompatibles(config.getDispositivosCompatibles());
-        configFirmador.setSelloTiempoHabilitado(config.isTSEnabled());
-        configFirmador.setApiSelloTiempo(config.getTS());
-        configFirmador.setJwtSelloTiempo(config.getTSJWT());
-        configFirmador.setHsmHabilitado(config.isHsmEnabled());
-        configFirmador.setTipoHsm(config.getHsmType());
-        configFirmador.setApiHsm(config.getHsmCloud());
-        configFirmador.setJwtHsm(config.getHsmJWT());
         return configFirmador;
     }
 
@@ -128,11 +115,6 @@ public class FormConfiguracion extends Stage {
                         alert.setTitle("Jacobitus");
                         alert.showAndWait();
                     }
-                    // checkBoxEvent = true;
-                    // if (newValue && checkBoxPort3.isSelected()) {
-                    //     checkBoxEvent = false;
-                    //     checkBoxPort3.setSelected(false);
-                    // }
                 });
         checkBoxPort3.selectedProperty()
                 .addListener((ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) -> {
@@ -146,11 +128,6 @@ public class FormConfiguracion extends Stage {
                         alert.setTitle("Jacobitus");
                         alert.showAndWait();
                     }
-                    // checkBoxEvent = true;
-                    // if (newValue && checkBoxPort2.isSelected()) {
-                    //     checkBoxEvent = false;
-                    //     checkBoxPort2.setSelected(false);
-                    // }
                 });
         vbox1.getChildren().add(checkBoxPort3);
         vbox1.getChildren().add(new Separator(Orientation.HORIZONTAL));
@@ -268,45 +245,6 @@ public class FormConfiguracion extends Stage {
         });
         vbox2.getChildren().add(new Separator(Orientation.HORIZONTAL));
 
-        // Configuracion HSM
-        // vbox2.setPadding(new Insets(10));
-        // vbox2.setSpacing(8);
-        // vbox2.setMinWidth(210);
-        // Label titleHsm = new Label("Opciones HSM");
-        // titleHsm.setStyle("-fx-font-weight: bold");
-        // vbox2.getChildren().add(titleHsm);
-        // checkBoxHsm = new CheckBox("Utilizar HSM");
-        // checkBoxHsm.selectedProperty().addListener((ObservableValue<? extends
-        // Boolean> observable, Boolean oldValue, Boolean newValue) -> {
-        // textFieldHsmCloud.setDisable(!newValue);
-        // textFieldHsmJWT.setDisable(!newValue);
-        // if (newValue == false && config.isHsmEnabled() == false) {
-        // textFieldHsmCloud.setText(config.getHsmCloud());
-        // textFieldHsmJWT.setText(config.getHsmJWT());
-        // }
-        // });
-        // vbox2.getChildren().add(checkBoxHsm);
-        // Label labelHsmUrl = new Label("URL:");
-        // vbox2.getChildren().add(labelHsmUrl);
-        // textFieldHsmCloud = new TextField();
-        // textFieldHsmCloud.setText(config.getHsmCloud());
-        // vbox2.getChildren().add(textFieldHsmCloud);
-        // Label labelHsmJWT = new Label("Json Web Token:");
-        // vbox2.getChildren().add(labelHsmJWT);
-        // textFieldHsmJWT = new TextField();
-        // textFieldHsmJWT.setText(config.getHsmJWT());
-        // vbox2.getChildren().add(textFieldHsmJWT);
-        // Button buttonGuardarHsm = new Button("Guardar HSM");
-        // vbox2.getChildren().add(buttonGuardarHsm);
-        // buttonGuardarHsm.addEventHandler(MouseEvent.MOUSE_CLICKED, (MouseEvent t) ->
-        // {
-        // config.setHsmEnabled(checkBoxHsm.isSelected());
-        // config.setHsmCloud(textFieldHsmCloud.getText());
-        // config.setHsmJWT(textFieldHsmJWT.getText());
-        // config.save();
-        // close();
-        // });
-
         // Configuracion de softoken
         Label titleT = new Label("Softoken");
         titleT.setStyle("-fx-font-weight: bold");
@@ -358,52 +296,6 @@ public class FormConfiguracion extends Stage {
 
         root.getChildren().add(vbox2);
 
-        // Separator separator2 = new Separator(Orientation.VERTICAL);
-        // root.getChildren().add(separator2);
-
-        // VBox vbox3 = new VBox();
-
-        // Configuracion de sellado de tiempo
-        // vbox3.setPadding(new Insets(10));
-        // vbox3.setSpacing(8);
-        // vbox3.setMinWidth(210);
-        // Label titleTS = new Label("Opciones Sellado de Tiempo");
-        // titleTS.setStyle("-fx-font-weight: bold");
-        // vbox3.getChildren().add(titleTS);
-        // checkBoxTS = new CheckBox("Utilizar Sellado");
-        // checkBoxTS.selectedProperty().addListener((ObservableValue<? extends Boolean>
-        // observable, Boolean oldValue, Boolean newValue) -> {
-        // textFieldTS.setDisable(!newValue);
-        // textFieldTSJWT.setDisable(!newValue);
-        // if (newValue == false && config.isTSEnabled() == false) {
-        // textFieldTS.setText(config.getTS());
-        // textFieldTSJWT.setText(config.getTSJWT());
-        // }
-        // });
-        // vbox3.getChildren().add(checkBoxTS);
-        // Label labelTSUrl = new Label("URL:");
-        // vbox3.getChildren().add(labelTSUrl);
-        // textFieldTS = new TextField();
-        // textFieldTS.setText(config.getTS());
-        // vbox3.getChildren().add(textFieldTS);
-        // Label labelTSJWT = new Label("Json Web Token:");
-        // vbox3.getChildren().add(labelTSJWT);
-        // textFieldTSJWT = new TextField();
-        // textFieldTSJWT.setText(config.getTSJWT());
-        // vbox3.getChildren().add(textFieldTSJWT);
-        // Button buttonGuardarTS = new Button("Guardar Sellado");
-        // vbox2.getChildren().add(buttonGuardarTS);
-        // buttonGuardarTS.addEventHandler(MouseEvent.MOUSE_CLICKED, (MouseEvent t) -> {
-        // config.setTSEnabled(checkBoxTS.isSelected());
-        // config.setTS(textFieldTS.getText());
-        // config.setTSJWT(textFieldTSJWT.getText());
-        // config.save();
-        // close();
-        // });
-        // vbox3.getChildren().add(buttonGuardarTS);
-
-        // root.getChildren().add(vbox3);
-
         // Establecer valores configurados
         checkBox.setSelected(true);
         checkBox.setSelected(config.isProxyEnabled());
@@ -418,10 +310,6 @@ public class FormConfiguracion extends Stage {
             buttonCrear.setDisable(true);
             btnAbrirUbicacion.setDisable(false);
         }
-        // checkBoxHsm.setSelected(true);
-        // checkBoxHsm.setSelected(config.isHsmEnabled());
-        // checkBoxTS.setSelected(true);
-        // checkBoxTS.setSelected(config.isTSEnabled());
 
         Scene scene = new Scene(root);
         setScene(scene);

@@ -1,7 +1,5 @@
 package bo.firmadigital.jacobitus.escritorio.formularios;
 
-import java.io.IOException;
-
 import bo.firmadigital.jacobitus.comun.JacobitusException;
 import bo.firmadigital.jacobitus.escritorio.comun.Config;
 import bo.firmadigital.jacobitus.firmador.base.ConfiguracionFirmador;
@@ -33,13 +31,6 @@ public class FormCambiarContrasena extends Stage {
         configFirmador.setSoftoken(config.getToken());
         configFirmador.setDirectorioControladores(config.getDirectorioControladores());
         configFirmador.setDispositivosCompatibles(config.getDispositivosCompatibles());
-        configFirmador.setSelloTiempoHabilitado(config.isTSEnabled());
-        configFirmador.setApiSelloTiempo(config.getTS());
-        configFirmador.setJwtSelloTiempo(config.getTSJWT());
-        configFirmador.setHsmHabilitado(config.isHsmEnabled());
-        configFirmador.setTipoHsm(config.getHsmType());
-        configFirmador.setApiHsm(config.getHsmCloud());
-        configFirmador.setJwtHsm(config.getHsmJWT());
         return configFirmador;
     }
 

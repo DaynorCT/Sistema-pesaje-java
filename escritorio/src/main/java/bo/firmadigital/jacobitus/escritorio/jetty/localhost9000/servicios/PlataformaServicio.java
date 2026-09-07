@@ -26,11 +26,6 @@ import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.Payload;
 import com.nimbusds.jose.crypto.RSASSASigner;
 
-import bo.firmadigital.jacobitus.firmador.base.ConfiguracionFirmador;
-import bo.firmadigital.jacobitus.token.GestorSlot;
-import bo.firmadigital.jacobitus.token.IToken;
-import bo.firmadigital.jacobitus.token.Slot;
-import bo.firmadigital.jacobitus.token.TokenPKCS12;
 import bo.firmadigital.jacobitus.escritorio.comun.Config;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.TokenAutenticacionDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.TokenChangePinDto;
@@ -47,6 +42,11 @@ import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.TokenSolici
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.TokenSolicitudRespuestaDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.comun.ITokenCertificateDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.comun.RespuestaDto;
+import bo.firmadigital.jacobitus.firmador.base.ConfiguracionFirmador;
+import bo.firmadigital.jacobitus.token.GestorSlot;
+import bo.firmadigital.jacobitus.token.IToken;
+import bo.firmadigital.jacobitus.token.Slot;
+import bo.firmadigital.jacobitus.token.TokenPKCS12;
 
 public class PlataformaServicio {
     public PlataformaServicio() {
@@ -59,13 +59,6 @@ public class PlataformaServicio {
         configFirmador.setSoftoken(config.getToken());
         configFirmador.setDirectorioControladores(config.getDirectorioControladores());
         configFirmador.setDispositivosCompatibles(config.getDispositivosCompatibles());
-        // configFirmador.setSelloTiempoHabilitado(config.isTSEnabled());
-        // configFirmador.setApiSelloTiempo(config.getTS());
-        // configFirmador.setJwtSelloTiempo(config.getTSJWT());
-        // configFirmador.setHsmHabilitado(config.isHsmEnabled());
-        // configFirmador.setTipoHsm(config.getHsmType());
-        // configFirmador.setApiHsm(config.getHsmCloud());
-        // configFirmador.setJwtHsm(config.getHsmJWT());
         return configFirmador;
     }
 

@@ -12,6 +12,9 @@ import org.codehaus.jettison.json.JSONObject;
 
 import bo.firmadigital.jacobitus.comun.InfoCertificado;
 import bo.firmadigital.jacobitus.comun.JacobitusException;
+import bo.firmadigital.jacobitus.escritorio.comun.Config;
+import bo.firmadigital.jacobitus.escritorio.comun.ECA;
+import bo.firmadigital.jacobitus.escritorio.comun.TokenSelected;
 import bo.firmadigital.jacobitus.firmador.FirmadorJws;
 import bo.firmadigital.jacobitus.firmador.FirmadorPdf;
 import bo.firmadigital.jacobitus.firmador.base.ConfiguracionFirmador;
@@ -19,9 +22,6 @@ import bo.firmadigital.jacobitus.pkcs11.CK_TOKEN_INFO;
 import bo.firmadigital.jacobitus.token.GestorSlot;
 import bo.firmadigital.jacobitus.token.IToken;
 import bo.firmadigital.jacobitus.token.Slot;
-import bo.firmadigital.jacobitus.escritorio.comun.Config;
-import bo.firmadigital.jacobitus.escritorio.comun.ECA;
-import bo.firmadigital.jacobitus.escritorio.comun.TokenSelected;
 import javafx.application.Platform;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -66,13 +66,6 @@ public class FormService extends Stage {
         configFirmador.setSoftoken(config.getToken());
         configFirmador.setDirectorioControladores(config.getDirectorioControladores());
         configFirmador.setDispositivosCompatibles(config.getDispositivosCompatibles());
-        configFirmador.setSelloTiempoHabilitado(config.isTSEnabled());
-        configFirmador.setApiSelloTiempo(config.getTS());
-        configFirmador.setJwtSelloTiempo(config.getTSJWT());
-        configFirmador.setHsmHabilitado(config.isHsmEnabled());
-        configFirmador.setTipoHsm(config.getHsmType());
-        configFirmador.setApiHsm(config.getHsmCloud());
-        configFirmador.setJwtHsm(config.getHsmJWT());
         return configFirmador;
     }
 

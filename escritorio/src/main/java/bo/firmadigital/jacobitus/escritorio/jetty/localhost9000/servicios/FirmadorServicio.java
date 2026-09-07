@@ -43,14 +43,6 @@ import com.nimbusds.jose.Payload;
 import com.nimbusds.jose.crypto.RSASSASigner;
 
 import bo.firmadigital.jacobitus.comun.JacobitusException;
-import bo.firmadigital.jacobitus.firmador.FirmadorPKCS7;
-import bo.firmadigital.jacobitus.firmador.FirmadorPdf;
-import bo.firmadigital.jacobitus.firmador.FirmadorXml;
-import bo.firmadigital.jacobitus.firmador.base.IFirmador;
-import bo.firmadigital.jacobitus.firmador.base.ConfiguracionFirmador;
-import bo.firmadigital.jacobitus.token.GestorSlot;
-import bo.firmadigital.jacobitus.token.IToken;
-import bo.firmadigital.jacobitus.token.Slot;
 import bo.firmadigital.jacobitus.escritorio.comun.Config;
 import bo.firmadigital.jacobitus.escritorio.comun.TokenSelected;
 import bo.firmadigital.jacobitus.escritorio.formularios.FormAplicacion;
@@ -74,6 +66,14 @@ import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.FirmaXmlRes
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.comun.RespuestaDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.pojos.CompleteSign;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.pojos.Signs;
+import bo.firmadigital.jacobitus.firmador.FirmadorPKCS7;
+import bo.firmadigital.jacobitus.firmador.FirmadorPdf;
+import bo.firmadigital.jacobitus.firmador.FirmadorXml;
+import bo.firmadigital.jacobitus.firmador.base.ConfiguracionFirmador;
+import bo.firmadigital.jacobitus.firmador.base.IFirmador;
+import bo.firmadigital.jacobitus.token.GestorSlot;
+import bo.firmadigital.jacobitus.token.IToken;
+import bo.firmadigital.jacobitus.token.Slot;
 
 public class FirmadorServicio {
 
@@ -87,13 +87,6 @@ public class FirmadorServicio {
         configFirmador.setSoftoken(config.getToken());
         configFirmador.setDirectorioControladores(config.getDirectorioControladores());
         configFirmador.setDispositivosCompatibles(config.getDispositivosCompatibles());
-        // configFirmador.setSelloTiempoHabilitado(config.isTSEnabled());
-        // configFirmador.setApiSelloTiempo(config.getTS());
-        // configFirmador.setJwtSelloTiempo(config.getTSJWT());
-        // configFirmador.setHsmHabilitado(config.isHsmEnabled());
-        // configFirmador.setTipoHsm(config.getHsmType());
-        // configFirmador.setApiHsm(config.getHsmCloud());
-        // configFirmador.setJwtHsm(config.getHsmJWT());
         return configFirmador;
     }
 

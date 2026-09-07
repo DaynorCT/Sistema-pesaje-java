@@ -1,9 +1,6 @@
 package bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.servicios;
 
-import java.io.InputStream;
 import java.security.GeneralSecurityException;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -16,12 +13,6 @@ import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
 import bo.firmadigital.jacobitus.comun.InfoCertificado;
-import bo.firmadigital.jacobitus.firmador.base.ConfiguracionFirmador;
-import bo.firmadigital.jacobitus.firmador.base.SmartCard;
-import bo.firmadigital.jacobitus.pkcs11.CK_TOKEN_INFO;
-import bo.firmadigital.jacobitus.token.GestorSlot;
-import bo.firmadigital.jacobitus.token.IToken;
-import bo.firmadigital.jacobitus.token.Slot;
 import bo.firmadigital.jacobitus.escritorio.comun.Config;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.TokenAutenticacionDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.TokenCertificateEmisorDto;
@@ -36,6 +27,12 @@ import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.TokenPublic
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.TokenStatusDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.comun.ITokenCertificateDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.comun.RespuestaDto;
+import bo.firmadigital.jacobitus.firmador.base.ConfiguracionFirmador;
+import bo.firmadigital.jacobitus.firmador.base.SmartCard;
+import bo.firmadigital.jacobitus.pkcs11.CK_TOKEN_INFO;
+import bo.firmadigital.jacobitus.token.GestorSlot;
+import bo.firmadigital.jacobitus.token.IToken;
+import bo.firmadigital.jacobitus.token.Slot;
 
 public class TokenServicio {
     public TokenServicio() {
@@ -48,13 +45,6 @@ public class TokenServicio {
         configFirmador.setSoftoken(config.getToken());
         configFirmador.setDirectorioControladores(config.getDirectorioControladores());
         configFirmador.setDispositivosCompatibles(config.getDispositivosCompatibles());
-        // configFirmador.setSelloTiempoHabilitado(config.isTSEnabled());
-        // configFirmador.setApiSelloTiempo(config.getTS());
-        // configFirmador.setJwtSelloTiempo(config.getTSJWT());
-        // configFirmador.setHsmHabilitado(config.isHsmEnabled());
-        // configFirmador.setTipoHsm(config.getHsmType());
-        // configFirmador.setApiHsm(config.getHsmCloud());
-        // configFirmador.setJwtHsm(config.getHsmJWT());
         return configFirmador;
     }
 
