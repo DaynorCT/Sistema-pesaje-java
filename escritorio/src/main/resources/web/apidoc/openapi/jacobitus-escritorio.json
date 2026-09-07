@@ -283,6 +283,165 @@
           "validador"
         ]
       }
+    },
+    "/sign": {
+      "servers": [
+        {
+          "url": "https://localhost:4637"
+        }
+      ],
+      "post": {
+        "summary": "Firmar un lote de documentos pdf/json",
+        "operationId": "post-sign",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "files": {
+                      "$ref": "#/components/schemas/FirmaticArregloFirmadoDto",
+                      "x-stoplight": {
+                        "id": "hxwdpxzlcdh2r"
+                      }
+                    }
+                  },
+                  "required": [
+                    "files"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "x-stoplight": {
+                        "id": "4difazyg9kbtx"
+                      }
+                    },
+                    "error": {
+                      "type": "string",
+                      "x-stoplight": {
+                        "id": "c7co8f2glcvm5"
+                      }
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "firmatic"
+        ],
+        "description": "Permite firmar un lote de archivos en formato pdf o json.",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/FirmaticSign"
+        }
+      }
+    },
+    "/sign-hash": {
+      "servers": [
+        {
+          "url": "https://localhost:4637"
+        }
+      ],
+      "post": {
+        "summary": "Firmar hash",
+        "operationId": "post-sign-hash",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "files": {
+                      "$ref": "#/components/schemas/FirmaticArregloHashFirmadoDto",
+                      "x-stoplight": {
+                        "id": "pf9bqtpqftdnb"
+                      }
+                    },
+                    "certificate": {
+                      "type": "string",
+                      "x-stoplight": {
+                        "id": "b8ft0tnpara54"
+                      }
+                    },
+                    "certificateChain": {
+                      "type": "string",
+                      "x-stoplight": {
+                        "id": "1dq6ozh10sdwx"
+                      }
+                    },
+                    "encryptionAlgorithm": {
+                      "type": "string",
+                      "x-stoplight": {
+                        "id": "r19txb32nc84b"
+                      }
+                    }
+                  },
+                  "required": [
+                    "files",
+                    "certificate",
+                    "certificateChain",
+                    "encryptionAlgorithm"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "x-stoplight": {
+                        "id": "4oyrdtymt7w0a"
+                      }
+                    },
+                    "error": {
+                      "type": "string",
+                      "x-stoplight": {
+                        "id": "10rcohcau9zd2"
+                      }
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "firmatic"
+        ],
+        "description": "Permite firmar una cadeda hash.",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/FirmaticSignHash"
+        }
+      }
     }
   },
   "components": {
@@ -946,6 +1105,137 @@
         "required": [
           "file"
         ]
+      },
+      "FirmaticArregloDto": {
+        "title": "FirmaticArregloDto",
+        "x-stoplight": {
+          "id": "2btumnpigmc83"
+        },
+        "type": "array",
+        "items": {
+          "x-stoplight": {
+            "id": "f71iibhjy389g"
+          },
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "x-stoplight": {
+                "id": "gfd0si41sen64"
+              }
+            },
+            "base64": {
+              "type": "string",
+              "x-stoplight": {
+                "id": "o88iaqem30ftd"
+              }
+            }
+          },
+          "required": [
+            "name",
+            "base64"
+          ]
+        }
+      },
+      "FirmaticArregloFirmadoDto": {
+        "title": "FirmaticArregloFirmadoDto",
+        "x-stoplight": {
+          "id": "ykpivghmcyct6"
+        },
+        "type": "array",
+        "items": {
+          "x-stoplight": {
+            "id": "sjrinpfng88bb"
+          },
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "x-stoplight": {
+                "id": "pns9jefa7otrt"
+              }
+            },
+            "base64": {
+              "type": "string",
+              "x-stoplight": {
+                "id": "rglsgif28ey0u"
+              }
+            }
+          },
+          "required": [
+            "name",
+            "base64"
+          ]
+        }
+      },
+      "FirmaticArregloHashDto": {
+        "title": "FirmaticArregloHashDto",
+        "x-stoplight": {
+          "id": "aw6z7di21vaku"
+        },
+        "type": "array",
+        "items": {
+          "x-stoplight": {
+            "id": "x8aln063pvwlf"
+          },
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "x-stoplight": {
+                "id": "sk0ylvvwz2jb3"
+              }
+            },
+            "base64": {
+              "type": "string",
+              "x-stoplight": {
+                "id": "96e4ypnzvaw88"
+              }
+            },
+            "date": {
+              "type": "string",
+              "x-stoplight": {
+                "id": "pxvk07odggay4"
+              }
+            }
+          },
+          "required": [
+            "id",
+            "base64",
+            "date"
+          ]
+        }
+      },
+      "FirmaticArregloHashFirmadoDto": {
+        "title": "FirmaticArregloHashFirmadoDto",
+        "x-stoplight": {
+          "id": "dhk4vms1fvpm5"
+        },
+        "type": "array",
+        "items": {
+          "x-stoplight": {
+            "id": "3ldsh0bxxrjgr"
+          },
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "string",
+              "x-stoplight": {
+                "id": "00nb9r5ad1ooc"
+              }
+            },
+            "algorithm": {
+              "type": "string",
+              "x-stoplight": {
+                "id": "nhb8f8psjaq3v"
+              }
+            }
+          },
+          "required": [
+            "value",
+            "algorithm"
+          ]
+        }
       }
     },
     "securitySchemes": {},
@@ -1897,6 +2187,78 @@
             }
           }
         }
+      },
+      "FirmaticSign": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "archivo": {
+                  "$ref": "#/components/schemas/FirmaticArregloDto",
+                  "x-stoplight": {
+                    "id": "5w5scv9n60hpc"
+                  }
+                },
+                "ci": {
+                  "type": "string",
+                  "x-stoplight": {
+                    "id": "mqj265neq1bhz"
+                  }
+                },
+                "format": {
+                  "type": "string",
+                  "x-stoplight": {
+                    "id": "euiximkltahri"
+                  }
+                },
+                "getcertificate": {
+                  "type": "boolean",
+                  "x-stoplight": {
+                    "id": "iu0ca6w4gkaew"
+                  }
+                }
+              },
+              "required": [
+                "archivo",
+                "format"
+              ]
+            }
+          }
+        }
+      },
+      "FirmaticSignHash": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "archivo": {
+                  "$ref": "#/components/schemas/FirmaticArregloHashDto",
+                  "x-stoplight": {
+                    "id": "govzf5pemq84f"
+                  }
+                },
+                "ci": {
+                  "type": "string",
+                  "x-stoplight": {
+                    "id": "uhfd2kcv2n5il"
+                  }
+                },
+                "format": {
+                  "type": "string",
+                  "x-stoplight": {
+                    "id": "yiz9bs10u2dwi"
+                  }
+                }
+              },
+              "required": [
+                "archivo",
+                "format"
+              ]
+            }
+          }
+        }
       }
     }
   },
@@ -1907,7 +2269,8 @@
         "estado",
         "token",
         "firmador",
-        "validador"
+        "validador",
+        "firmatic"
       ]
     }
   ],
@@ -1930,6 +2293,11 @@
     {
       "name": "validador",
       "x-displayName": "Validador",
+      "description": ""
+    },
+    {
+      "name": "firmatic",
+      "x-displayName": "Firmatic",
       "description": ""
     }
   ]
