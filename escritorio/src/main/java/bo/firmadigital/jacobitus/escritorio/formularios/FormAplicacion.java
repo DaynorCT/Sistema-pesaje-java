@@ -1489,14 +1489,14 @@ public class FormAplicacion extends Application {
         }
     }
 
-    public static TokenSelected service(Slot slot, String ci, JSONArray files) {
+    public static TokenSelected service(Slot slot, String ci, JSONArray pdfArray) {
         if (tokenSelected.isShown()) {
             throw new JacobitusException("Ya se tiene una solicitud de firma pendiente.");
         }
         Platform.runLater(() -> {
             tokenSelected.setSlot(slot);
             tokenSelected.setCI(ci);
-            tokenSelected.setFiles(files);
+            tokenSelected.setFiles(pdfArray);
             tokenSelected.setFilesJson(null);
             FormService service = new FormService(stage, tokenSelected, "pades");
             service.showAndWait();
@@ -1508,15 +1508,15 @@ public class FormAplicacion extends Application {
         return tokenSelected;
     }
 
-    public static TokenSelected serviceJWS(Slot slot, String ci, JSONArray files) {
+    public static TokenSelected serviceJWS(Slot slot, String ci, JSONArray jsonArray) {
         if (tokenSelected.isShown()) {
             throw new JacobitusException("Ya se tiene una solicitud de firma pendiente.");
         }
         Platform.runLater(() -> {
             tokenSelected.setSlot(slot);
             tokenSelected.setCI(ci);
-            tokenSelected.setFiles(files);
-            tokenSelected.setFilesJson(null);
+            tokenSelected.setFiles(null);
+            tokenSelected.setFilesJson(jsonArray);
             FormService service = new FormService(stage, tokenSelected, "jws");
             service.showAndWait();
             synchronized (tokenSelected) {
@@ -1527,7 +1527,7 @@ public class FormAplicacion extends Application {
         return tokenSelected;
     }
 
-    public static TokenSelected service(Slot[] slots, String ci, JSONArray pdfs, JSONArray jsons) {
+    public static TokenSelected service(Slot[] slots, String ci, JSONArray pdfArray, JSONArray jsonArray) {
         if (tokenSelected.isShown()) {
             throw new JacobitusException("Ya se tiene una solicitud de firma pendiente.");
         }
@@ -1535,9 +1535,29 @@ public class FormAplicacion extends Application {
             tokenSelected.setSlot(null);
             tokenSelected.setSlots(slots);
             tokenSelected.setCI(ci);
-            tokenSelected.setFiles(pdfs);
-            tokenSelected.setFilesJson(jsons);
+            tokenSelected.setFiles(pdfArray);
+            tokenSelected.setFilesJson(jsonArray);
             FormService service = new FormService(stage, tokenSelected, "both");
+            service.showAndWait();
+            synchronized (tokenSelected) {
+                tokenSelected.notify();
+            }
+        });
+        tokenSelected.showAndWait();
+        return tokenSelected;
+    }
+
+    public static TokenSelected serviceHash(Slot slot, String ci, JSONArray hashArray) {
+        if (tokenSelected.isShown()) {
+            throw new JacobitusException("Ya se tiene una solicitud de firma pendiente.");
+        }
+        Platform.runLater(() -> {
+            tokenSelected.setSlot(slot);
+            tokenSelected.setCI(ci);
+            tokenSelected.setFiles(null);
+            tokenSelected.setFilesJson(null);
+            tokenSelected.setHashArray(hashArray);
+            FormService service = new FormService(stage, tokenSelected, "pades_hash");
             service.showAndWait();
             synchronized (tokenSelected) {
                 tokenSelected.notify();

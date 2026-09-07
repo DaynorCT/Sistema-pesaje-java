@@ -1,5 +1,6 @@
 package bo.firmadigital.jacobitus.escritorio.comun;
 
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -20,6 +21,12 @@ public class TokenSelected {
     private String CI;
     private JSONArray files;
     private JSONArray filesJson;
+    private JSONArray hashArray;
+    
+    private String certificate;
+    private List<String> certificateChain;
+    private String encryptionAlgorithm;
+
     @Setter(AccessLevel.NONE)
     private boolean shown;
 

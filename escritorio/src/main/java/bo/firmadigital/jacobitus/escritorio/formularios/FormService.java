@@ -4,6 +4,10 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.security.KeyStoreException;
+import java.security.PrivateKey;
+import java.security.Signature;
+import java.time.OffsetDateTime;
 import java.util.Base64;
 import java.util.List;
 
@@ -137,8 +141,11 @@ public class FormService extends Stage {
         cbInfoCertificado.prefWidthProperty().bind(root.widthProperty());
         cbInfoCertificado.setPrefHeight(55);
         root.add(cbInfoCertificado, 0, 1 + r, 2, 1);
-        estado = new Label("Archivos: 0 de " + (tokenSelected.getFiles().length()
-                + (tokenSelected.getFilesJson() == null ? 0 : tokenSelected.getFilesJson().length())));
+        estado = new Label("Archivos: 0 de " + (
+            (tokenSelected.getFiles() == null ? 0 : tokenSelected.getFiles().length()) + 
+            (tokenSelected.getFilesJson() == null ? 0 : tokenSelected.getFilesJson().length()) +
+            (tokenSelected.getHashArray() == null ? 0 : tokenSelected.getHashArray().length())
+        ));
         root.add(estado, 0, 2 + r, 2, 1);
         progressBar = new ProgressBar();
         progressBar.prefWidthProperty().bind(root.widthProperty());
@@ -177,10 +184,13 @@ public class FormService extends Stage {
         Task<Boolean> task = new Task<Boolean>() {
             @Override
             protected Boolean call() throws Exception {
-                final JSONArray files = tokenSelected.getFiles();
+                final JSONArray filesPdf = tokenSelected.getFiles() == null ? new JSONArray()
+                        : tokenSelected.getFiles();
                 final JSONArray filesJson = tokenSelected.getFilesJson() == null ? new JSONArray()
                         : tokenSelected.getFilesJson();
-                if (files.length() + filesJson.length() == 0) {
+                final JSONArray hashArray = tokenSelected.getHashArray() == null ? new JSONArray()
+                        : tokenSelected.getHashArray();
+                if (filesPdf.length() + filesJson.length() + hashArray.length() == 0) {
                     updateProgress(100, 100);
                 } else {
                     GestorSlot gestorSlot = GestorSlot.getInstance();
@@ -190,23 +200,23 @@ public class FormService extends Stage {
                     if (format == "both") {
                         JSONArray arr = new JSONArray();
                         int i;
-                        for (i = 0; i < files.length(); i++) {
+                        for (i = 0; i < filesPdf.length(); i++) {
                             try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-                                String[] base64 = files.getJSONObject(i).getString("pdf").split("base64,");
+                                String[] base64 = filesPdf.getJSONObject(i).getString("pdf").split("base64,");
                                 byte[] file = Base64.getDecoder().decode(base64.length == 2 ? base64[1] : base64[0]);
                                 FirmadorPdf.firmar(new ByteArrayInputStream(file), out, false, token,
                                         tokenSelected.getAlias());
                                 JSONObject obj = new JSONObject();
-                                if (!files.getJSONObject(i).isNull("pdf")) {
-                                    obj.put("id", files.getJSONObject(i).getString("id"));
+                                if (!filesPdf.getJSONObject(i).isNull("pdf")) {
+                                    obj.put("id", filesPdf.getJSONObject(i).getString("id"));
                                     obj.put("pdf_firmado", Base64.getEncoder().encodeToString(out.toByteArray()));
                                 }
                                 arr.put(obj);
                                 final int a = i + 1;
                                 Platform.runLater(() -> {
-                                    estado.setText("Archivos: " + a + " de " + (files.length() + filesJson.length()));
+                                    estado.setText("Archivos: " + a + " de " + (filesPdf.length() + filesJson.length()));
                                 });
-                                updateProgress(a, files.length() + filesJson.length());
+                                updateProgress(a, filesPdf.length() + filesJson.length());
                             } catch (RuntimeException ex) {
                                 token.salir();
                                 throw new CustomException(ex.getMessage());
@@ -227,9 +237,9 @@ public class FormService extends Stage {
                                 arrJson.put(obj);
                                 final int a = i + j + 1;
                                 Platform.runLater(() -> {
-                                    estado.setText("Archivos: " + a + " de " + (files.length() + filesJson.length()));
+                                    estado.setText("Archivos: " + a + " de " + (filesPdf.length() + filesJson.length()));
                                 });
-                                updateProgress(a, files.length() + filesJson.length());
+                                updateProgress(a, filesPdf.length() + filesJson.length());
                             } catch (RuntimeException ex) {
                                 token.salir();
                                 throw new CustomException(ex.getMessage());
@@ -238,10 +248,29 @@ public class FormService extends Stage {
                         tokenSelected.setFilesJson(arrJson);
                     } else {
                         /* Compatibilidad Firmatic */
-                        JSONArray arr = new JSONArray();
+                        JSONArray filesFirmados = new JSONArray();
+                        JSONArray files = new JSONArray();
+                        switch (format) {
+                            case "pades":
+                                files = filesPdf;
+                                break;
+                            case "jws":
+                                files = filesJson;
+                                break;
+                            case "pades_hash":
+                                files = hashArray;
+                                break;
+                            default:
+                                throw new JacobitusException(String.format("Formato %s no admitido.", format));                            
+                        }
                         int i;
                         for (i = 0; i < files.length(); i++) {
                             try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                                if(format.equals("pades_hash")) {
+                                    String dateString = files.getJSONObject(i).getString("date");
+                                    OffsetDateTime.parse(dateString);
+                                }
+
                                 String[] base64 = files.getJSONObject(i).getString("base64").split("base64,");
                                 byte[] file = Base64.getDecoder().decode(base64.length == 2 ? base64[1] : base64[0]);
                                 switch (format) {
@@ -253,26 +282,46 @@ public class FormService extends Stage {
                                         FirmadorJws.firmar(new ByteArrayInputStream(file), out, false, token,
                                                 tokenSelected.getAlias());
                                         break;
+                                    case "pades_hash":
+                                        Signature signature = Signature.getInstance("SHA256withRSA");
+                                        PrivateKey pk = token.obtenerClavePrivada(tokenSelected.getAlias());
+                                        if (pk == null) {
+                                            token.salir();
+                                            throw new KeyStoreException("No se encontró la clave con alias: " + tokenSelected.getAlias());
+                                        }
+                                        signature.initSign(pk);
+                                        signature.update(Base64.getDecoder().decode(file));
+                                        byte[] signed = signature.sign();
+                                        out.write(signed);
+                                        break;
                                     default:
                                         throw new JacobitusException(String.format("Formato %s no admitido.", format));
                                 }
                                 JSONObject obj = new JSONObject();
                                 if (!files.getJSONObject(i).isNull("base64")) {
-                                    obj.put("name", files.getJSONObject(i).getString("name"));
-                                    obj.put("base64", Base64.getEncoder().encodeToString(out.toByteArray()));
+                                    if (format.equals("pades_hash")) {
+                                        obj.put("value", Base64.getEncoder().encodeToString(out.toByteArray()));
+                                        obj.put("algorithm", "");
+                                    } else {
+                                        obj.put("name", files.getJSONObject(i).getString("name"));
+                                        obj.put("base64", Base64.getEncoder().encodeToString(out.toByteArray()));
+                                    }
                                 }
-                                arr.put(obj);
+                                filesFirmados.put(obj);
                                 final int a = i + 1;
                                 Platform.runLater(() -> {
-                                    estado.setText("Archivos: " + a + " de " + (files.length() + filesJson.length()));
+                                    estado.setText("Archivos: " + a + " de " + (filesPdf.length() + filesJson.length() + hashArray.length()));
                                 });
-                                updateProgress(a, files.length() + filesJson.length());
+                                updateProgress(a, filesPdf.length() + filesJson.length() + hashArray.length());
+                            } catch (IllegalArgumentException ex) {
+                                token.salir();
+                                throw new CustomException("Uno o más parámetros tienen problemas.");
                             } catch (RuntimeException ex) {
                                 token.salir();
                                 throw new CustomException(ex.getMessage());
                             }
                         }
-                        tokenSelected.setFiles(arr);
+                        tokenSelected.setFiles(filesFirmados);
                         /* FIN - Compatibilidad Firmatic */
                     }
                     token.salir();

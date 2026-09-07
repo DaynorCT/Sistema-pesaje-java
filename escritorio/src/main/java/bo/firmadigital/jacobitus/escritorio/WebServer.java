@@ -66,10 +66,10 @@ public class WebServer {
         servletContextHandler4637.addFilter(filterHolder, "/*", null);
         servletContextHandler4637.addServlet(staticResource, "/");
         if (config.isSecondaryPortEnabled()) {
-            ServletHolder servletHolder4637 = servletContextHandler4637.addServlet(ServletContainer.class, "/sign");
+            ServletHolder servletHolder4637 = servletContextHandler4637.addServlet(ServletContainer.class, "/*");
             servletHolder4637.setInitOrder(1);
-            servletHolder4637.setInitParameter("jersey.config.server.provider.classnames",
-                    "bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.FirmadorRest");
+            servletHolder4637.setInitParameter("jersey.config.server.provider.packages",
+                    "bo.firmadigital.jacobitus.escritorio.jetty.localhost4637");
         }
 
         // https://localhost:3200

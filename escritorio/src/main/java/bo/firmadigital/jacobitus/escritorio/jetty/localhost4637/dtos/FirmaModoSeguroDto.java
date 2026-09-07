@@ -12,7 +12,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class FirmaModoSeguroDto {
-    private Boolean software = false;
     private String ci;
     private String format;
     private String language;
