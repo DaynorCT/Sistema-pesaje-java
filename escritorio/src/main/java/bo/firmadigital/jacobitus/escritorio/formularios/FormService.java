@@ -7,9 +7,12 @@ import java.security.GeneralSecurityException;
 import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.Signature;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
@@ -228,6 +231,16 @@ public class FormService extends Stage {
                             token.salir();
                             throw new CustomException("El CI del token no corresponde con el CI de la persona para la que se solicitó la firma.");
                         }
+                    }
+                    if (format.equals("pades_hash")) {
+                        X509Certificate certificado = token.obtenerCertificado(tokenSelected.getAlias());
+                        tokenSelected.setCertificate(Base64.getEncoder().encodeToString(certificado.getEncoded()));
+                        List<String> cadena = new ArrayList<>();
+                        for (Certificate c : token.getCertificateChain(tokenSelected.getAlias())) {
+                            cadena.add(Base64.getEncoder().encodeToString(c.getEncoded()));
+                        }
+                        tokenSelected.setCertificateChain(cadena);
+                        tokenSelected.setEncryptionAlgorithm(certificado.getPublicKey().getAlgorithm());
                     }
                     if (format == "both") {
                         JSONArray arr = new JSONArray();
