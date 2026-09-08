@@ -23,6 +23,7 @@ public class TokenSelected {
     private JSONArray filesJson;
     private JSONArray hashArray;
     private String digest;
+    private String errorMessage;
 
     private String certificate;
     private List<String> certificateChain;

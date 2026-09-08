@@ -1,5 +1,8 @@
 package bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.servicios;
 
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -12,6 +15,7 @@ import bo.firmadigital.jacobitus.escritorio.comun.Config;
 import bo.firmadigital.jacobitus.escritorio.comun.TokenSelected;
 import bo.firmadigital.jacobitus.escritorio.formularios.FormAplicacion;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.ErrorRespuestaDto;
+import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.FirmaHashItemDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.FirmaHashItemRespuestaDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.FirmaHashModoSeguroDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.FirmaHashModoSeguroRespuestaDto;
@@ -100,6 +104,25 @@ public class FirmadorServicio {
                 throw new JacobitusException("Formato no soportado.");
             }
 
+            List<FirmaHashItemDto> archivoItems = objetoDto.getArchivo();
+            if (archivoItems == null || archivoItems.isEmpty()) {
+                throw new JacobitusException("El campo archivo es obligatorio.");
+            }
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSZ");
+            for (FirmaHashItemDto item : archivoItems) {
+                if (item.getBase64() == null || item.getBase64().isEmpty()) {
+                    throw new JacobitusException("El campo archivo[].base64 es obligatorio.");
+                }
+                if (item.getDate() == null) {
+                    throw new JacobitusException("El campo archivo[].date es obligatorio.");
+                }
+                try {
+                    OffsetDateTime.parse(item.getDate(), dateFormatter);
+                } catch (DateTimeParseException ex) {
+                    throw new JacobitusException("Formato de fecha inválido. Formato esperado: yyyy-MM-dd HH:mm:ss.SSSZ");
+                }
+            }
+
             String ci = objetoDto.getCi();
             JSONArray archivo = new JSONArray(om.writeValueAsString(objetoDto.getArchivo()));
 
@@ -123,7 +146,9 @@ public class FirmadorServicio {
                 respuestaDto.setEncryptionAlgorithm(dt.getEncryptionAlgorithm());
                 return respuestaDto;
             } else {
-                errorDto.setMessage("Se canceló la firma del documento");
+                String detalle = dt.getErrorMessage() != null ? dt.getErrorMessage() : "Se canceló la firma del documento";
+                errorDto.setMessage(detalle);
+                errorDto.setError(detalle);
                 return errorDto;
             }
         } catch (JSONException | RuntimeException ex) {

@@ -102,6 +102,7 @@ public class FormService extends Stage {
         initModality(Modality.APPLICATION_MODAL);
         tokenSelected.setAlias(null);
         tokenSelected.setPin(null);
+        tokenSelected.setErrorMessage(null);
         this.tokenSelected = tokenSelected;
         this.format = format;
         GridPane root = new GridPane();
@@ -384,6 +385,7 @@ public class FormService extends Stage {
         task.setOnFailed((WorkerStateEvent evt) -> {
             tokenSelected.setAlias(null);
             tokenSelected.setPin(null);
+            tokenSelected.setErrorMessage(task.getException().getMessage());
             Alert alert = new Alert(AlertType.WARNING, task.getException().getMessage(), ButtonType.OK);
             alert.initOwner(this);
             alert.initModality(Modality.APPLICATION_MODAL);
