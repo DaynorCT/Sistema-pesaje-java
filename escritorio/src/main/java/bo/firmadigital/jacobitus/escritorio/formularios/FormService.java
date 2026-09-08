@@ -8,6 +8,8 @@ import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.Signature;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Base64;
 import java.util.List;
 
@@ -268,7 +270,12 @@ public class FormService extends Stage {
                             try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
                                 if(format.equals("pades_hash")) {
                                     String dateString = files.getJSONObject(i).getString("date");
-                                    OffsetDateTime.parse(dateString);
+                                    DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSZ");
+                                    try {
+                                        OffsetDateTime.parse(dateString, dateFormatter);
+                                    } catch (DateTimeParseException ex) {
+                                        throw new CustomException("Formato de fecha inválido. Formato esperado: yyyy-MM-dd HH:mm:ss.SSSZ");
+                                    }
                                 }
 
                                 String[] base64 = files.getJSONObject(i).getString("base64").split("base64,");
@@ -290,7 +297,7 @@ public class FormService extends Stage {
                                             throw new KeyStoreException("No se encontró la clave con alias: " + tokenSelected.getAlias());
                                         }
                                         signature.initSign(pk);
-                                        signature.update(Base64.getDecoder().decode(file));
+                                        signature.update(file);
                                         byte[] signed = signature.sign();
                                         out.write(signed);
                                         break;

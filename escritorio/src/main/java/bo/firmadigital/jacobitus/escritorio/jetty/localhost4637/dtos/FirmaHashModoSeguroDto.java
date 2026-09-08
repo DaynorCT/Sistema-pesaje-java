@@ -15,5 +15,6 @@ public class FirmaHashModoSeguroDto {
     private String ci;
     private String format;
     private String language;
+    private String digest;
     private List<FirmaHashItemDto> archivo;
 }
