@@ -199,6 +199,18 @@ public class FormService extends Stage {
                     gestorSlot.setConfigFirmador(getConfigFirmador());
                     IToken token = gestorSlot.obtenerSlot(tokenSelected.getSlot().getSlotID()).getToken();
                     token.iniciar(tokenSelected.getPin());
+                    if (tokenSelected.getCI() != null) {
+                        InfoCertificado infoCertificado = new InfoCertificado(tokenSelected.getAlias(),
+                                token.obtenerCertificado(tokenSelected.getAlias()));
+                        String numDocumento = infoCertificado.getInfoSujeto().getNumeroDocumento();
+                        if (!infoCertificado.getInfoSujeto().getComplemento().equals("")) {
+                            numDocumento += "-" + infoCertificado.getInfoSujeto().getComplemento();
+                        }
+                        if (!tokenSelected.getCI().equals(numDocumento)) {
+                            token.salir();
+                            throw new CustomException("El CI del token no corresponde con el CI de la persona para la que se solicitó la firma.");
+                        }
+                    }
                     if (format == "both") {
                         JSONArray arr = new JSONArray();
                         int i;
@@ -364,18 +376,8 @@ public class FormService extends Stage {
             listaInfoCertificado.clear();
             for (String alias : listaAlias) {
                 InfoCertificado infoCertificado = new InfoCertificado(alias, token.obtenerCertificado(alias));
-                String numDocumento = infoCertificado.getInfoSujeto().getNumeroDocumento();
-                if (!infoCertificado.getInfoSujeto().getComplemento().equals("")) {
-                    numDocumento += "-" + infoCertificado.getInfoSujeto().getComplemento();
-                }
                 if (ECA.esValida(infoCertificado) && ECA.esPublica(infoCertificado)) {
-                    if (tokenSelected.getCI() == null || tokenSelected.getCI().equals(numDocumento)) {
-                        listaInfoCertificado.add(infoCertificado);
-                    }
-                    else {
-                        message.setText("No se encontró ningún certificado para el ci: " + tokenSelected.getCI());
-                        buttonFirmar.setDisable(true);
-                    }
+                    listaInfoCertificado.add(infoCertificado);
                 } else {
                     message.setText("Certificado no emitido por la ECP.");
                     buttonFirmar.setDisable(true);
