@@ -221,7 +221,7 @@ public class FormService extends Stage {
                     gestorSlot.setConfigFirmador(getConfigFirmador());
                     IToken token = gestorSlot.obtenerSlot(tokenSelected.getSlot().getSlotID()).getToken();
                     token.iniciar(tokenSelected.getPin());
-                    if (tokenSelected.getCI() != null) {
+                    if (format.equals("pades_hash") && tokenSelected.getCI() != null) {
                         InfoCertificado infoCertificado = new InfoCertificado(tokenSelected.getAlias(),
                                 token.obtenerCertificado(tokenSelected.getAlias()));
                         String numDocumento = infoCertificado.getInfoSujeto().getNumeroDocumento();
@@ -411,7 +411,20 @@ public class FormService extends Stage {
             for (String alias : listaAlias) {
                 InfoCertificado infoCertificado = new InfoCertificado(alias, token.obtenerCertificado(alias));
                 if (ECA.esValida(infoCertificado) && ECA.esPublica(infoCertificado)) {
-                    listaInfoCertificado.add(infoCertificado);
+                    if (format.equals("pades_hash")) {
+                        listaInfoCertificado.add(infoCertificado);
+                    } else {
+                        String numDocumento = infoCertificado.getInfoSujeto().getNumeroDocumento();
+                        if (!infoCertificado.getInfoSujeto().getComplemento().equals("")) {
+                            numDocumento += "-" + infoCertificado.getInfoSujeto().getComplemento();
+                        }
+                        if (tokenSelected.getCI() == null || tokenSelected.getCI().equals(numDocumento)) {
+                            listaInfoCertificado.add(infoCertificado);
+                        } else {
+                            message.setText("No se encontró ningún certificado para el ci: " + tokenSelected.getCI());
+                            buttonFirmar.setDisable(true);
+                        }
+                    }
                 } else {
                     message.setText("Certificado no emitido por la ECP.");
                     buttonFirmar.setDisable(true);
