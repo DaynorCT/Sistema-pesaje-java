@@ -111,9 +111,9 @@ public class FirmadorServicio {
             }
             TokenSelected dt;
             if (ci != null) {
-                dt = FormAplicacion.serviceHash(slots[0], ci, archivo);    
+                dt = FormAplicacion.serviceHash(slots[0], ci, archivo, objetoDto.getDigest());
             } else {
-                dt = FormAplicacion.serviceHash(slots[0], null, archivo);    
+                dt = FormAplicacion.serviceHash(slots[0], null, archivo, objetoDto.getDigest());
             }
             if (dt.getAlias() != null && dt.getPin() != null) {
                 List<FirmaHashItemRespuestaDto> lista = Arrays.asList(om.readValue(dt.getFiles().toString(), FirmaHashItemRespuestaDto[].class));

@@ -75,6 +75,24 @@ public class FormService extends Stage {
         return configFirmador;
     }
 
+    private String resolverDigest(String digest) {
+        if (digest == null) {
+            return "SHA256";
+        }
+        switch (digest.toLowerCase()) {
+            case "sha1":
+                return "SHA1";
+            case "sha224":
+                return "SHA224";
+            case "sha256":
+                return "SHA256";
+            case "sha384":
+                return "SHA384";
+            default:
+                return "SHA512";
+        }
+    }
+
     public FormService(Stage parent, TokenSelected tokenSelected, String format) {
         setTitle("Pin del token");
         initOwner(parent);
@@ -292,6 +310,7 @@ public class FormService extends Stage {
 
                                 String[] base64 = files.getJSONObject(i).getString("base64").split("base64,");
                                 byte[] file = Base64.getDecoder().decode(base64.length == 2 ? base64[1] : base64[0]);
+                                String digestName = format.equals("pades_hash") ? resolverDigest(tokenSelected.getDigest()) : null;
                                 switch (format) {
                                     case "pades":
                                         FirmadorPdf.firmar(new ByteArrayInputStream(file), out, false, token,
@@ -302,7 +321,7 @@ public class FormService extends Stage {
                                                 tokenSelected.getAlias());
                                         break;
                                     case "pades_hash":
-                                        Signature signature = Signature.getInstance("SHA256withRSA");
+                                        Signature signature = Signature.getInstance(digestName + "withRSA");
                                         PrivateKey pk = token.obtenerClavePrivada(tokenSelected.getAlias());
                                         if (pk == null) {
                                             token.salir();
@@ -320,7 +339,7 @@ public class FormService extends Stage {
                                 if (!files.getJSONObject(i).isNull("base64")) {
                                     if (format.equals("pades_hash")) {
                                         obj.put("value", Base64.getEncoder().encodeToString(out.toByteArray()));
-                                        obj.put("algorithm", "");
+                                        obj.put("algorithm", "RSA_" + digestName);
                                     } else {
                                         obj.put("name", files.getJSONObject(i).getString("name"));
                                         obj.put("base64", Base64.getEncoder().encodeToString(out.toByteArray()));

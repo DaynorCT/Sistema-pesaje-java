@@ -22,7 +22,8 @@ public class TokenSelected {
     private JSONArray files;
     private JSONArray filesJson;
     private JSONArray hashArray;
-    
+    private String digest;
+
     private String certificate;
     private List<String> certificateChain;
     private String encryptionAlgorithm;

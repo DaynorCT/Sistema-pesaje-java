@@ -1547,7 +1547,7 @@ public class FormAplicacion extends Application {
         return tokenSelected;
     }
 
-    public static TokenSelected serviceHash(Slot slot, String ci, JSONArray hashArray) {
+    public static TokenSelected serviceHash(Slot slot, String ci, JSONArray hashArray, String digest) {
         if (tokenSelected.isShown()) {
             throw new JacobitusException("Ya se tiene una solicitud de firma pendiente.");
         }
@@ -1557,6 +1557,7 @@ public class FormAplicacion extends Application {
             tokenSelected.setFiles(null);
             tokenSelected.setFilesJson(null);
             tokenSelected.setHashArray(hashArray);
+            tokenSelected.setDigest(digest);
             FormService service = new FormService(stage, tokenSelected, "pades_hash");
             service.showAndWait();
             synchronized (tokenSelected) {
