@@ -96,7 +96,6 @@ import javafx.scene.input.Dragboard;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
@@ -542,9 +541,9 @@ public class FormAplicacion extends Application {
         menuBar.getMenus().add(firmaMenu);
 
         Menu ayudaMenu = new Menu("Ayuda");
-        MenuItem servicioItem = new MenuItem("Verificar servicio");
-        servicioItem.setOnAction((ActionEvent e) -> {
-            new Thread(verificarServicio(version)).start();
+        MenuItem certificadoLocalItem = new MenuItem("Verificar servicio");
+        certificadoLocalItem.setOnAction((ActionEvent e) -> {
+            new Thread(configurarCertificadoLocal()).start();
         });
 
         MenuItem acercaDeItem = new MenuItem("Acerca de ...");
@@ -612,7 +611,7 @@ public class FormAplicacion extends Application {
         });
 
         SeparatorMenuItem separador = new SeparatorMenuItem();
-        ayudaMenu.getItems().addAll(servicioItem, separador, acercaDeItem);
+        ayudaMenu.getItems().addAll(certificadoLocalItem, separador, acercaDeItem);
         menuBar.getMenus().add(ayudaMenu);
         root.setTop(menuBar);
 
@@ -1309,144 +1308,246 @@ public class FormAplicacion extends Application {
         return task;
     }
 
-    public Task<Void> verificarServicio(String version) {
+    public Task<Void> configurarCertificadoLocal() {
         Task<Void> task = new Task<Void>() {
             @Override
             protected Void call() throws Exception {
                 Platform.runLater(() -> {
                     stage.getScene().setCursor(Cursor.WAIT);
-                    String certificadoServicioLocal = "";
-                    boolean certificadoServicioLocalInstalado = false;
-                    boolean errorCertificadoServicioLocalInstalado = false;
+
+                    String estadoCertificado = "";
+                    boolean certificadoInstalado = false;
+                    boolean errorVerificacion = false;
+
                     try {
                         if (SistemaOperativoHelper.esMacOS()) {
                             FormContrasenaMac contrasena = new FormContrasenaMac(stage);
                             contrasena.showAndWait();
                             FormAplicacion.contraseniaMacOS = contrasena.getPass();
+
                             if (FormAplicacion.contraseniaMacOS == null) {
+                                stage.getScene().setCursor(Cursor.DEFAULT);
                                 return;
                             }
                         } else {
                             FormAplicacion.contraseniaMacOS = null;
                         }
+
                         if (SistemaOperativoHelper.esMacOS()) {
-                            certificadoServicioLocalInstalado = CertUtil
+                            certificadoInstalado = CertUtil
                                     .verificarCertificadoServicioLocal(FormAplicacion.contraseniaMacOS);
                         } else {
-                            certificadoServicioLocalInstalado = CertUtil.verificarCertificadoServicioLocal();
+                            certificadoInstalado = CertUtil.verificarCertificadoServicioLocal();
                         }
-                        if (certificadoServicioLocalInstalado) {
-                            certificadoServicioLocal = "Certificado de servicio local instalado";
-                        } else {
-                            certificadoServicioLocal = "Certificado de servicio local sin instalar";
-                        }
+
+                        estadoCertificado = certificadoInstalado
+                                ? "✔ Instalado"
+                                : "No instalado";
+
                     } catch (IOException e1) {
-                        certificadoServicioLocal = "Problemas al verificar certificado de servicio local";
-                        errorCertificadoServicioLocalInstalado = true;
+                        estadoCertificado = "No se pudo verificar";
+                        errorVerificacion = true;
                     }
 
-                    ImageView logo = new ImageView(new Image(
-                            this.getClass().getClassLoader().getResource("logo-agetic-sin-tag.png").toExternalForm()));
-                    logo.setFitWidth(280);
+                    ImageView logo = new ImageView(
+                            new Image(
+                                    this.getClass()
+                                            .getClassLoader()
+                                            .getResource("logo-agetic-sin-tag.png")
+                                            .toExternalForm()));
+
+                    logo.setFitWidth(180);
                     logo.setPreserveRatio(true);
                     logo.setSmooth(true);
-                    StringBuilder sb = new StringBuilder();
-                    sb.append("Jacobitus " + version + "\n");
-                    sb.append(certificadoServicioLocal);
 
-                    Alert verificarServicioAlerta = new Alert(AlertType.INFORMATION);
-                    verificarServicioAlerta.initOwner(stage);
-                    verificarServicioAlerta.initModality(Modality.APPLICATION_MODAL);
-                    verificarServicioAlerta.setTitle("Verificar servicio");
-                    verificarServicioAlerta.setHeaderText(sb.toString());
-                    verificarServicioAlerta.setContentText(
-                            "Agencia de Gobierno Electrónico y Tecnologías de Información y Comunicación");
-                    verificarServicioAlerta.setGraphic(logo);
+                    Label titulo = new Label("Certificado del servicio local");
+                    titulo.setStyle(
+                            "-fx-font-size: 20px; " +
+                                    "-fx-font-weight: bold;");
+                    titulo.setWrapText(true);
 
-                    VBox vbox = new VBox();
-                    vbox.setSpacing(5);
+                    Label descripcion = new Label(
+                            "Permite que el navegador confíe en la conexión HTTPS con Jacobitus.");
+                    descripcion.setWrapText(true);
+                    descripcion.setMaxWidth(340);
+                    descripcion.setAlignment(Pos.CENTER);
 
-                    FlowPane fpCertificadoServicioLocal = new FlowPane();
-                    Label lblCertificadoServicioLocal = new Label("Certificado de servicio local ->");
-                    Hyperlink instalarCertificadoServicioLocal = new Hyperlink("Instalar");
-                    Hyperlink desinstalarCertificadoServicioLocal = new Hyperlink("Desinstalar");
-                    if (certificadoServicioLocalInstalado) {
-                        desinstalarCertificadoServicioLocal.setOnAction(e1 -> {
-                            try {
-                                Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
-                                confirmacion.initOwner(stage);
-                                confirmacion.initModality(Modality.APPLICATION_MODAL);
-                                confirmacion.setHeaderText(null);
-                                confirmacion.setTitle("Confirmación");
-                                confirmacion.setContentText("¿Está seguro de desinstalar el certificado?");
+                    VBox cabecera = new VBox(
+                            6,
+                            logo,
+                            titulo,
+                            descripcion);
+                    cabecera.setAlignment(Pos.CENTER);
 
-                                Optional<ButtonType> action = confirmacion.showAndWait();
-                                if (action.get() == ButtonType.OK) {
-                                    if (SistemaOperativoHelper.esMacOS()) {
-                                        CertUtil.desinstalarCertificadoServicioLocal(FormAplicacion.contraseniaMacOS);
-                                    } else {
-                                        CertUtil.desinstalarCertificadoServicioLocal();
-                                    }
-                                }
-                            } catch (IOException ex) {
-                                Logger.getLogger(FormAplicacion.class.getName()).log(Level.SEVERE, null, ex);
-                            }
-                            verificarServicioAlerta.close();
-                        });
-                        if (errorCertificadoServicioLocalInstalado) {
-                            fpCertificadoServicioLocal.getChildren().addAll(lblCertificadoServicioLocal);
-                        } else {
-                            fpCertificadoServicioLocal.getChildren().addAll(lblCertificadoServicioLocal,
-                                    desinstalarCertificadoServicioLocal);
-                        }
+                    Label seccionEstado = new Label("Estado del certificado");
+                    seccionEstado.setStyle("-fx-font-weight: bold;");
+
+                    Label lblCertificado = new Label("Certificado local");
+
+                    Label lblEstado = new Label(estadoCertificado);
+                    lblEstado.setWrapText(true);
+
+                    if (certificadoInstalado) {
+                        lblEstado.setStyle(
+                                "-fx-text-fill: #2e7d32; " +
+                                        "-fx-font-weight: bold;");
+                    } else if (errorVerificacion) {
+                        lblEstado.setStyle(
+                                "-fx-text-fill: #c62828; " +
+                                        "-fx-font-weight: bold;");
                     } else {
-                        instalarCertificadoServicioLocal.setOnAction((e1) -> {
-                            try {
-                                Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
-                                confirmacion.initOwner(stage);
-                                confirmacion.initModality(Modality.APPLICATION_MODAL);
-                                confirmacion.setHeaderText(null);
-                                confirmacion.setTitle("Confirmación");
-                                confirmacion.setContentText("¿Está seguro de instalar el certificado?");
-
-                                Optional<ButtonType> action = confirmacion.showAndWait();
-                                if (action.get() == ButtonType.OK) {
-                                    if (SistemaOperativoHelper.esMacOS()) {
-                                        CertUtil.instalarCertificadoServicioLocal(FormAplicacion.contraseniaMacOS);
-                                    } else {
-                                        CertUtil.instalarCertificadoServicioLocal();
-                                    }
-                                }
-                            } catch (IOException | InterruptedException ex) {
-                                Logger.getLogger(FormAplicacion.class.getName()).log(Level.SEVERE, null, ex);
-                            }
-                            verificarServicioAlerta.close();
-                        });
-                        if (errorCertificadoServicioLocalInstalado) {
-                            fpCertificadoServicioLocal.getChildren().addAll(lblCertificadoServicioLocal);
-                        } else {
-                            fpCertificadoServicioLocal.getChildren().addAll(lblCertificadoServicioLocal,
-                                    instalarCertificadoServicioLocal);
-                        }
+                        lblEstado.setStyle("-fx-font-weight: bold;");
                     }
 
-                    vbox.getChildren().addAll(fpCertificadoServicioLocal);
+                    GridPane estado = new GridPane();
+                    estado.setHgap(20);
+                    estado.setVgap(6);
 
-                    verificarServicioAlerta.getDialogPane().contentProperty().set(vbox);
-                    verificarServicioAlerta.showAndWait();
+                    estado.add(lblCertificado, 0, 0);
+                    estado.add(lblEstado, 1, 0);
+
+                    Alert certificadoLocalAlerta = new Alert(AlertType.INFORMATION);
+                    certificadoLocalAlerta.initOwner(stage);
+                    certificadoLocalAlerta.initModality(Modality.APPLICATION_MODAL);
+                    certificadoLocalAlerta.setTitle("Verificar servicio");
+                    certificadoLocalAlerta.setHeaderText(null);
+                    certificadoLocalAlerta.setGraphic(null);
+                    certificadoLocalAlerta.getDialogPane().setPrefWidth(400);
+
+                    if (!errorVerificacion) {
+                        Hyperlink accionCertificado = new Hyperlink(
+                                certificadoInstalado
+                                        ? "Desinstalar"
+                                        : "Instalar");
+
+                        accionCertificado.setPadding(Insets.EMPTY);
+
+                        if (certificadoInstalado) {
+                            accionCertificado.setOnAction(e1 -> {
+                                Alert confirmacion = new Alert(
+                                        Alert.AlertType.CONFIRMATION);
+
+                                confirmacion.initOwner(stage);
+                                confirmacion.initModality(
+                                        Modality.APPLICATION_MODAL);
+                                confirmacion.setHeaderText(null);
+                                confirmacion.setTitle(
+                                        "Desinstalar certificado local");
+                                confirmacion.setContentText(
+                                        "¿Desea desinstalar el certificado local? "
+                                                + "El navegador podría mostrar advertencias de seguridad.");
+
+                                Optional<ButtonType> action = confirmacion.showAndWait();
+
+                                if (action.isPresent()
+                                        && action.get() == ButtonType.OK) {
+                                    try {
+                                        if (SistemaOperativoHelper.esMacOS()) {
+                                            CertUtil.desinstalarCertificadoServicioLocal(
+                                                    FormAplicacion.contraseniaMacOS);
+                                        } else {
+                                            CertUtil.desinstalarCertificadoServicioLocal();
+                                        }
+
+                                        certificadoLocalAlerta.close();
+
+                                    } catch (IOException ex) {
+                                        Logger.getLogger(
+                                                FormAplicacion.class.getName())
+                                                .log(
+                                                        Level.SEVERE,
+                                                        null,
+                                                        ex);
+                                    }
+                                }
+                            });
+
+                        } else {
+                            accionCertificado.setOnAction(e1 -> {
+                                Alert confirmacion = new Alert(
+                                        Alert.AlertType.CONFIRMATION);
+
+                                confirmacion.initOwner(stage);
+                                confirmacion.initModality(
+                                        Modality.APPLICATION_MODAL);
+                                confirmacion.setHeaderText(null);
+                                confirmacion.setTitle(
+                                        "Instalar certificado local");
+                                confirmacion.setContentText(
+                                        "¿Desea instalar el certificado local para "
+                                                + "habilitar una conexión HTTPS confiable con Jacobitus?");
+
+                                Optional<ButtonType> action = confirmacion.showAndWait();
+
+                                if (action.isPresent()
+                                        && action.get() == ButtonType.OK) {
+                                    try {
+                                        if (SistemaOperativoHelper.esMacOS()) {
+                                            CertUtil.instalarCertificadoServicioLocal(
+                                                    FormAplicacion.contraseniaMacOS);
+                                        } else {
+                                            CertUtil.instalarCertificadoServicioLocal();
+                                        }
+
+                                        certificadoLocalAlerta.close();
+
+                                    } catch (IOException
+                                            | InterruptedException ex) {
+                                        Logger.getLogger(
+                                                FormAplicacion.class.getName())
+                                                .log(
+                                                        Level.SEVERE,
+                                                        null,
+                                                        ex);
+                                    }
+                                }
+                            });
+                        }
+
+                        estado.add(accionCertificado, 2, 0);
+                    }
+
+                    VBox informacionCertificado = new VBox(
+                            10,
+                            seccionEstado,
+                            estado);
+
+                    VBox contenido = new VBox(
+                            12,
+                            cabecera,
+                            new Separator(),
+                            informacionCertificado);
+
+                    contenido.setPadding(
+                            new Insets(0, 16, 8, 16));
+
+                    certificadoLocalAlerta
+                            .getDialogPane()
+                            .setContent(contenido);
+
+                    certificadoLocalAlerta.showAndWait();
+
                     stage.getScene().setCursor(Cursor.DEFAULT);
                 });
+
                 return null;
             }
         };
+
         task.setOnFailed((WorkerStateEvent evt) -> {
-            Alert alert = new Alert(AlertType.WARNING, task.getException().getMessage(), ButtonType.OK);
+            Alert alert = new Alert(
+                    AlertType.WARNING,
+                    task.getException().getMessage(),
+                    ButtonType.OK);
+
             alert.initOwner(stage);
             alert.initModality(Modality.APPLICATION_MODAL);
             alert.setTitle("Jacobitus");
             alert.showAndWait();
+
             stage.getScene().setCursor(Cursor.DEFAULT);
         });
+
         return task;
     }
 
