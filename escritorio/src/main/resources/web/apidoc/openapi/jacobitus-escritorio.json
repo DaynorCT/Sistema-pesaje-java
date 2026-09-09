@@ -11,7 +11,7 @@
       "url": "https://firmadigital.bo/herramientas/jacobitus-escritorio/"
     },
     "x-logo": {
-      "url": "./assets/images/logo-agetic.png",
+      "url": "./assets/images/logo-agetic.svg",
       "altText": "AGETIC"
     },
     "license": {

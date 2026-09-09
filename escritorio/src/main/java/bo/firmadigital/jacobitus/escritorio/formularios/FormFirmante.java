@@ -213,7 +213,7 @@ public class FormFirmante extends Stage {
                 this.forzarEnveloped = contrasena.getForzarEnveloped();
                 this.usarPrefijo = contrasena.getUsarPrefijo();
                 this.node = contrasena.getNode();
-                new Thread(listarCertificados(pass)).start();
+                new Thread(listarCertificados(this.pass)).start();
             }
         });
         return task;
