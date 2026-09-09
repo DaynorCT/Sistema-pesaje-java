@@ -152,7 +152,7 @@ def jpackageCmd = [
     '--file-associations', 'FAp7s.properties',
     '--file-associations', 'FApdf.properties',
     '--java-options', '-Dfile.encoding=UTF-8',
-    '--license-file', 'license.txt'
+    '--license-file', os.isWindows() ? 'license.rtf' : 'license.txt'
 ]
 
 tasks.register('copyAllDependencies') {
