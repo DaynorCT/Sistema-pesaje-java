@@ -302,7 +302,7 @@
                   "type": "object",
                   "properties": {
                     "files": {
-                      "$ref": "#/components/schemas/FirmaticArregloFirmadoDto",
+                      "$ref": "#/components/schemas/FirmaArregloModoSeguroFirmadoDto",
                       "x-stoplight": {
                         "id": "hxwdpxzlcdh2r"
                       }
@@ -345,11 +345,11 @@
           }
         },
         "tags": [
-          "firmatic"
+          "firmador"
         ],
         "description": "Permite firmar un lote de archivos en formato pdf o json.",
         "requestBody": {
-          "$ref": "#/components/requestBodies/FirmaticSign"
+          "$ref": "#/components/requestBodies/FirmaModoSeguro"
         }
       }
     },
@@ -360,18 +360,18 @@
         }
       ],
       "post": {
-        "summary": "Firmar hash",
+        "summary": "Firmador-HASH",
         "operationId": "post-sign-hash",
         "responses": {
           "200": {
-            "description": "",
+            "description": "Recurso encontrado",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
                     "files": {
-                      "$ref": "#/components/schemas/FirmaticArregloHashFirmadoDto",
+                      "$ref": "#/components/schemas/FirmaArregloHashModoSeguroFirmadoDto",
                       "x-stoplight": {
                         "id": "pf9bqtpqftdnb"
                       }
@@ -380,10 +380,15 @@
                       "type": "string",
                       "x-stoplight": {
                         "id": "b8ft0tnpara54"
-                      }
+                      },
+                      "description": "Certificado público del usuario que realizó la firma."
                     },
                     "certificateChain": {
-                      "type": "string",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Cadena de certificados públicos del usuario que realizó la firma.",
                       "x-stoplight": {
                         "id": "1dq6ozh10sdwx"
                       }
@@ -392,7 +397,8 @@
                       "type": "string",
                       "x-stoplight": {
                         "id": "r19txb32nc84b"
-                      }
+                      },
+                      "description": "Tipo de encriptación utilizado para la firma."
                     }
                   },
                   "required": [
@@ -406,7 +412,7 @@
             }
           },
           "500": {
-            "description": "",
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -416,30 +422,40 @@
                       "type": "string",
                       "x-stoplight": {
                         "id": "4oyrdtymt7w0a"
-                      }
+                      },
+                      "description": "Descripción del error."
                     },
                     "error": {
                       "type": "string",
                       "x-stoplight": {
                         "id": "10rcohcau9zd2"
-                      }
+                      },
+                      "description": "Detalle del error."
                     }
                   },
                   "required": [
                     "message",
                     "error"
                   ]
+                },
+                "examples": {
+                  "CI no corresponde al certificado": {
+                    "value": {
+                      "message": "El CI del token no corresponde con el CI de la persona para la que se solicitó la firma.",
+                      "error": "El CI del token no corresponde con el CI de la persona para la que se solicitó la firma."
+                    }
+                  }
                 }
               }
             }
           }
         },
         "tags": [
-          "firmatic"
+          "firmador"
         ],
-        "description": "Permite firmar una cadeda hash.",
+        "description": "Permite firmar una cadena hash en formato pades_hash.",
         "requestBody": {
-          "$ref": "#/components/requestBodies/FirmaticSignHash"
+          "$ref": "#/components/requestBodies/FirmaHashModoSeguro"
         }
       }
     }
@@ -1106,8 +1122,8 @@
           "file"
         ]
       },
-      "FirmaticArregloDto": {
-        "title": "FirmaticArregloDto",
+      "FirmaArregloModoSeguroDto": {
+        "title": "FirmaArregloModoSeguroDto",
         "x-stoplight": {
           "id": "2btumnpigmc83"
         },
@@ -1137,8 +1153,8 @@
           ]
         }
       },
-      "FirmaticArregloFirmadoDto": {
-        "title": "FirmaticArregloFirmadoDto",
+      "FirmaArregloModoSeguroFirmadoDto": {
+        "title": "FirmaArregloModoSeguroFirmadoDto",
         "x-stoplight": {
           "id": "ykpivghmcyct6"
         },
@@ -1168,8 +1184,8 @@
           ]
         }
       },
-      "FirmaticArregloHashDto": {
-        "title": "FirmaticArregloHashDto",
+      "FirmaArregloHashModoSeguroDto": {
+        "title": "FirmaArregloHashModoSeguroDto",
         "x-stoplight": {
           "id": "aw6z7di21vaku"
         },
@@ -1184,30 +1200,33 @@
               "type": "string",
               "x-stoplight": {
                 "id": "sk0ylvvwz2jb3"
-              }
+              },
+              "description": "Identificador del archivo. (Opcional)"
             },
             "base64": {
               "type": "string",
               "x-stoplight": {
                 "id": "96e4ypnzvaw88"
-              }
+              },
+              "description": "HASH en base64 que se quiere firmar digitalmente."
             },
             "date": {
               "type": "string",
               "x-stoplight": {
                 "id": "pxvk07odggay4"
-              }
+              },
+              "description": "Fecha del documento, en formato estricto yyyy-MM-dd HH:mm:ss.SSSZ.",
+              "example": "2026-08-21 15:35:23.126-0400"
             }
           },
           "required": [
-            "id",
             "base64",
             "date"
           ]
         }
       },
-      "FirmaticArregloHashFirmadoDto": {
-        "title": "FirmaticArregloHashFirmadoDto",
+      "FirmaArregloHashModoSeguroFirmadoDto": {
+        "title": "FirmaArregloHashModoSeguroFirmadoDto",
         "x-stoplight": {
           "id": "dhk4vms1fvpm5"
         },
@@ -1222,13 +1241,15 @@
               "type": "string",
               "x-stoplight": {
                 "id": "00nb9r5ad1ooc"
-              }
+              },
+              "description": "Hash firmado."
             },
             "algorithm": {
               "type": "string",
               "x-stoplight": {
                 "id": "nhb8f8psjaq3v"
-              }
+              },
+              "description": "Algoritmo utilizado para la firma."
             }
           },
           "required": [
@@ -2188,14 +2209,14 @@
           }
         }
       },
-      "FirmaticSign": {
+      "FirmaModoSeguro": {
         "content": {
           "application/json": {
             "schema": {
               "type": "object",
               "properties": {
                 "archivo": {
-                  "$ref": "#/components/schemas/FirmaticArregloDto",
+                  "$ref": "#/components/schemas/FirmaArregloModoSeguroDto",
                   "x-stoplight": {
                     "id": "5w5scv9n60hpc"
                   }
@@ -2227,29 +2248,56 @@
           }
         }
       },
-      "FirmaticSignHash": {
+      "FirmaHashModoSeguro": {
         "content": {
           "application/json": {
             "schema": {
               "type": "object",
               "properties": {
                 "archivo": {
-                  "$ref": "#/components/schemas/FirmaticArregloHashDto",
+                  "$ref": "#/components/schemas/FirmaArregloHashModoSeguroDto",
                   "x-stoplight": {
                     "id": "govzf5pemq84f"
-                  }
+                  },
+                  "description": "Listado de hashes a firmar digitalmente."
                 },
                 "ci": {
                   "type": "string",
                   "x-stoplight": {
                     "id": "uhfd2kcv2n5il"
-                  }
+                  },
+                  "description": "El CI de la persona que debe firmar. (Opcional)"
                 },
                 "format": {
                   "type": "string",
                   "x-stoplight": {
                     "id": "yiz9bs10u2dwi"
-                  }
+                  },
+                  "enum": [
+                    "pades_hash"
+                  ],
+                  "description": "Formato del archivo a firmar."
+                },
+                "language": {
+                  "type": "string",
+                  "description": "Idioma del sistema. (Opcional)",
+                  "default": "es"
+                },
+                "digest": {
+                  "type": "string",
+                  "description": "Algoritmo de encriptación. (Opcional)",
+                  "enum": [
+                    "sha1",
+                    "sha224",
+                    "sha256",
+                    "sha384",
+                    "sha512"
+                  ],
+                  "default": "sha256"
+                },
+                "pin": {
+                  "type": "string",
+                  "description": "Código de seguridad del token. (Opcional)"
                 }
               },
               "required": [
@@ -2269,8 +2317,7 @@
         "estado",
         "token",
         "firmador",
-        "validador",
-        "firmatic"
+        "validador"
       ]
     }
   ],
@@ -2293,11 +2340,6 @@
     {
       "name": "validador",
       "x-displayName": "Validador",
-      "description": ""
-    },
-    {
-      "name": "firmatic",
-      "x-displayName": "Firmatic",
       "description": ""
     }
   ]
