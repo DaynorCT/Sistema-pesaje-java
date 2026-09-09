@@ -339,7 +339,7 @@ public class FormService extends Stage {
                                         PrivateKey pk = token.obtenerClavePrivada(tokenSelected.getAlias());
                                         if (pk == null) {
                                             token.salir();
-                                            throw new KeyStoreException("No se encontró la clave con alias: " + tokenSelected.getAlias());
+                                            throw new KeyStoreException("Llaves no encontradas en token");
                                         }
                                         signature.initSign(pk);
                                         signature.update(file);

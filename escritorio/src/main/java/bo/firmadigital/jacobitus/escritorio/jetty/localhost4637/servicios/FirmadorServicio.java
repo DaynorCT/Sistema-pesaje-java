@@ -145,15 +145,23 @@ public class FirmadorServicio {
                 respuestaDto.setCertificateChain(dt.getCertificateChain());
                 respuestaDto.setEncryptionAlgorithm(dt.getEncryptionAlgorithm());
                 return respuestaDto;
+            } else if (dt.getErrorMessage() != null) {
+                errorDto.setMessage("No se pudo firmar el documento");
+                errorDto.setError(dt.getErrorMessage());
+                return errorDto;
             } else {
-                String detalle = dt.getErrorMessage() != null ? dt.getErrorMessage() : "Se canceló la firma del documento";
-                errorDto.setMessage(detalle);
-                errorDto.setError(detalle);
+                errorDto.setMessage("Se canceló la firma del documento");
+                errorDto.setError("El usuario canceló el proceso antes de completar la firma.");
                 return errorDto;
             }
         } catch (JSONException | RuntimeException ex) {
-            errorDto.setMessage("No se pudo firmar el documento");
-            errorDto.setError(ex.getMessage());
+            String detalle = ex.getMessage();
+            if (detalle != null && detalle.startsWith("Ya se tiene una solicitud de firma pendiente")) {
+                errorDto.setMessage("Ya se está ejecutando un proceso de firma");
+            } else {
+                errorDto.setMessage("No se pudo firmar el documento");
+            }
+            errorDto.setError(detalle);
             return errorDto;
         }
     }

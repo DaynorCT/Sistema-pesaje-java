@@ -441,8 +441,68 @@
                 "examples": {
                   "CI no corresponde al certificado": {
                     "value": {
-                      "message": "El CI del token no corresponde con el CI de la persona para la que se solicitó la firma.",
+                      "message": "No se pudo firmar el documento",
                       "error": "El CI del token no corresponde con el CI de la persona para la que se solicitó la firma."
+                    }
+                  },
+                  "Cancelación del usuario": {
+                    "value": {
+                      "message": "Se canceló la firma del documento",
+                      "error": "El usuario canceló el proceso antes de completar la firma."
+                    }
+                  },
+                  "Proceso de firma en progreso": {
+                    "value": {
+                      "message": "Ya se está ejecutando un proceso de firma",
+                      "error": "Ya se tiene una solicitud de firma pendiente."
+                    }
+                  },
+                  "Formato no soportado": {
+                    "value": {
+                      "message": "No se pudo firmar el documento",
+                      "error": "Formato no soportado."
+                    }
+                  },
+                  "Campo archivo faltante": {
+                    "value": {
+                      "message": "No se pudo firmar el documento",
+                      "error": "El campo archivo es obligatorio."
+                    }
+                  },
+                  "Campo archivo[].base64 faltante": {
+                    "value": {
+                      "message": "No se pudo firmar el documento",
+                      "error": "El campo archivo[].base64 es obligatorio."
+                    }
+                  },
+                  "Campo archivo[].date faltante": {
+                    "value": {
+                      "message": "No se pudo firmar el documento",
+                      "error": "El campo archivo[].date es obligatorio."
+                    }
+                  },
+                  "Formato de fecha inválido": {
+                    "value": {
+                      "message": "No se pudo firmar el documento",
+                      "error": "Formato de fecha inválido. Formato esperado: yyyy-MM-dd HH:mm:ss.SSSZ"
+                    }
+                  },
+                  "Más de un token conectado": {
+                    "value": {
+                      "message": "No se pudo firmar el documento",
+                      "error": "Por favor conecte solo un token."
+                    }
+                  },
+                  "Llaves no encontradas en el token": {
+                    "value": {
+                      "message": "No se pudo firmar el documento",
+                      "error": "Llaves no encontradas en token"
+                    }
+                  },
+                  "Parámetros con problemas": {
+                    "value": {
+                      "message": "No se pudo firmar el documento",
+                      "error": "Uno o más parámetros tienen problemas."
                     }
                   }
                 }
