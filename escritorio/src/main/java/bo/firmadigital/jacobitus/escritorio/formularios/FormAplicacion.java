@@ -1369,7 +1369,6 @@ public class FormAplicacion extends Application {
                     Label descripcion = new Label(
                             "Permite que el navegador confíe en la conexión HTTPS con Jacobitus.");
                     descripcion.setWrapText(true);
-                    descripcion.setMaxWidth(340);
                     descripcion.setAlignment(Pos.CENTER);
 
                     VBox cabecera = new VBox(
