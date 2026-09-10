@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyStoreException;
+import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.Signature;
 import java.security.cert.Certificate;
@@ -16,6 +17,21 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
+import org.bouncycastle.asn1.ASN1InputStream;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.DERNull;
+import org.bouncycastle.asn1.DERSet;
+import org.bouncycastle.asn1.DLSet;
+import org.bouncycastle.asn1.cms.AttributeTable;
+import org.bouncycastle.asn1.ess.ESSCertID;
+import org.bouncycastle.asn1.ess.ESSCertIDv2;
+import org.bouncycastle.asn1.ess.SigningCertificate;
+import org.bouncycastle.asn1.ess.SigningCertificateV2;
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
+import org.bouncycastle.asn1.x509.IssuerSerial;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -93,6 +109,17 @@ public class FormService extends Stage {
                 return "SHA384";
             default:
                 return "SHA512";
+        }
+    }
+
+    private String oidDigest(String digestName) {
+        switch (digestName) {
+            case "SHA224":
+                return "2.16.840.1.101.3.4.2.4";
+            case "SHA384":
+                return "2.16.840.1.101.3.4.2.2";
+            default:
+                return "2.16.840.1.101.3.4.2.3";
         }
     }
 
@@ -335,6 +362,47 @@ public class FormService extends Stage {
                                                 tokenSelected.getAlias());
                                         break;
                                     case "pades_hash":
+                                        byte[] toSign = file;
+                                        try (ASN1InputStream asn1InputStream = new ASN1InputStream(file)) {
+                                            DLSet dlSet = (DLSet) asn1InputStream.readObject();
+                                            AttributeTable signedAttribute = new AttributeTable(dlSet);
+
+                                            X509Certificate certificadoFirmante = token.obtenerCertificado(tokenSelected.getAlias());
+                                            org.bouncycastle.asn1.x509.Certificate bcCertificadoFirmante =
+                                                    org.bouncycastle.asn1.x509.Certificate.getInstance(certificadoFirmante.getEncoded());
+                                            IssuerSerial issuerSerial = new IssuerSerial(
+                                                    new GeneralNames(new GeneralName(bcCertificadoFirmante.getIssuer())),
+                                                    certificadoFirmante.getSerialNumber());
+
+                                            ASN1ObjectIdentifier attributeOid;
+                                            org.bouncycastle.asn1.ASN1Encodable signingCertificateAttribute;
+                                            if ("SHA1".equals(digestName)) {
+                                                byte[] certHash = MessageDigest.getInstance("SHA-1").digest(certificadoFirmante.getEncoded());
+                                                attributeOid = PKCSObjectIdentifiers.id_aa_signingCertificate;
+                                                signingCertificateAttribute = new SigningCertificate(new ESSCertID(certHash, issuerSerial));
+                                            } else if ("SHA256".equals(digestName)) {
+                                                byte[] certHash = MessageDigest.getInstance("SHA-256").digest(certificadoFirmante.getEncoded());
+                                                attributeOid = PKCSObjectIdentifiers.id_aa_signingCertificateV2;
+                                                signingCertificateAttribute = new SigningCertificateV2(new ESSCertIDv2(certHash, issuerSerial));
+                                            } else {
+                                                byte[] certHash = MessageDigest.getInstance(digestName.replace("SHA", "SHA-"))
+                                                        .digest(certificadoFirmante.getEncoded());
+                                                AlgorithmIdentifier algorithmIdentifier = new AlgorithmIdentifier(
+                                                        new ASN1ObjectIdentifier(oidDigest(digestName)), DERNull.INSTANCE);
+                                                attributeOid = PKCSObjectIdentifiers.id_aa_signingCertificateV2;
+                                                signingCertificateAttribute = new SigningCertificateV2(
+                                                        new ESSCertIDv2(algorithmIdentifier, certHash, issuerSerial));
+                                            }
+
+                                            AttributeTable updatedAttribute = signedAttribute.add(
+                                                    attributeOid, signingCertificateAttribute);
+
+                                            DERSet signedAttributesData = new DERSet(updatedAttribute.toASN1EncodableVector());
+                                            toSign = signedAttributesData.getEncoded();
+                                        } catch (Exception ex) {
+                                            // No es una estructura ASN.1 SignedAttributes: se firma tal cual llegó
+                                        }
+
                                         Signature signature = Signature.getInstance(digestName + "withRSA");
                                         PrivateKey pk = token.obtenerClavePrivada(tokenSelected.getAlias());
                                         if (pk == null) {
@@ -342,7 +410,7 @@ public class FormService extends Stage {
                                             throw new KeyStoreException("Llaves no encontradas en token");
                                         }
                                         signature.initSign(pk);
-                                        signature.update(file);
+                                        signature.update(toSign);
                                         byte[] signed = signature.sign();
                                         out.write(signed);
                                         break;
