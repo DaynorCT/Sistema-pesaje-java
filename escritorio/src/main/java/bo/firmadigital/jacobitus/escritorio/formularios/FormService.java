@@ -47,6 +47,7 @@ import bo.firmadigital.jacobitus.pkcs11.CK_TOKEN_INFO;
 import bo.firmadigital.jacobitus.token.GestorSlot;
 import bo.firmadigital.jacobitus.token.IToken;
 import bo.firmadigital.jacobitus.token.Slot;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -70,6 +71,7 @@ import javafx.scene.layout.GridPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
+import javafx.util.Duration;
 import javafx.util.StringConverter;
 
 public class FormService extends Stage {
@@ -230,6 +232,11 @@ public class FormService extends Stage {
         if (tokenSelected.getPinInicial() != null) {
             try {
                 this.mostrarCertificados();
+                if (listaInfoCertificado.size() == 1) {
+                    PauseTransition delay = new PauseTransition(Duration.millis(1000));
+                    delay.setOnFinished(e -> this.aplicarFirma());
+                    delay.play();
+                }
             } catch (RuntimeException ex) {
                 message.setText("No se pudo validar el pin automáticamente. Intente manualmente.");
             }
