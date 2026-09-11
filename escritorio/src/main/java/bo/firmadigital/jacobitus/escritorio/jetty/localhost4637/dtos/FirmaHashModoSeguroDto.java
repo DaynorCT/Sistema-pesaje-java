@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.codehaus.jackson.map.annotate.JsonDeserialize;
 
 @Getter
 @Setter
@@ -16,5 +17,7 @@ public class FirmaHashModoSeguroDto {
     private String format;
     private String language;
     private String digest;
+
+    @JsonDeserialize(using = FirmaHashItemListDeserializer.class)
     private List<FirmaHashItemDto> archivo;
 }
