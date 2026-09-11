@@ -104,6 +104,11 @@ public class FirmadorServicio {
                 throw new JacobitusException("Formato no soportado.");
             }
 
+            String digest = objetoDto.getDigest();
+            if (digest != null && !Arrays.asList("sha1", "sha224", "sha256", "sha384", "sha512").contains(digest.toLowerCase())) {
+                throw new JacobitusException("El campo digest no es válido. Valores permitidos: sha1, sha224, sha256, sha384, sha512.");
+            }
+
             List<FirmaHashItemDto> archivoItems = objetoDto.getArchivo();
             if (archivoItems == null || archivoItems.isEmpty()) {
                 throw new JacobitusException("El campo archivo es obligatorio.");
@@ -111,10 +116,10 @@ public class FirmadorServicio {
             DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSZ");
             for (FirmaHashItemDto item : archivoItems) {
                 if (item.getBase64() == null || item.getBase64().isEmpty()) {
-                    throw new JacobitusException("El campo archivo[].base64 es obligatorio.");
+                    throw new JacobitusException("El campo archivo.base64 o archivo[].base64 es obligatorio.");
                 }
                 if (item.getDate() == null) {
-                    throw new JacobitusException("El campo archivo[].date es obligatorio.");
+                    throw new JacobitusException("El campo archivo.date o archivo[].date es obligatorio.");
                 }
                 try {
                     OffsetDateTime.parse(item.getDate(), dateFormatter);
@@ -134,9 +139,9 @@ public class FirmadorServicio {
             }
             TokenSelected dt;
             if (ci != null) {
-                dt = FormAplicacion.serviceHash(slots[0], ci, archivo, objetoDto.getDigest());
+                dt = FormAplicacion.serviceHash(slots[0], ci, archivo, objetoDto.getDigest(), objetoDto.getPin());
             } else {
-                dt = FormAplicacion.serviceHash(slots[0], null, archivo, objetoDto.getDigest());
+                dt = FormAplicacion.serviceHash(slots[0], null, archivo, objetoDto.getDigest(), objetoDto.getPin());
             }
             if (dt.getAlias() != null && dt.getPin() != null) {
                 List<FirmaHashItemRespuestaDto> lista = Arrays.asList(om.readValue(dt.getFiles().toString(), FirmaHashItemRespuestaDto[].class));

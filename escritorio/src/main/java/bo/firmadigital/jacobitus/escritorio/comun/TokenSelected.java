@@ -18,6 +18,7 @@ public class TokenSelected {
     private Slot slot;
     private String alias;
     private String pin;
+    private String pinInicial;
     private String CI;
     private JSONArray files;
     private JSONArray filesJson;

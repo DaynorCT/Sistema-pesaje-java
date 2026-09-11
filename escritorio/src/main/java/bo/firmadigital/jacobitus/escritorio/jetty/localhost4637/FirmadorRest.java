@@ -49,7 +49,14 @@ public class FirmadorRest {
             }
             return Response.ok(json).build();
         } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(JettyHelper.generarRespuesta(e.getMessage())).build();
+            ErrorRespuestaDto errorDto = new ErrorRespuestaDto();
+            errorDto.setMessage("Error en la petición");
+            errorDto.setError(e.getMessage());
+            try {
+                return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(om.writeValueAsString(errorDto)).build();
+            } catch (Exception ex) {
+                return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(JettyHelper.generarRespuesta(e.getMessage())).build();
+            }
         }
     }
 }

@@ -159,6 +159,9 @@ public class FormService extends Stage {
         }
         passwordField = new PasswordField();
         passwordField.setPromptText("Su contraseña");
+        if (tokenSelected.getPinInicial() != null) {
+            passwordField.setText(tokenSelected.getPinInicial());
+        }
         root.add(passwordField, 0, 0 + r, 1, 1);
         button = new Button("Actualizar");
         AnchorPane anchorPane = new AnchorPane();
@@ -224,6 +227,13 @@ public class FormService extends Stage {
             window.setAlwaysOnTop(true);
             passwordField.requestFocus();
         });
+        if (tokenSelected.getPinInicial() != null) {
+            try {
+                this.mostrarCertificados();
+            } catch (RuntimeException ex) {
+                message.setText("No se pudo validar el pin automáticamente. Intente manualmente.");
+            }
+        }
     }
 
     public TokenSelected getDatos() {

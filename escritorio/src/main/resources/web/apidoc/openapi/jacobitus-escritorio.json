@@ -1249,6 +1249,7 @@
         "x-stoplight": {
           "id": "aw6z7di21vaku"
         },
+        "description": "Array de objetos archivo, o un único objeto archivo.",
         "type": "array",
         "items": {
           "x-stoplight": {
@@ -2319,7 +2320,7 @@
                   "x-stoplight": {
                     "id": "govzf5pemq84f"
                   },
-                  "description": "Listado de hashes a firmar digitalmente."
+                  "description": "Hashes a firmar: array de objetos, o un solo objeto (ver ejemplos)."
                 },
                 "ci": {
                   "type": "string",
@@ -2364,6 +2365,31 @@
                 "archivo",
                 "format"
               ]
+            },
+            "examples": {
+              "Array de archivos": {
+                "value": {
+                  "format": "pades_hash",
+                  "digest": "sha256",
+                  "archivo": [
+                    {
+                      "id": "1",
+                      "base64": "MII...truncated...==",
+                      "date": "2026-08-21 15:35:23.126-0400"
+                    }
+                  ]
+                }
+              },
+              "Objeto único": {
+                "value": {
+                  "format": "pades_hash",
+                  "digest": "sha256",
+                  "archivo": {
+                    "base64": "MII...truncated...==",
+                    "date": "2026-08-21 15:35:23.126-0400"
+                  }
+                }
+              }
             }
           }
         }
