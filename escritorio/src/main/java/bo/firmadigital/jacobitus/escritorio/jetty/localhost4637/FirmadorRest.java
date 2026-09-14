@@ -7,7 +7,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.exc.UnrecognizedPropertyException;
 
 import bo.firmadigital.jacobitus.escritorio.jetty.JettyHelper;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.ErrorRespuestaDto;
@@ -49,14 +51,43 @@ public class FirmadorRest {
             }
             return Response.ok(json).build();
         } catch (Exception e) {
-            ErrorRespuestaDto errorDto = new ErrorRespuestaDto();
-            errorDto.setMessage("Error en la petición");
-            errorDto.setError(e.getMessage());
-            try {
-                return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(om.writeValueAsString(errorDto)).build();
-            } catch (Exception ex) {
-                return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(JettyHelper.generarRespuesta(e.getMessage())).build();
+            boolean esCampoNoReconocido = false;
+            StringBuilder ruta = new StringBuilder();
+            for (Throwable causa = e; causa != null; causa = causa.getCause()) {
+                if (causa instanceof UnrecognizedPropertyException) {
+                    esCampoNoReconocido = true;
+                }
+                if (causa instanceof JsonMappingException) {
+                    for (JsonMappingException.Reference ref : ((JsonMappingException) causa).getPath()) {
+                        if (ruta.length() > 0) {
+                            ruta.append(".");
+                        }
+                        if (ref.getFieldName() != null) {
+                            ruta.append(ref.getFieldName());
+                        } else {
+                            ruta.append("[").append(ref.getIndex()).append("]");
+                        }
+                    }
+                }
             }
+            if (esCampoNoReconocido) {
+                return errorInternoSignHash(om, "Campo no reconocido: " + ruta);
+            }
+            if (ruta.length() > 0) {
+                return errorInternoSignHash(om, "El campo '" + ruta + "' tiene un valor con formato incorrecto.");
+            }
+            return errorInternoSignHash(om, e.getMessage());
+        }
+    }
+
+    private Response errorInternoSignHash(ObjectMapper om, String error) {
+        ErrorRespuestaDto errorDto = new ErrorRespuestaDto();
+        errorDto.setMessage("Error en la petición");
+        errorDto.setError(error);
+        try {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(om.writeValueAsString(errorDto)).build();
+        } catch (Exception ex) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(JettyHelper.generarRespuesta(error)).build();
         }
     }
 }

@@ -13,11 +13,17 @@ import org.codehaus.jackson.map.annotate.JsonDeserialize;
 @NoArgsConstructor
 @AllArgsConstructor
 public class FirmaHashModoSeguroDto {
+    @JsonDeserialize(using = StrictStringDeserializer.class)
     private String ci;
+    @JsonDeserialize(using = StrictStringDeserializer.class)
     private String format;
+    @JsonDeserialize(using = StrictStringDeserializer.class)
     private String language;
+    @JsonDeserialize(using = StrictStringDeserializer.class)
     private String digest;
+    @JsonDeserialize(using = StrictStringDeserializer.class)
     private String pin;
+    @JsonDeserialize(using = StrictStringDeserializer.class)
     private String alias;
 
     @JsonDeserialize(using = FirmaHashItemListDeserializer.class)
