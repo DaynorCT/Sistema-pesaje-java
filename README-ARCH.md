@@ -114,6 +114,11 @@ Ejecutamos:
 $ ./gradlew escritorio:run
 ```
 
+Ejecutamos con un perfil de distribución en específico:
+```bash
+$ ./gradlew escritorio:run -Pprofile=prod
+```
+
 ## Generación del paquete de instalación
 
 Generamos el paquete indicando el perfil de distribución:

@@ -236,7 +236,7 @@ public class FormAplicacion extends Application {
         }
 
         String version = Informacion.VERSION;
-        String variante = version.contains("-") ? version.substring(version.indexOf('-') + 1).toUpperCase() : null;
+        String variante = Informacion.PROFILE.isEmpty() ? null : Informacion.PROFILE.toUpperCase();
         stage.setTitle("Jacobitus" + (variante != null ? " [" + variante + "]" : "") + " - " + version);
         if (!usarServicioLocalhost) {
             // Alert alert = new Alert(AlertType.ERROR, "Servicio detenido, no podrá
@@ -565,6 +565,7 @@ public class FormAplicacion extends Application {
             versionAplicacion.setStyle("-fx-font-size: 16px;");
             Label versionVariante = new Label(variante != null ? "VERSIÓN " + variante : "");
             versionVariante.setVisible(variante != null);
+            versionVariante.setManaged(variante != null);
             versionVariante.setStyle("-fx-background-color: #2f5f73; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 3 10 3 10;");
             Label descripcion = new Label("Solución de escritorio para firma digital");
             descripcion.setWrapText(true);
