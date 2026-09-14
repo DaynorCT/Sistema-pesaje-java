@@ -140,6 +140,19 @@ public class ValidadorExtendidoPdf extends ValidadorExtendido {
         return diagnostico == null ? List.of() : diagnostico.getMensajes();
     }
 
+    public List<String> getFirmasInvalidas() {
+        return pdfHelper == null ? List.of() : pdfHelper.getFirmasInvalidas();
+    }
+
+    @Override
+    public String getPathValidated() {
+        StringBuilder res = new StringBuilder(super.getPathValidated());
+        for (String firmaInvalida : getFirmasInvalidas()) {
+            res.append("\n\t✘ ").append(firmaInvalida);
+        }
+        return res.toString();
+    }
+
     public boolean getBloqueado() {
         boolean respuesta = false;
         try {

@@ -34,12 +34,12 @@ public final class AlertaEstructuraPdf {
     alert.initOwner(owner);
     alert.initModality(Modality.APPLICATION_MODAL);
     alert.setTitle("Jacobitus");
-    alert.setHeaderText("No se puede firmar");
+    alert.setHeaderText("No se puede firmar todavía");
     alert.setContentText(null);
     configurarContenido(
         alert,
         detalleAdvertencias,
-        "• Use Archivo → Analizar y reparar PDF para corregir la estructura antes de firmar.");
+        "• Use Archivo → Analizar y reparar PDF para continuar.");
     alert.getButtonTypes().setAll(ButtonType.OK);
     alert.showAndWait();
   }
@@ -58,11 +58,8 @@ public final class AlertaEstructuraPdf {
   public static Resultado mostrarAnalizarReparar(Stage owner, String detalleAdvertencias) {
     StringBuilder pie = new StringBuilder();
     pie.append("• Se guardará una copia .reparado.pdf en la carpeta que elija; el original no se modifica.\n");
-    pie.append("• La reparación reescribe la estructura del PDF (no edita el contenido a mano).\n");
-    pie.append("• Las firmas digitales existentes suelen dejar de ser válidas.\n");
-    pie.append("• Puede perderse el historial de revisiones del archivo.\n");
     pie.append("• Puede reparar o cancelar para revisar los documentos manualmente.");
-    boolean reparar = mostrarConCountdown(owner, "Problemas detectados", detalleAdvertencias, pie.toString(), "Reparar");
+    boolean reparar = mostrarConCountdown(owner, "Se requiere reparar", detalleAdvertencias, pie.toString(), "Reparar");
     return reparar ? Resultado.REPARAR : Resultado.CANCELAR;
   }
 
@@ -71,23 +68,17 @@ public final class AlertaEstructuraPdf {
     alert.initOwner(owner);
     alert.initModality(Modality.APPLICATION_MODAL);
     alert.setTitle("Jacobitus");
-    alert.setHeaderText("No se pudo reparar completamente");
+    alert.setHeaderText("No se pudo reparar");
     alert.setContentText(null);
-    configurarContenido(alert, detalleFallos, "• Revise los documentos o obtenga una nueva copia del origen.");
+    configurarContenido(alert, detalleFallos, "• Obtenga una nueva copia del documento e intente nuevamente.");
     alert.getButtonTypes().setAll(ButtonType.OK);
     alert.showAndWait();
   }
 
   public static void mostrarReparacionExitosa(Stage owner, File directorioDestino, List<String> documentosConFirmasPerdidas) {
     StringBuilder mensaje = new StringBuilder();
-    mensaje.append("• Los documentos reparables se guardaron en:\n  ").append(directorioDestino.getAbsolutePath());
-    mensaje.append("\n• Los archivos en la lista apuntan a las copias .reparado.pdf.");
-    if (documentosConFirmasPerdidas != null && !documentosConFirmasPerdidas.isEmpty()) {
-      mensaje.append("\n\n• Las firmas digitales previas ya no son válidas o no están presentes en:");
-      for (String nombre : documentosConFirmasPerdidas) {
-        mensaje.append("\n  • ").append(nombre);
-      }
-    }
+    mensaje.append("• Los documentos reparados se guardaron en:\n  ").append(directorioDestino.getAbsolutePath());
+    mensaje.append("\n• La lista fue actualizada con las copias .reparado.pdf.");
     Alert alert = new Alert(AlertType.INFORMATION);
     alert.initOwner(owner);
     alert.initModality(Modality.APPLICATION_MODAL);

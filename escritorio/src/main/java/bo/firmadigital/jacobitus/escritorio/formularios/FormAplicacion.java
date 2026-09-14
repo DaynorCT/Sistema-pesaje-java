@@ -977,7 +977,7 @@ public class FormAplicacion extends Application {
         }
         ResultadoReparacionPdf resultadoReparacion = repararPdfsEnLista(datos, directorioDestino);
         if (!resultadoReparacion.fallos.isEmpty()) {
-            String detalle = "No se pudo reparar por completo los siguientes documentos:\n\n"
+            String detalle = "No se pudo reparar los siguientes documentos:\n\n"
                     + String.join("\n", resultadoReparacion.fallos);
             AlertaEstructuraPdf.mostrarFalloReparacion(stage, detalle);
             return;
@@ -1055,7 +1055,7 @@ public class FormAplicacion extends Application {
                         Files.readAllBytes(archivoOriginal.toPath()), null);
                 if (reparado.isEmpty()) {
                     LOG.warning("No se pudo reparar " + archivoOriginal.getName() + ": persisten inconsistencias de estructura.");
-                    fallosReparacion.add(archivoOriginal.getName() + ": persisten inconsistencias de estructura.");
+                    fallosReparacion.add("• " + archivoOriginal.getName());
                     continue;
                 }
                 File archivoReparado = new File(directorioDestino, nombreArchivoReparado(archivoOriginal.getName()));
@@ -1073,7 +1073,7 @@ public class FormAplicacion extends Application {
                 reparados++;
             } catch (Exception ex) {
                 LOG.log(Level.WARNING, "Fallo inesperado al reparar " + archivoOriginal.getName(), ex);
-                fallosReparacion.add(archivoOriginal.getName() + ": " + ex.getMessage());
+                fallosReparacion.add("• " + archivoOriginal.getName());
             }
         }
         return new ResultadoReparacionPdf(fallosReparacion, firmasPerdidas, reparados);

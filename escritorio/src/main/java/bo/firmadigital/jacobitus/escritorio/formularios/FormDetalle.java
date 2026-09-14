@@ -5,6 +5,7 @@ import bo.firmadigital.jacobitus.validador.comun.Firma;
 import bo.firmadigital.jacobitus.escritorio.componentes.CertInformation;
 import bo.firmadigital.jacobitus.escritorio.componentes.TreeItemBlocked;
 import bo.firmadigital.jacobitus.escritorio.extendidos.ValidadorExtendido;
+import bo.firmadigital.jacobitus.escritorio.extendidos.ValidadorExtendidoPdf;
 import javafx.application.HostServices;
 import javafx.scene.Scene;
 import javafx.scene.control.ContentDisplay;
@@ -64,6 +65,14 @@ public class FormDetalle extends Stage {
             item.getChildren().add(ocspItem);
             item.setExpanded(true);
             rootItem.getChildren().add(item);
+        }
+        if (validar instanceof ValidadorExtendidoPdf) {
+            for (String firmaInvalida : ((ValidadorExtendidoPdf) validar).getFirmasInvalidas()) {
+                TreeItem<String> item = new TreeItem<>(firmaInvalida, new ImageView(this.obtenerIcono("ERROR", "NORMAL")));
+                item.getChildren().add(new TreeItem<>("La firma fue encontrada, pero no se pudo validar."));
+                item.setExpanded(true);
+                rootItem.getChildren().add(item);
+            }
         }
         TreeView<String> tree = new TreeView<>(rootItem);
         tree.setCellFactory(param -> new TextFieldTreeCell<String>() {
