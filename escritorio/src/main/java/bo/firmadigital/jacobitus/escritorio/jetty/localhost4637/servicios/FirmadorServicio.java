@@ -1,19 +1,26 @@
 package bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.servicios;
 
+import java.security.GeneralSecurityException;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 
+import bo.firmadigital.jacobitus.comun.InfoCertificado;
 import bo.firmadigital.jacobitus.comun.JacobitusException;
 import bo.firmadigital.jacobitus.escritorio.comun.Config;
 import bo.firmadigital.jacobitus.escritorio.comun.TokenSelected;
 import bo.firmadigital.jacobitus.escritorio.formularios.FormAplicacion;
+import bo.firmadigital.jacobitus.escritorio.formularios.FormService;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.ErrorRespuestaDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.FirmaHashItemDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.FirmaHashItemRespuestaDto;
@@ -25,6 +32,7 @@ import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.FirmaPdfIte
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.comun.IRespuestaDto;
 import bo.firmadigital.jacobitus.firmador.base.ConfiguracionFirmador;
 import bo.firmadigital.jacobitus.token.GestorSlot;
+import bo.firmadigital.jacobitus.token.IToken;
 import bo.firmadigital.jacobitus.token.Slot;
 
 public class FirmadorServicio {
@@ -137,6 +145,11 @@ public class FirmadorServicio {
             if (slots.length != 1) {
                 throw new JacobitusException("Por favor conecte solo un token.");
             }
+
+            if (objetoDto.getPin() != null && objetoDto.getAlias() != null) {
+                return firmarHashSinInterfaz(objetoDto, archivoItems, slots[0]);
+            }
+
             TokenSelected dt;
             if (ci != null) {
                 dt = FormAplicacion.serviceHash(slots[0], ci, archivo, objetoDto.getDigest(), objetoDto.getPin());
@@ -168,6 +181,72 @@ public class FirmadorServicio {
             }
             errorDto.setError(detalle);
             return errorDto;
+        }
+    }
+
+    private IRespuestaDto firmarHashSinInterfaz(FirmaHashModoSeguroDto objetoDto, List<FirmaHashItemDto> archivoItems, Slot slot) {
+        FirmaHashModoSeguroRespuestaDto respuestaDto = new FirmaHashModoSeguroRespuestaDto();
+        ErrorRespuestaDto errorDto = new ErrorRespuestaDto();
+        IToken token = slot.getToken();
+        String alias = objetoDto.getAlias();
+
+        try {
+            token.iniciar(objetoDto.getPin());
+        } catch (GeneralSecurityException ex) {
+            errorDto.setMessage("No se pudo firmar el documento");
+            errorDto.setError(ex.getMessage());
+            return errorDto;
+        }
+
+        try {
+            X509Certificate certificado = token.obtenerCertificado(alias);
+            if (certificado == null) {
+                errorDto.setMessage("No se pudo firmar el documento");
+                errorDto.setError("No se encontró ningún certificado en el token para el alias: " + alias);
+                return errorDto;
+            }
+
+            String ci = objetoDto.getCi();
+            if (ci != null) {
+                InfoCertificado infoCertificado = new InfoCertificado(alias, certificado);
+                String numDocumento = infoCertificado.getInfoSujeto().getNumeroDocumento();
+                if (!infoCertificado.getInfoSujeto().getComplemento().equals("")) {
+                    numDocumento += "-" + infoCertificado.getInfoSujeto().getComplemento();
+                }
+                if (!ci.equals(numDocumento)) {
+                    errorDto.setMessage("No se pudo firmar el documento");
+                    errorDto.setError("El CI del token no corresponde con el CI de la persona para la que se solicitó la firma.");
+                    return errorDto;
+                }
+            }
+
+            String digestName = FormService.resolverDigest(objetoDto.getDigest());
+            List<FirmaHashItemRespuestaDto> lista = new ArrayList<>();
+            for (FirmaHashItemDto item : archivoItems) {
+                byte[] hashBytes = Base64.getDecoder().decode(item.getBase64());
+                byte[] signed = FormService.firmarHash(token, alias, hashBytes, digestName);
+                FirmaHashItemRespuestaDto itemRespuesta = new FirmaHashItemRespuestaDto();
+                itemRespuesta.setValue(Base64.getEncoder().encodeToString(signed));
+                itemRespuesta.setAlgorithm("RSA_" + digestName);
+                lista.add(itemRespuesta);
+            }
+
+            List<String> cadena = new ArrayList<>();
+            for (Certificate c : token.getCertificateChain(alias)) {
+                cadena.add(Base64.getEncoder().encodeToString(c.getEncoded()));
+            }
+
+            respuestaDto.setFiles(lista);
+            respuestaDto.setCertificate(Base64.getEncoder().encodeToString(certificado.getEncoded()));
+            respuestaDto.setCertificateChain(cadena);
+            respuestaDto.setEncryptionAlgorithm(certificado.getPublicKey().getAlgorithm());
+            return respuestaDto;
+        } catch (GeneralSecurityException ex) {
+            errorDto.setMessage("No se pudo firmar el documento");
+            errorDto.setError(ex.getMessage());
+            return errorDto;
+        } finally {
+            token.salir();
         }
     }
 }

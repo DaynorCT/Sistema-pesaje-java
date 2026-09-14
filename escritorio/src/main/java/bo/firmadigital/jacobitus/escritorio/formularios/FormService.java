@@ -96,7 +96,7 @@ public class FormService extends Stage {
         return configFirmador;
     }
 
-    private String resolverDigest(String digest) {
+    public static String resolverDigest(String digest) {
         if (digest == null) {
             return "SHA256";
         }
@@ -114,7 +114,7 @@ public class FormService extends Stage {
         }
     }
 
-    private String oidDigest(String digestName) {
+    private static String oidDigest(String digestName) {
         switch (digestName) {
             case "SHA224":
                 return "2.16.840.1.101.3.4.2.4";
@@ -123,6 +123,59 @@ public class FormService extends Stage {
             default:
                 return "2.16.840.1.101.3.4.2.3";
         }
+    }
+
+    public static byte[] firmarHash(IToken token, String alias, byte[] hashBytes, String digestName) throws GeneralSecurityException {
+        byte[] toSign = hashBytes;
+        try (ASN1InputStream asn1InputStream = new ASN1InputStream(hashBytes)) {
+            DLSet dlSet = (DLSet) asn1InputStream.readObject();
+            AttributeTable signedAttribute = new AttributeTable(dlSet);
+
+            X509Certificate certificadoFirmante = token.obtenerCertificado(alias);
+            org.bouncycastle.asn1.x509.Certificate bcCertificadoFirmante =
+                    org.bouncycastle.asn1.x509.Certificate.getInstance(certificadoFirmante.getEncoded());
+            IssuerSerial issuerSerial = new IssuerSerial(
+                    new GeneralNames(new GeneralName(bcCertificadoFirmante.getIssuer())),
+                    certificadoFirmante.getSerialNumber());
+
+            ASN1ObjectIdentifier attributeOid;
+            org.bouncycastle.asn1.ASN1Encodable signingCertificateAttribute;
+            if ("SHA1".equals(digestName)) {
+                byte[] certHash = MessageDigest.getInstance("SHA-1").digest(certificadoFirmante.getEncoded());
+                attributeOid = PKCSObjectIdentifiers.id_aa_signingCertificate;
+                signingCertificateAttribute = new SigningCertificate(new ESSCertID(certHash, issuerSerial));
+            } else if ("SHA256".equals(digestName)) {
+                byte[] certHash = MessageDigest.getInstance("SHA-256").digest(certificadoFirmante.getEncoded());
+                attributeOid = PKCSObjectIdentifiers.id_aa_signingCertificateV2;
+                signingCertificateAttribute = new SigningCertificateV2(new ESSCertIDv2(certHash, issuerSerial));
+            } else {
+                byte[] certHash = MessageDigest.getInstance(digestName.replace("SHA", "SHA-"))
+                        .digest(certificadoFirmante.getEncoded());
+                AlgorithmIdentifier algorithmIdentifier = new AlgorithmIdentifier(
+                        new ASN1ObjectIdentifier(oidDigest(digestName)), DERNull.INSTANCE);
+                attributeOid = PKCSObjectIdentifiers.id_aa_signingCertificateV2;
+                signingCertificateAttribute = new SigningCertificateV2(
+                        new ESSCertIDv2(algorithmIdentifier, certHash, issuerSerial));
+            }
+
+            AttributeTable updatedAttribute = signedAttribute.add(
+                    attributeOid, signingCertificateAttribute);
+
+            DERSet signedAttributesData = new DERSet(updatedAttribute.toASN1EncodableVector());
+            toSign = signedAttributesData.getEncoded();
+        } catch (Exception ex) {
+            // No es una estructura ASN.1 SignedAttributes: se firma tal cual llegó
+        }
+
+        Signature signature = Signature.getInstance(digestName + "withRSA");
+        PrivateKey pk = token.obtenerClavePrivada(alias);
+        if (pk == null) {
+            token.salir();
+            throw new KeyStoreException("Llaves no encontradas en token");
+        }
+        signature.initSign(pk);
+        signature.update(toSign);
+        return signature.sign();
     }
 
     public FormService(Stage parent, TokenSelected tokenSelected, String format) {
@@ -379,57 +432,11 @@ public class FormService extends Stage {
                                                 tokenSelected.getAlias());
                                         break;
                                     case "pades_hash":
-                                        byte[] toSign = file;
-                                        try (ASN1InputStream asn1InputStream = new ASN1InputStream(file)) {
-                                            DLSet dlSet = (DLSet) asn1InputStream.readObject();
-                                            AttributeTable signedAttribute = new AttributeTable(dlSet);
-
-                                            X509Certificate certificadoFirmante = token.obtenerCertificado(tokenSelected.getAlias());
-                                            org.bouncycastle.asn1.x509.Certificate bcCertificadoFirmante =
-                                                    org.bouncycastle.asn1.x509.Certificate.getInstance(certificadoFirmante.getEncoded());
-                                            IssuerSerial issuerSerial = new IssuerSerial(
-                                                    new GeneralNames(new GeneralName(bcCertificadoFirmante.getIssuer())),
-                                                    certificadoFirmante.getSerialNumber());
-
-                                            ASN1ObjectIdentifier attributeOid;
-                                            org.bouncycastle.asn1.ASN1Encodable signingCertificateAttribute;
-                                            if ("SHA1".equals(digestName)) {
-                                                byte[] certHash = MessageDigest.getInstance("SHA-1").digest(certificadoFirmante.getEncoded());
-                                                attributeOid = PKCSObjectIdentifiers.id_aa_signingCertificate;
-                                                signingCertificateAttribute = new SigningCertificate(new ESSCertID(certHash, issuerSerial));
-                                            } else if ("SHA256".equals(digestName)) {
-                                                byte[] certHash = MessageDigest.getInstance("SHA-256").digest(certificadoFirmante.getEncoded());
-                                                attributeOid = PKCSObjectIdentifiers.id_aa_signingCertificateV2;
-                                                signingCertificateAttribute = new SigningCertificateV2(new ESSCertIDv2(certHash, issuerSerial));
-                                            } else {
-                                                byte[] certHash = MessageDigest.getInstance(digestName.replace("SHA", "SHA-"))
-                                                        .digest(certificadoFirmante.getEncoded());
-                                                AlgorithmIdentifier algorithmIdentifier = new AlgorithmIdentifier(
-                                                        new ASN1ObjectIdentifier(oidDigest(digestName)), DERNull.INSTANCE);
-                                                attributeOid = PKCSObjectIdentifiers.id_aa_signingCertificateV2;
-                                                signingCertificateAttribute = new SigningCertificateV2(
-                                                        new ESSCertIDv2(algorithmIdentifier, certHash, issuerSerial));
-                                            }
-
-                                            AttributeTable updatedAttribute = signedAttribute.add(
-                                                    attributeOid, signingCertificateAttribute);
-
-                                            DERSet signedAttributesData = new DERSet(updatedAttribute.toASN1EncodableVector());
-                                            toSign = signedAttributesData.getEncoded();
-                                        } catch (Exception ex) {
-                                            // No es una estructura ASN.1 SignedAttributes: se firma tal cual llegó
+                                        try {
+                                            out.write(firmarHash(token, tokenSelected.getAlias(), file, digestName));
+                                        } catch (GeneralSecurityException ex) {
+                                            throw new CustomException(ex.getMessage());
                                         }
-
-                                        Signature signature = Signature.getInstance(digestName + "withRSA");
-                                        PrivateKey pk = token.obtenerClavePrivada(tokenSelected.getAlias());
-                                        if (pk == null) {
-                                            token.salir();
-                                            throw new KeyStoreException("Llaves no encontradas en token");
-                                        }
-                                        signature.initSign(pk);
-                                        signature.update(toSign);
-                                        byte[] signed = signature.sign();
-                                        out.write(signed);
                                         break;
                                     default:
                                         throw new JacobitusException(String.format("Formato %s no admitido.", format));

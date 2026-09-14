@@ -18,6 +18,7 @@ public class FirmaHashModoSeguroDto {
     private String language;
     private String digest;
     private String pin;
+    private String alias;
 
     @JsonDeserialize(using = FirmaHashItemListDeserializer.class)
     private List<FirmaHashItemDto> archivo;
