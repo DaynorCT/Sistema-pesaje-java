@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -59,7 +60,9 @@ import bo.firmadigital.jacobitus.token.IToken;
 import bo.firmadigital.jacobitus.token.Slot;
 import bo.firmadigital.jacobitus.utilidades.CertificadoHelper;
 import bo.firmadigital.jacobitus.utilidades.SistemaOperativoHelper;
+import bo.firmadigital.jacobitus.validador.ValidadorEstructuraPdf;
 import bo.firmadigital.jacobitus.validador.base.ConfiguracionValidador;
+import bo.firmadigital.jacobitus.validador.comun.Firma;
 import javafx.application.Application;
 import javafx.application.HostServices;
 import javafx.application.Platform;
@@ -104,6 +107,11 @@ import javafx.stage.WindowEvent;
 
 @SuppressWarnings("rawtypes")
 public class FormAplicacion extends Application {
+    private static final Logger LOG = Logger.getLogger(FormAplicacion.class.getName());
+
+    // Temporal para pruebas: en false, salta la reparación de documentos con firmas previas.
+    private static final boolean REPARAR_DOCUMENTOS_CON_FIRMAS = true;
+
     private ProgressBar progressBar;
     private TableView<CK_TOKEN_INFO> tbvDispositivos;
     private TableView<ValidadorExtendido> tbvArchivos;
@@ -418,6 +426,20 @@ public class FormAplicacion extends Application {
                         FormFirmante formFirmante = new FormFirmante(stage, itemSeleccionado.getSlot(), Constants.PDF);
                         formFirmante.showAndWait();
                         if (formFirmante.getLabel() != null) {
+                            try {
+                                if (!confirmarEstructuraPdfAntesDeFirmar()) {
+                                    return;
+                                }
+                            } catch (IOException ex) {
+                                Alert alert = new Alert(AlertType.WARNING,
+                                        "No se pudo verificar la estructura del documento: " + ex.getMessage(),
+                                        ButtonType.OK);
+                                alert.initOwner(stage);
+                                alert.initModality(Modality.APPLICATION_MODAL);
+                                alert.setTitle("Jacobitus");
+                                alert.showAndWait();
+                                return;
+                            }
                             new Thread(firmarPdf(formFirmante.isBloquea(), itemSeleccionado.getSlot(), formFirmante.getLabel(),
                                     formFirmante.getPass())).start();
                         }
@@ -900,6 +922,100 @@ public class FormAplicacion extends Application {
         return task;
     }
 
+    /**
+     * Valida la estructura de los PDF en la lista antes de firmar.
+     *
+     * @return true para continuar con la firma; false si el usuario cancela.
+     */
+    private boolean confirmarEstructuraPdfAntesDeFirmar() throws IOException {
+        List<File> archivosPdf = new ArrayList<>();
+        List<List<Firma>> firmasPorArchivo = new ArrayList<>();
+        List<Integer> indicesArchivosPdf = new ArrayList<>();
+        List<ValidadorExtendido> items = tbvArchivos.getItems();
+        for (int i = 0; i < items.size(); i++) {
+            ValidadorExtendido item = items.get(i);
+            if (MagicBytes.PDF.is(item.getFile())) {
+                archivosPdf.add(item.getFile());
+                indicesArchivosPdf.add(i);
+                List<Firma> firmas = new ArrayList<>();
+                for (Firma firma : item) {
+                    firmas.add(firma);
+                }
+                firmasPorArchivo.add(firmas);
+            }
+        }
+        Optional<String> advertencias = ValidadorEstructuraPdf.revisarAntesDeFirmar(archivosPdf, firmasPorArchivo);
+        if (advertencias.isEmpty()) {
+            return true;
+        }
+        AlertaEstructuraPdf.Resultado resultado = AlertaEstructuraPdf.mostrar(stage, advertencias.get());
+        if (resultado == AlertaEstructuraPdf.Resultado.CANCELAR) {
+            return false;
+        }
+
+        // Si no queda todo íntegro tras reparar, se ofrece firmar de todos modos como respaldo.
+        List<String> fallosReparacion = new ArrayList<>();
+        for (int i = 0; i < archivosPdf.size(); i++) {
+            File archivoOriginal = archivosPdf.get(i);
+            List<Firma> firmasOriginales = firmasPorArchivo.get(i);
+            if (!firmasOriginales.isEmpty() && !REPARAR_DOCUMENTOS_CON_FIRMAS) {
+                continue;
+            }
+            try {
+                Optional<byte[]> reparado = ValidadorEstructuraPdf.repararSiEsPosible(
+                        Files.readAllBytes(archivoOriginal.toPath()), null);
+                if (reparado.isEmpty()) {
+                    LOG.warning("No se pudo reparar " + archivoOriginal.getName() + ": persisten inconsistencias de estructura.");
+                    fallosReparacion.add(archivoOriginal.getName() + ": persisten inconsistencias de estructura.");
+                    continue;
+                }
+                String nombreReparado = archivoOriginal.getName();
+                if (!nombreReparado.endsWith(".pdf")) {
+                    nombreReparado += ".reparado.pdf";
+                } else {
+                    nombreReparado = nombreReparado.replace(".pdf", ".reparado.pdf");
+                }
+                File archivoReparado = new File(System.getProperty("java.io.tmpdir"), nombreReparado);
+                Files.write(archivoReparado.toPath(), reparado.get());
+                ValidadorExtendidoPdf validadorReparado = new ValidadorExtendidoPdf(archivoReparado, getConfigValidador());
+
+                if (!firmasOriginales.isEmpty() && !firmasSiguenIntegras(firmasOriginales, validadorReparado)) {
+                    LOG.warning("Reparar " + archivoOriginal.getName()
+                            + " invalidó una o más firmas existentes (esperado al regrabar un PDF ya firmado).");
+                }
+                // Se reemplaza igual, invalidada o no, para poder inspeccionar el resultado en la app.
+                tbvArchivos.getItems().set(indicesArchivosPdf.get(i), validadorReparado);
+            } catch (Exception ex) {
+                LOG.log(Level.WARNING, "Fallo inesperado al reparar " + archivoOriginal.getName(), ex);
+                fallosReparacion.add(archivoOriginal.getName() + ": " + ex.getMessage());
+            }
+        }
+
+        if (fallosReparacion.isEmpty()) {
+            return true;
+        }
+        String detalle = "No se pudo reparar por completo los siguientes documentos:\n\n"
+                + String.join("\n", fallosReparacion);
+        return AlertaEstructuraPdf.mostrarFalloReparacion(stage, detalle);
+    }
+
+    // Regrabar puede romper el /ByteRange de una firma existente; esto lo detecta.
+    private boolean firmasSiguenIntegras(List<Firma> firmasOriginales, ValidadorExtendidoPdf validadorReparado) {
+        List<Firma> firmasReparadas = new ArrayList<>();
+        for (Firma firma : validadorReparado) {
+            firmasReparadas.add(firma);
+        }
+        if (firmasReparadas.size() != firmasOriginales.size()) {
+            return false;
+        }
+        for (Firma firma : firmasReparadas) {
+            if (!Boolean.TRUE.equals(firma.getIntegridad())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public Task<Boolean> firmarPdf(boolean bloquear, long slotID, String alias, String contrasenia) {
         progressBar.progressProperty().unbind();
         Task<Boolean> task = new Task<Boolean>() {
@@ -924,6 +1040,7 @@ public class FormAplicacion extends Application {
                     updateProgress(100, 100);
                 } else {
                     for (int i = 0; i < archivos.size(); i++) {
+                        File archivoFirmado = null;
                         try {
                             IFirmador firmador = FirmadorPdf.getInstance(slotID, alias, contrasenia, getConfigFirmador());
                             String nomArchivo = new File(archivos.get(i).getAbsolutePath()).getName();
@@ -932,7 +1049,7 @@ public class FormAplicacion extends Application {
                             } else {
                                 nomArchivo = nomArchivo.replace(".pdf", ".firmado.pdf");
                             }
-                            File archivoFirmado = new File(rutaDestino, nomArchivo);
+                            archivoFirmado = new File(rutaDestino, nomArchivo);
                             try (InputStream is = new FileInputStream(archivos.get(i).getAbsolutePath());
                                     OutputStream os = new FileOutputStream(archivoFirmado)) {
                                 firmador.firmar(is, os, bloquear, false);
@@ -941,8 +1058,13 @@ public class FormAplicacion extends Application {
                             tbvArchivos.getItems().set(i, new ValidadorExtendidoPdf(archivoFirmado, getConfigValidador()));
                         } catch (Exception ex) {
                             updateProgress(i + 1, archivos.size());
-                            errores.append(archivos.get(i).getAbsolutePath()).append(": ")
-                                    .append(ex.getCause() != null ? ex.getCause().getMessage() : ex.getMessage()).append("\n");
+                            // Evita dejar un .firmado.pdf de 0 bytes (FileOutputStream ya truncó el destino).
+                            if (archivoFirmado != null && archivoFirmado.length() == 0) {
+                                archivoFirmado.delete();
+                            }
+                            String mensaje = ex.getCause() != null ? ex.getCause().getMessage() : ex.getMessage();
+                            LOG.log(Level.WARNING, "Fallo al firmar " + archivos.get(i).getAbsolutePath(), ex);
+                            errores.append(archivos.get(i).getAbsolutePath()).append(": ").append(mensaje).append("\n");
                         }
                     }
                     updateProgress(100, 100);

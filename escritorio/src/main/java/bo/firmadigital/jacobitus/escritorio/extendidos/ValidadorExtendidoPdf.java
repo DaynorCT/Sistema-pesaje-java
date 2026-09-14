@@ -7,12 +7,14 @@ import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.security.Security;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 
 import bo.firmadigital.jacobitus.comun.BadPasswordException;
+import bo.firmadigital.jacobitus.comun.DiagnosticoEstructuraPdf;
 import bo.firmadigital.jacobitus.comun.JacobitusException;
 import bo.firmadigital.jacobitus.utilidades.PdfHelper;
 import bo.firmadigital.jacobitus.validador.base.ConfiguracionValidador;
@@ -26,6 +28,7 @@ public class ValidadorExtendidoPdf extends ValidadorExtendido {
 
     protected ConfiguracionValidador configValidador = null;
     private String contrasenia = null;
+    private PdfHelper pdfHelper;
 
     public ValidadorExtendidoPdf(File archivo, ConfiguracionValidador configValidador) {
         this.configValidador = configValidador;
@@ -37,8 +40,9 @@ public class ValidadorExtendidoPdf extends ValidadorExtendido {
             try (InputStream is = new FileInputStream(archivo)) {
                 firmas = listarCertificados(is);
             }
-        } catch (Exception ignore) {
-            LOG.severe(ignore.getMessage());
+        } catch (Exception ex) {
+            firmas = List.of();
+            LOG.log(Level.SEVERE, "No se pudo leer/validar " + archivo.getName(), ex);
         }
     }
 
@@ -53,8 +57,9 @@ public class ValidadorExtendidoPdf extends ValidadorExtendido {
             try (InputStream is = new FileInputStream(archivo)) {
                 firmas = listarCertificados(is);
             }
-        } catch (Exception ignore) {
-            LOG.severe(ignore.getMessage());
+        } catch (Exception ex) {
+            firmas = List.of();
+            LOG.log(Level.SEVERE, "No se pudo leer/validar " + archivo.getName(), ex);
         }
     }
 
@@ -77,8 +82,9 @@ public class ValidadorExtendidoPdf extends ValidadorExtendido {
             } else {
                 throw new JacobitusException("Contraseña inválida.");
             }
-        } catch (Exception ignore) {
-            LOG.severe(ignore.getMessage());
+        } catch (Exception ex) {
+            firmas = List.of();
+            LOG.log(Level.SEVERE, "No se pudo leer/validar el documento", ex);
         }
     }
 
@@ -96,8 +102,9 @@ public class ValidadorExtendidoPdf extends ValidadorExtendido {
             } else {
                 throw new JacobitusException("Contraseña inválida.");
             }
-        } catch (Exception ignore) {
-            LOG.severe(ignore.getMessage());
+        } catch (Exception ex) {
+            firmas = List.of();
+            LOG.log(Level.SEVERE, "No se pudo leer/validar el documento", ex);
         }
     }
 
@@ -122,9 +129,15 @@ public class ValidadorExtendidoPdf extends ValidadorExtendido {
     }    
 
     public List<Firma> listarCertificados(InputStream is) throws OperatorCreationException, IOException, GeneralSecurityException {
-        PdfHelper pdfHelper = new PdfHelper();
+        this.pdfHelper = new PdfHelper();
         pdfHelper.setConfigValidador(this.configValidador);
         return pdfHelper.listarCertificados(is, this.contrasenia);
+    }
+
+    // Advertencias de xRef/trailer al abrir el documento; no reemplaza a Firma#getObjetoPdf() (shadow attack).
+    public List<String> getAdvertenciasEstructura() {
+        DiagnosticoEstructuraPdf diagnostico = pdfHelper == null ? null : pdfHelper.getDiagnosticoEstructura();
+        return diagnostico == null ? List.of() : diagnostico.getMensajes();
     }
 
     public boolean getBloqueado() {

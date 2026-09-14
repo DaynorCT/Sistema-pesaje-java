@@ -54,6 +54,7 @@ public class ValidadorServicio {
 
             ValidacionPdfRespuestaDto validacion = new ValidacionPdfRespuestaDto();
             validacion.setFirmas(firmas);
+            validacion.setAdvertenciasEstructura(validar.getAdvertenciasEstructura());
 
             respuesta.setFinalizado(true);
             respuesta.setMensaje("Se validó las firmas correctamente!");

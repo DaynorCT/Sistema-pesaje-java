@@ -13,4 +13,5 @@ import lombok.Setter;
 @AllArgsConstructor
 public class ValidacionPdfRespuestaDto {
     private List<FirmaDto> firmas;
+    private List<String> advertenciasEstructura;
 }
