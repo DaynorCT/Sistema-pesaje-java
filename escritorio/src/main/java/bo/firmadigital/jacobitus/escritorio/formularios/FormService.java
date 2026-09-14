@@ -62,6 +62,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
+import javafx.scene.paint.Color;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.input.KeyCode;
@@ -249,6 +250,7 @@ public class FormService extends Stage {
         });
         cbInfoCertificado.prefWidthProperty().bind(root.widthProperty());
         cbInfoCertificado.setPrefHeight(55);
+        cbInfoCertificado.setDisable(true);
         root.add(cbInfoCertificado, 0, 1 + r, 2, 1);
         estado = new Label("Archivos: 0 de " + (
             (tokenSelected.getFiles() == null ? 0 : tokenSelected.getFiles().length()) + 
@@ -257,6 +259,7 @@ public class FormService extends Stage {
         ));
         root.add(estado, 0, 2 + r, 2, 1);
         progressBar = new ProgressBar();
+        progressBar.setProgress(0);
         progressBar.prefWidthProperty().bind(root.widthProperty());
         root.add(progressBar, 0, 3 + r, 2, 1);
         buttonFirmar = new Button("Firmar");
@@ -264,15 +267,16 @@ public class FormService extends Stage {
         buttonFirmar.prefWidthProperty().bind(root.widthProperty());
         root.add(buttonFirmar, 0, 4 + r, 2, 1);
         message = new Label("");
+        message.setTextFill(Color.RED);
         root.add(message, 0, 5 + r, 2, 1);
 
         passwordField.addEventHandler(KeyEvent.KEY_PRESSED, ev -> {
             if (ev.getCode() == KeyCode.ENTER) {
-                this.mostrarCertificados();
+                this.mostrarCertificados(false);
             }
         });
         button.setOnAction(t -> {
-            this.mostrarCertificados();
+            this.mostrarCertificados(false);
         });
         buttonFirmar.setOnAction(t -> {
             this.aplicarFirma();
@@ -284,12 +288,7 @@ public class FormService extends Stage {
         });
         if (tokenSelected.getPinInicial() != null) {
             try {
-                this.mostrarCertificados();
-                if (listaInfoCertificado.size() == 1) {
-                    PauseTransition delay = new PauseTransition(Duration.millis(1000));
-                    delay.setOnFinished(e -> this.aplicarFirma());
-                    delay.play();
-                }
+                this.mostrarCertificados(true);
             } catch (RuntimeException ex) {
                 message.setText("No se pudo validar el pin automáticamente. Intente manualmente.");
             }
@@ -434,8 +433,11 @@ public class FormService extends Stage {
                                     case "pades_hash":
                                         try {
                                             out.write(firmarHash(token, tokenSelected.getAlias(), file, digestName));
+                                            Thread.sleep(1000); // temporal para QA, quitar después
                                         } catch (GeneralSecurityException ex) {
                                             throw new CustomException(ex.getMessage());
+                                        } catch (InterruptedException ex) {
+                                            Thread.currentThread().interrupt();
                                         }
                                         break;
                                     default:
@@ -475,9 +477,14 @@ public class FormService extends Stage {
         };
         progressBar.progressProperty().bind(task.progressProperty());
         task.setOnFailed((WorkerStateEvent evt) -> {
+            resetearProgreso();
             tokenSelected.setAlias(null);
             tokenSelected.setPin(null);
             tokenSelected.setErrorMessage(task.getException().getMessage());
+            passwordField.setDisable(false);
+            button.setDisable(false);
+            buttonFirmar.setDisable(false);
+            cbInfoCertificado.setDisable(false);
             Alert alert = new Alert(AlertType.WARNING, task.getException().getMessage(), ButtonType.OK);
             alert.initOwner(this);
             alert.initModality(Modality.APPLICATION_MODAL);
@@ -493,44 +500,82 @@ public class FormService extends Stage {
         return task;
     }
 
-    private void mostrarCertificados() {
+    private void mostrarCertificados(boolean autoFirmarSiUnico) {
         message.setText("");
-        IToken token = tokenSelected.getSlot().getToken();
-        try {
-            token.iniciar(passwordField.getText());
-            List<String> listaAlias = token.listarIdentificadorClaves();
-            listaInfoCertificado.clear();
-            for (String alias : listaAlias) {
-                InfoCertificado infoCertificado = new InfoCertificado(alias, token.obtenerCertificado(alias));
-                if (ECA.esValida(infoCertificado) && ECA.esPublica(infoCertificado)) {
-                    if (format.equals("pades_hash")) {
-                        listaInfoCertificado.add(infoCertificado);
-                    } else {
-                        String numDocumento = infoCertificado.getInfoSujeto().getNumeroDocumento();
-                        if (!infoCertificado.getInfoSujeto().getComplemento().equals("")) {
-                            numDocumento += "-" + infoCertificado.getInfoSujeto().getComplemento();
-                        }
-                        if (tokenSelected.getCI() == null || tokenSelected.getCI().equals(numDocumento)) {
-                            listaInfoCertificado.add(infoCertificado);
+        listaInfoCertificado.clear();
+        buttonFirmar.setDisable(true);
+        cbInfoCertificado.setDisable(true);
+        passwordField.setDisable(true);
+        button.setDisable(true);
+        progressBar.progressProperty().unbind();
+
+        String pin = passwordField.getText();
+        Task<ResultadoCertificados> task = new Task<ResultadoCertificados>() {
+            @Override
+            protected ResultadoCertificados call() throws GeneralSecurityException {
+                IToken token = tokenSelected.getSlot().getToken();
+                token.iniciar(pin);
+                try {
+                    Thread.sleep(1000); // temporal para QA, quitar después
+                    List<InfoCertificado> encontrados = new ArrayList<>();
+                    String mensaje = null;
+                    List<String> listaAlias = token.listarIdentificadorClaves();
+                    for (String alias : listaAlias) {
+                        InfoCertificado infoCertificado = new InfoCertificado(alias, token.obtenerCertificado(alias));
+                        if (ECA.esValida(infoCertificado) && ECA.esPublica(infoCertificado)) {
+                            if (format.equals("pades_hash")) {
+                                encontrados.add(infoCertificado);
+                            } else {
+                                String numDocumento = infoCertificado.getInfoSujeto().getNumeroDocumento();
+                                if (!infoCertificado.getInfoSujeto().getComplemento().equals("")) {
+                                    numDocumento += "-" + infoCertificado.getInfoSujeto().getComplemento();
+                                }
+                                if (tokenSelected.getCI() == null || tokenSelected.getCI().equals(numDocumento)) {
+                                    encontrados.add(infoCertificado);
+                                } else {
+                                    mensaje = "No se encontró ningún certificado para el ci: " + tokenSelected.getCI();
+                                }
+                            }
                         } else {
-                            message.setText("No se encontró ningún certificado para el ci: " + tokenSelected.getCI());
-                            buttonFirmar.setDisable(true);
+                            mensaje = "Certificado no emitido por la ECP.";
                         }
                     }
-                } else {
-                    message.setText("Certificado no emitido por la ECP.");
-                    buttonFirmar.setDisable(true);
+                    return new ResultadoCertificados(encontrados, mensaje);
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    return new ResultadoCertificados(new ArrayList<>(), null);
+                } finally {
+                    token.salir();
                 }
             }
-            token.salir();
-            if (listaInfoCertificado.size() > 0) {
+        };
+        progressBar.progressProperty().bind(task.progressProperty());
+        task.setOnSucceeded((WorkerStateEvent evt) -> {
+            resetearProgreso();
+            ResultadoCertificados resultado = task.getValue();
+            listaInfoCertificado.addAll(resultado.certificados);
+            if (!listaInfoCertificado.isEmpty()) {
                 cbInfoCertificado.getSelectionModel().selectFirst();
                 message.setText("");
-                buttonFirmar.setDisable(false);
                 buttonFirmar.requestFocus();
+                if (autoFirmarSiUnico && listaInfoCertificado.size() == 1) {
+                    PauseTransition delay = new PauseTransition(Duration.millis(1000));
+                    delay.setOnFinished(e -> this.aplicarFirma());
+                    delay.play();
+                } else {
+                    buttonFirmar.setDisable(false);
+                    cbInfoCertificado.setDisable(false);
+                }
+            } else {
+                message.setText(resultado.mensaje == null ? "" : resultado.mensaje);
+                passwordField.setDisable(false);
+                button.setDisable(false);
             }
-        } catch (GeneralSecurityException ex) {
+        });
+        task.setOnFailed((WorkerStateEvent evt) -> {
+            resetearProgreso();
             try {
+                Throwable ex = task.getException();
                 String mensaje = ex.getMessage();
                 if (ex.getCause() instanceof IOException) {
                     if (ex.getCause().getMessage() != null && ex.getCause().getMessage().equals("PKCS12 key store mac invalid - wrong password or corrupted file.")) {
@@ -557,20 +602,42 @@ public class FormService extends Stage {
             } catch (Exception ex1) {
                 message.setText(ex1.getMessage());
             }
-        }
+            passwordField.setDisable(false);
+            button.setDisable(false);
+        });
+        new Thread(task).start();
     }
 
     private void aplicarFirma() {
         if (cbInfoCertificado.getValue() instanceof InfoCertificado) {
+            passwordField.setDisable(true);
+            button.setDisable(true);
+            buttonFirmar.setDisable(true);
+            cbInfoCertificado.setDisable(true);
             tokenSelected.setPin(passwordField.getText());
             tokenSelected.setAlias(((InfoCertificado) cbInfoCertificado.getValue()).getAlias());
             new Thread(firmar()).start();
         }
     }
 
+    private void resetearProgreso() {
+        progressBar.progressProperty().unbind();
+        progressBar.setProgress(0);
+    }
+
     private class CustomException extends RuntimeException {
         public CustomException(String message) {
             super(message);
+        }
+    }
+
+    private static class ResultadoCertificados {
+        private final List<InfoCertificado> certificados;
+        private final String mensaje;
+
+        ResultadoCertificados(List<InfoCertificado> certificados, String mensaje) {
+            this.certificados = certificados;
+            this.mensaje = mensaje;
         }
     }
 
