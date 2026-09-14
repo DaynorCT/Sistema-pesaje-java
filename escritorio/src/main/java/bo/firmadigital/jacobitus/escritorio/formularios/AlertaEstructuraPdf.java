@@ -1,5 +1,7 @@
 package bo.firmadigital.jacobitus.escritorio.formularios;
 
+import java.io.File;
+import java.util.List;
 import java.util.Optional;
 
 import javafx.animation.KeyFrame;
@@ -16,9 +18,6 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
-/**
- * Alerta previa a la firma cuando se detectan problemas de estructura o integridad en el PDF.
- */
 public final class AlertaEstructuraPdf {
 
   private static final int COUNTDOWN_SEGUNDOS = 10;
@@ -27,28 +26,97 @@ public final class AlertaEstructuraPdf {
 
   public enum Resultado {
     CANCELAR,
-    REPARAR_Y_FIRMAR
+    REPARAR
   }
 
-  // "Reparar y firmar" solo se habilita tras el countdown.
-  public static Resultado mostrar(Stage owner, String detalleAdvertencias) {
-    boolean confirmado = mostrarConCountdown(
-        owner,
-        "Revise estos documentos antes de firmar",
+  public static void mostrarBloqueoFirma(Stage owner, String detalleAdvertencias) {
+    Alert alert = new Alert(AlertType.WARNING);
+    alert.initOwner(owner);
+    alert.initModality(Modality.APPLICATION_MODAL);
+    alert.setTitle("Jacobitus");
+    alert.setHeaderText("No se puede firmar");
+    alert.setContentText(null);
+    configurarContenido(
+        alert,
         detalleAdvertencias,
-        "La firma podría no ser válida o el documento podría alterarse después.",
-        "Reparar y firmar");
-    return confirmado ? Resultado.REPARAR_Y_FIRMAR : Resultado.CANCELAR;
+        "• Use Archivo → Analizar y reparar PDF para corregir la estructura antes de firmar.");
+    alert.getButtonTypes().setAll(ButtonType.OK);
+    alert.showAndWait();
   }
 
-  // Respaldo cuando la reparación automática no dejó todo íntegro.
-  public static boolean mostrarFalloReparacion(Stage owner, String detalleFallos) {
-    return mostrarConCountdown(
-        owner,
-        "No se pudo reparar completamente",
-        detalleFallos,
-        "Puede cancelar para revisar los documentos, o firmar de todos modos bajo su responsabilidad.",
-        "Firmar de todos modos");
+  public static void mostrarSinProblemas(Stage owner) {
+    Alert alert = new Alert(AlertType.INFORMATION);
+    alert.initOwner(owner);
+    alert.initModality(Modality.APPLICATION_MODAL);
+    alert.setTitle("Jacobitus");
+    alert.setHeaderText(null);
+    alert.setContentText("No se detectaron problemas de estructura en los PDF de la lista.");
+    alert.getButtonTypes().setAll(ButtonType.OK);
+    alert.showAndWait();
+  }
+
+  public static Resultado mostrarAnalizarReparar(Stage owner, String detalleAdvertencias) {
+    StringBuilder pie = new StringBuilder();
+    pie.append("• Se guardará una copia .reparado.pdf en la carpeta que elija; el original no se modifica.\n");
+    pie.append("• La reparación reescribe la estructura del PDF (no edita el contenido a mano).\n");
+    pie.append("• Las firmas digitales existentes suelen dejar de ser válidas.\n");
+    pie.append("• Puede perderse el historial de revisiones del archivo.\n");
+    pie.append("• Puede reparar o cancelar para revisar los documentos manualmente.");
+    boolean reparar = mostrarConCountdown(owner, "Problemas detectados", detalleAdvertencias, pie.toString(), "Reparar");
+    return reparar ? Resultado.REPARAR : Resultado.CANCELAR;
+  }
+
+  public static void mostrarFalloReparacion(Stage owner, String detalleFallos) {
+    Alert alert = new Alert(AlertType.WARNING);
+    alert.initOwner(owner);
+    alert.initModality(Modality.APPLICATION_MODAL);
+    alert.setTitle("Jacobitus");
+    alert.setHeaderText("No se pudo reparar completamente");
+    alert.setContentText(null);
+    configurarContenido(alert, detalleFallos, "• Revise los documentos o obtenga una nueva copia del origen.");
+    alert.getButtonTypes().setAll(ButtonType.OK);
+    alert.showAndWait();
+  }
+
+  public static void mostrarReparacionExitosa(Stage owner, File directorioDestino, List<String> documentosConFirmasPerdidas) {
+    StringBuilder mensaje = new StringBuilder();
+    mensaje.append("• Los documentos reparables se guardaron en:\n  ").append(directorioDestino.getAbsolutePath());
+    mensaje.append("\n• Los archivos en la lista apuntan a las copias .reparado.pdf.");
+    if (documentosConFirmasPerdidas != null && !documentosConFirmasPerdidas.isEmpty()) {
+      mensaje.append("\n\n• Las firmas digitales previas ya no son válidas o no están presentes en:");
+      for (String nombre : documentosConFirmasPerdidas) {
+        mensaje.append("\n  • ").append(nombre);
+      }
+    }
+    Alert alert = new Alert(AlertType.INFORMATION);
+    alert.initOwner(owner);
+    alert.initModality(Modality.APPLICATION_MODAL);
+    alert.setTitle("Jacobitus");
+    alert.setHeaderText(null);
+    alert.setContentText(null);
+    configurarContenido(alert, mensaje.toString().trim(), "");
+    alert.getButtonTypes().setAll(ButtonType.OK);
+    alert.showAndWait();
+  }
+
+  private static void configurarContenido(Alert alert, String detalle, String textoPie) {
+    TextArea areaDetalle = new TextArea(detalle);
+    areaDetalle.setEditable(false);
+    areaDetalle.setWrapText(true);
+    int lineas = detalle.split("\n", -1).length;
+    areaDetalle.setPrefRowCount(Math.min(10, Math.max(3, lineas)));
+    areaDetalle.setPrefColumnCount(72);
+    areaDetalle.setMaxWidth(520);
+
+    Label pie = new Label(textoPie);
+    pie.setWrapText(true);
+    pie.setMaxWidth(Double.MAX_VALUE);
+
+    if (textoPie == null || textoPie.isEmpty()) {
+      alert.getDialogPane().setContent(areaDetalle);
+    } else {
+      alert.getDialogPane().setContent(new javafx.scene.layout.VBox(12, areaDetalle, pie));
+    }
   }
 
   private static boolean mostrarConCountdown(
@@ -58,20 +126,10 @@ public final class AlertaEstructuraPdf {
     alert.initModality(Modality.APPLICATION_MODAL);
     alert.setTitle("Jacobitus");
     alert.setHeaderText(headerText);
-
-    TextArea areaDetalle = new TextArea(detalle);
-    areaDetalle.setEditable(false);
-    areaDetalle.setWrapText(true);
-    areaDetalle.setPrefRowCount(Math.min(12, detalle.split("\n", -1).length + 1));
-    areaDetalle.setMaxWidth(Double.MAX_VALUE);
-
-    Label pie = new Label(textoPie);
-    pie.setWrapText(true);
-    pie.setMaxWidth(Double.MAX_VALUE);
+    alert.setContentText(null);
+    configurarContenido(alert, detalle, textoPie);
 
     DialogPane dialogPane = alert.getDialogPane();
-    dialogPane.setContent(new javafx.scene.layout.VBox(12, areaDetalle, pie));
-
     ButtonType cancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
     ButtonType botonPrincipalTipo =
         new ButtonType(textoBotonPrincipal + " (" + COUNTDOWN_SEGUNDOS + "s)", ButtonBar.ButtonData.OK_DONE);

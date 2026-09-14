@@ -345,6 +345,19 @@ public class FormAplicacion extends Application {
         limpiarItem.setOnAction((ActionEvent e) -> {
             tbvArchivos.getItems().clear();
         });
+        MenuItem analizarRepararItem = new MenuItem("Analizar y reparar PDF");
+        analizarRepararItem.setOnAction((ActionEvent e) -> {
+            try {
+                analizarYRepararPdfsEnLista();
+            } catch (IOException ex) {
+                Alert alert = new Alert(AlertType.WARNING,
+                        "No se pudo analizar la estructura del documento: " + ex.getMessage(), ButtonType.OK);
+                alert.initOwner(stage);
+                alert.initModality(Modality.APPLICATION_MODAL);
+                alert.setTitle("Jacobitus");
+                alert.showAndWait();
+            }
+        });
         MenuItem opcionesItem = new MenuItem("Opciones");
         opcionesItem.setOnAction((ActionEvent e) -> {
             FormConfiguracion formConfiguracion = new FormConfiguracion(stage);
@@ -386,7 +399,8 @@ public class FormAplicacion extends Application {
         salirItem.setOnAction((ActionEvent e) -> {
             salir();
         });
-        archivoMenu.getItems().addAll(actualizarItem, abrirItem, abrirOtroItem, convertirAPdf, limpiarItem, opcionesItem,
+        archivoMenu.getItems().addAll(actualizarItem, abrirItem, abrirOtroItem, convertirAPdf, analizarRepararItem,
+                limpiarItem, opcionesItem,
                 abrirCrt, salirItem);
         menuBar.getMenus().add(archivoMenu);
 
@@ -922,12 +936,91 @@ public class FormAplicacion extends Application {
         return task;
     }
 
-    /**
-     * Valida la estructura de los PDF en la lista antes de firmar.
-     *
-     * @return true para continuar con la firma; false si el usuario cancela.
-     */
     private boolean confirmarEstructuraPdfAntesDeFirmar() throws IOException {
+        Optional<String> advertencias = obtenerAdvertenciasEstructuraPdfEnLista();
+        if (advertencias.isEmpty()) {
+            return true;
+        }
+        AlertaEstructuraPdf.mostrarBloqueoFirma(stage, advertencias.get());
+        return false;
+    }
+
+    private void analizarYRepararPdfsEnLista() throws IOException {
+        DatosPdfsEnLista datos = recopilarPdfsEnLista();
+        if (datos.archivosPdf.isEmpty()) {
+            Alert alert = new Alert(AlertType.INFORMATION, "No hay documentos PDF en la lista.", ButtonType.OK);
+            alert.initOwner(stage);
+            alert.initModality(Modality.APPLICATION_MODAL);
+            alert.setTitle("Jacobitus");
+            alert.showAndWait();
+            return;
+        }
+        Optional<String> advertencias = ValidadorEstructuraPdf.revisarAntesDeFirmar(datos.archivosPdf,
+                datos.firmasPorArchivo);
+        if (advertencias.isEmpty()) {
+            AlertaEstructuraPdf.mostrarSinProblemas(stage);
+            return;
+        }
+        if (AlertaEstructuraPdf.mostrarAnalizarReparar(stage, advertencias.get())
+                == AlertaEstructuraPdf.Resultado.CANCELAR) {
+            return;
+        }
+        File directorioDestino = elegirDirectorioDestinoDocumentos("Seleccione directorio de destino para los documentos reparados");
+        if (directorioDestino == null) {
+            Alert alert = new Alert(AlertType.INFORMATION,
+                    "Seleccione una carpeta de destino para guardar los PDF reparados.", ButtonType.OK);
+            alert.initOwner(stage);
+            alert.initModality(Modality.APPLICATION_MODAL);
+            alert.setTitle("Jacobitus");
+            alert.showAndWait();
+            return;
+        }
+        ResultadoReparacionPdf resultadoReparacion = repararPdfsEnLista(datos, directorioDestino);
+        if (!resultadoReparacion.fallos.isEmpty()) {
+            String detalle = "No se pudo reparar por completo los siguientes documentos:\n\n"
+                    + String.join("\n", resultadoReparacion.fallos);
+            AlertaEstructuraPdf.mostrarFalloReparacion(stage, detalle);
+            return;
+        }
+        if (resultadoReparacion.reparados == 0) {
+            Alert alert = new Alert(AlertType.INFORMATION,
+                    "No se reparó ningún documento (por ejemplo, PDF ya firmados excluidos de reparación).",
+                    ButtonType.OK);
+            alert.initOwner(stage);
+            alert.initModality(Modality.APPLICATION_MODAL);
+            alert.setTitle("Jacobitus");
+            alert.showAndWait();
+            return;
+        }
+        AlertaEstructuraPdf.mostrarReparacionExitosa(stage, directorioDestino, resultadoReparacion.firmasPerdidas);
+    }
+
+    private File elegirDirectorioDestinoDocumentos(String titulo) {
+        if (!tbvArchivos.getItems().isEmpty() && tbvArchivos.getItems().get(0).isRemoto()) {
+            return new File(System.getProperty("java.io.tmpdir"));
+        }
+        DirectoryChooser directoryChooser = new DirectoryChooser();
+        directoryChooser.setTitle(titulo);
+        return directoryChooser.showDialog(stage);
+    }
+
+    private static String nombreArchivoReparado(String nombreOriginal) {
+        String nomArchivo = new File(nombreOriginal).getName();
+        if (!nomArchivo.endsWith(".pdf")) {
+            return nomArchivo + ".reparado.pdf";
+        }
+        return nomArchivo.replace(".pdf", ".reparado.pdf");
+    }
+
+    private Optional<String> obtenerAdvertenciasEstructuraPdfEnLista() throws IOException {
+        DatosPdfsEnLista datos = recopilarPdfsEnLista();
+        if (datos.archivosPdf.isEmpty()) {
+            return Optional.empty();
+        }
+        return ValidadorEstructuraPdf.revisarAntesDeFirmar(datos.archivosPdf, datos.firmasPorArchivo);
+    }
+
+    private DatosPdfsEnLista recopilarPdfsEnLista() throws IOException {
         List<File> archivosPdf = new ArrayList<>();
         List<List<Firma>> firmasPorArchivo = new ArrayList<>();
         List<Integer> indicesArchivosPdf = new ArrayList<>();
@@ -944,20 +1037,16 @@ public class FormAplicacion extends Application {
                 firmasPorArchivo.add(firmas);
             }
         }
-        Optional<String> advertencias = ValidadorEstructuraPdf.revisarAntesDeFirmar(archivosPdf, firmasPorArchivo);
-        if (advertencias.isEmpty()) {
-            return true;
-        }
-        AlertaEstructuraPdf.Resultado resultado = AlertaEstructuraPdf.mostrar(stage, advertencias.get());
-        if (resultado == AlertaEstructuraPdf.Resultado.CANCELAR) {
-            return false;
-        }
+        return new DatosPdfsEnLista(archivosPdf, firmasPorArchivo, indicesArchivosPdf);
+    }
 
-        // Si no queda todo íntegro tras reparar, se ofrece firmar de todos modos como respaldo.
+    private ResultadoReparacionPdf repararPdfsEnLista(DatosPdfsEnLista datos, File directorioDestino) throws IOException {
         List<String> fallosReparacion = new ArrayList<>();
-        for (int i = 0; i < archivosPdf.size(); i++) {
-            File archivoOriginal = archivosPdf.get(i);
-            List<Firma> firmasOriginales = firmasPorArchivo.get(i);
+        List<String> firmasPerdidas = new ArrayList<>();
+        int reparados = 0;
+        for (int i = 0; i < datos.archivosPdf.size(); i++) {
+            File archivoOriginal = datos.archivosPdf.get(i);
+            List<Firma> firmasOriginales = datos.firmasPorArchivo.get(i);
             if (!firmasOriginales.isEmpty() && !REPARAR_DOCUMENTOS_CON_FIRMAS) {
                 continue;
             }
@@ -969,34 +1058,50 @@ public class FormAplicacion extends Application {
                     fallosReparacion.add(archivoOriginal.getName() + ": persisten inconsistencias de estructura.");
                     continue;
                 }
-                String nombreReparado = archivoOriginal.getName();
-                if (!nombreReparado.endsWith(".pdf")) {
-                    nombreReparado += ".reparado.pdf";
-                } else {
-                    nombreReparado = nombreReparado.replace(".pdf", ".reparado.pdf");
-                }
-                File archivoReparado = new File(System.getProperty("java.io.tmpdir"), nombreReparado);
+                File archivoReparado = new File(directorioDestino, nombreArchivoReparado(archivoOriginal.getName()));
                 Files.write(archivoReparado.toPath(), reparado.get());
                 ValidadorExtendidoPdf validadorReparado = new ValidadorExtendidoPdf(archivoReparado, getConfigValidador());
 
-                if (!firmasOriginales.isEmpty() && !firmasSiguenIntegras(firmasOriginales, validadorReparado)) {
-                    LOG.warning("Reparar " + archivoOriginal.getName()
-                            + " invalidó una o más firmas existentes (esperado al regrabar un PDF ya firmado).");
+                if (!firmasOriginales.isEmpty()) {
+                    if (!firmasSiguenIntegras(firmasOriginales, validadorReparado)) {
+                        firmasPerdidas.add(archivoReparado.getName());
+                        LOG.warning("Reparar " + archivoOriginal.getName()
+                                + " invalidó una o más firmas existentes (esperado al regrabar un PDF ya firmado).");
+                    }
                 }
-                // Se reemplaza igual, invalidada o no, para poder inspeccionar el resultado en la app.
-                tbvArchivos.getItems().set(indicesArchivosPdf.get(i), validadorReparado);
+                tbvArchivos.getItems().set(datos.indicesArchivosPdf.get(i), validadorReparado);
+                reparados++;
             } catch (Exception ex) {
                 LOG.log(Level.WARNING, "Fallo inesperado al reparar " + archivoOriginal.getName(), ex);
                 fallosReparacion.add(archivoOriginal.getName() + ": " + ex.getMessage());
             }
         }
+        return new ResultadoReparacionPdf(fallosReparacion, firmasPerdidas, reparados);
+    }
 
-        if (fallosReparacion.isEmpty()) {
-            return true;
+    private static final class ResultadoReparacionPdf {
+        private final List<String> fallos;
+        private final List<String> firmasPerdidas;
+        private final int reparados;
+
+        private ResultadoReparacionPdf(List<String> fallos, List<String> firmasPerdidas, int reparados) {
+            this.fallos = fallos;
+            this.firmasPerdidas = firmasPerdidas;
+            this.reparados = reparados;
         }
-        String detalle = "No se pudo reparar por completo los siguientes documentos:\n\n"
-                + String.join("\n", fallosReparacion);
-        return AlertaEstructuraPdf.mostrarFalloReparacion(stage, detalle);
+    }
+
+    private static final class DatosPdfsEnLista {
+        private final List<File> archivosPdf;
+        private final List<List<Firma>> firmasPorArchivo;
+        private final List<Integer> indicesArchivosPdf;
+
+        private DatosPdfsEnLista(List<File> archivosPdf, List<List<Firma>> firmasPorArchivo,
+                List<Integer> indicesArchivosPdf) {
+            this.archivosPdf = archivosPdf;
+            this.firmasPorArchivo = firmasPorArchivo;
+            this.indicesArchivosPdf = indicesArchivosPdf;
+        }
     }
 
     // Regrabar puede romper el /ByteRange de una firma existente; esto lo detecta.
