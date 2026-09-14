@@ -236,7 +236,8 @@ public class FormAplicacion extends Application {
         }
 
         String version = Informacion.VERSION;
-        stage.setTitle("Jacobitus - " + version);
+        String variante = version.contains("-") ? version.substring(version.indexOf('-') + 1).toUpperCase() : null;
+        stage.setTitle("Jacobitus" + (variante != null ? " [" + variante + "]" : "") + " - " + version);
         if (!usarServicioLocalhost) {
             // Alert alert = new Alert(AlertType.ERROR, "Servicio detenido, no podrá
             // interactuar con aplicaciones web.", ButtonType.OK);
@@ -245,7 +246,7 @@ public class FormAplicacion extends Application {
             alert.initModality(Modality.APPLICATION_MODAL);
             alert.setTitle("Jacobitus");
             alert.showAndWait();
-            stage.setTitle("Jacobitus - " + version + " (Servicio detenido)");
+            stage.setTitle("Jacobitus" + (variante != null ? " [" + variante + "]" : "") + " - " + version + " (Servicio detenido)");
         }
         stage.getIcons().add(new Image(this.getClass().getClassLoader().getResourceAsStream("icon.png")));
         if (usarBarraTareasConfiguracion && !usarBarraTareas) {
@@ -562,9 +563,12 @@ public class FormAplicacion extends Application {
             nombre.setWrapText(true);
             Label versionAplicacion = new Label("Versión " + version);
             versionAplicacion.setStyle("-fx-font-size: 16px;");
+            Label versionVariante = new Label(variante != null ? "VERSIÓN " + variante : "");
+            versionVariante.setVisible(variante != null);
+            versionVariante.setStyle("-fx-background-color: #2f5f73; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 3 10 3 10;");
             Label descripcion = new Label("Solución de escritorio para firma digital");
             descripcion.setWrapText(true);
-            VBox presentacion = new VBox(0, nombre, versionAplicacion, descripcion);
+            VBox presentacion = new VBox(4, nombre, versionAplicacion, versionVariante, descripcion);
             presentacion.setAlignment(Pos.CENTER);
             VBox cabecera = new VBox(0, logo, presentacion);
             cabecera.setAlignment(Pos.CENTER);
@@ -613,7 +617,15 @@ public class FormAplicacion extends Application {
         SeparatorMenuItem separador = new SeparatorMenuItem();
         ayudaMenu.getItems().addAll(certificadoLocalItem, separador, acercaDeItem);
         menuBar.getMenus().add(ayudaMenu);
-        root.setTop(menuBar);
+        if (variante != null) {
+            Label versionBanner = new Label("VERSIÓN " + variante + " - " + version);
+            versionBanner.getStyleClass().add("version-banner");
+            versionBanner.setMaxWidth(Double.MAX_VALUE);
+            versionBanner.setAlignment(Pos.CENTER);
+            root.setTop(new VBox(menuBar, versionBanner));
+        } else {
+            root.setTop(menuBar);
+        }
 
         tokenContextMenu = new ContextMenu();
         MenuItem informacionItem = new MenuItem("Información");

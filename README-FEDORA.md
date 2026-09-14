@@ -120,7 +120,9 @@ Instalamos rpmbuild:
 $ sudo dnf install -y rpm-build rpmdevtools
 ```
 
-Generamos el paquete:
+Generamos el paquete indicando el perfil de distribución:
 ```bash
-$ ./gradlew packageRpm
+$ ./gradlew packageRpm --app-profile=prod
 ```
+
+Para generar instaladores de otros entornos, reemplazamos `prod` por el perfil requerido, por ejemplo `dev`, `test` o `demo`.

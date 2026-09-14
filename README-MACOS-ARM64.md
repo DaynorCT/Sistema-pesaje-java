@@ -109,7 +109,9 @@ $ ./gradlew escritorio:run
 
 ## Generación del paquete de instalación
 
-Generamos:
+Generamos el paquete indicando el perfil de distribución:
 ```bash
-$ ./gradlew packageApp
+$ ./gradlew packageApp --app-profile=prod
 ```
+
+Para generar instaladores de otros entornos, reemplazamos `prod` por el perfil requerido, por ejemplo `dev`, `test` o `demo`.

@@ -1,3 +1,10 @@
 .context-menu {
     -fx-effect: null;
 }
+
+.version-banner {
+    -fx-background-color: #2f5f73;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 5 10 5 10;
+}
