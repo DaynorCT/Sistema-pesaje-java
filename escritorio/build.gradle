@@ -20,6 +20,7 @@ def vendorName = 'AGETIC'
 def maintainer = 'desarrollo@firmadigital.bo'
 def appBaseVersion = version.toString()
 def packageRelease = '1'
+def buildTimestamp = System.currentTimeMillis().toString()
 ext.buildAppProfile = null
 
 def appProfile = { profile ->
@@ -33,6 +34,14 @@ def appProfile = { profile ->
 def artifactVersion = { profile ->
     def suffix = appProfile(profile)
     suffix ? "${appBaseVersion}-${suffix}" : appBaseVersion
+}
+
+def appRuntimeProperties = { profile ->
+    [
+            "-Djacobitus.version=${appBaseVersion}",
+            "-Djacobitus.profile=${appProfile(profile)}",
+            "-Djacobitus.compilacion=${buildTimestamp}"
+    ]
 }
 
 class BuildAppTask extends DefaultTask {
@@ -192,9 +201,12 @@ tasks.named('run', JavaExec) {
     doFirst {
         def runProfile = project.findProperty('profile') ?: 'dev'
         setJvmArgs((getJvmArgs() ?: [])
-                .findAll { !it.startsWith('-Djacobitus.version=') && !it.startsWith('-Djacobitus.profile=') }
-                + "-Djacobitus.version=${appBaseVersion}"
-                + "-Djacobitus.profile=${appProfile(runProfile)}")
+                .findAll { arg ->
+                    !arg.startsWith('-Djacobitus.version=') &&
+                            !arg.startsWith('-Djacobitus.profile=') &&
+                            !arg.startsWith('-Djacobitus.compilacion=')
+                }
+                + appRuntimeProperties(runProfile))
     }
 }
 
@@ -253,6 +265,7 @@ def jpackageCmd = [
     '--java-options', '-Dfile.encoding=UTF-8',
     '--java-options', "-Djacobitus.version=${appBaseVersion}",
     '--java-options', '-Djacobitus.profile=',
+    '--java-options', "-Djacobitus.compilacion=${buildTimestamp}",
     '--license-file', os.isWindows() ? 'license.rtf' : 'license.txt'
 ]
 
@@ -430,9 +443,9 @@ tasks.register('packageRpm', PackageRpmTask) {
                     '--app-version', appBaseVersion,
                     '--description', appDescription,
                     '--java-options', '-Dfile.encoding=UTF-8',
-                    '--java-options', "-Djacobitus.version=${appBaseVersion}",
-                    '--java-options', "-Djacobitus.profile=${appProfile(project.ext.buildAppProfile)}",
-
+                    '--java-options', appRuntimeProperties(project.ext.buildAppProfile)[0],
+                    '--java-options', appRuntimeProperties(project.ext.buildAppProfile)[1],
+                    '--java-options', appRuntimeProperties(project.ext.buildAppProfile)[2],
                     '--type', 'app-image',
                     '--icon', './iconos/icon.png',
             ])
@@ -590,8 +603,9 @@ tasks.register('packageArch', PackageArchTask) {
                     '--app-version', appBaseVersion,
                     '--description', appDescription,
                     '--java-options', '-Dfile.encoding=UTF-8',
-                    '--java-options', "-Djacobitus.version=${appBaseVersion}",
-                    '--java-options', "-Djacobitus.profile=${appProfile(project.ext.buildAppProfile)}",
+                    '--java-options', appRuntimeProperties(project.ext.buildAppProfile)[0],
+                    '--java-options', appRuntimeProperties(project.ext.buildAppProfile)[1],
+                    '--java-options', appRuntimeProperties(project.ext.buildAppProfile)[2],
                     '--type', 'app-image',
                     '--icon', './iconos/icon.png',
             ])
