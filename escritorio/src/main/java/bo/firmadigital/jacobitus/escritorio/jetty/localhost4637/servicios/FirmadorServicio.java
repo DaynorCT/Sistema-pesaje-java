@@ -117,6 +117,11 @@ public class FirmadorServicio {
                 throw new JacobitusException("El campo digest no es válido. Valores permitidos: sha1, sha224, sha256, sha384, sha512.");
             }
 
+            String language = objetoDto.getLanguage();
+            if (language != null && !language.equals("es")) {
+                throw new JacobitusException("El campo language no es válido. Valor permitido: es.");
+            }
+
             List<FirmaHashItemDto> archivoItems = objetoDto.getArchivo();
             if (archivoItems == null || archivoItems.isEmpty()) {
                 throw new JacobitusException("El campo archivo es obligatorio.");

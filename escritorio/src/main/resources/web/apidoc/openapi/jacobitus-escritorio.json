@@ -284,75 +284,6 @@
         ]
       }
     },
-    "/sign": {
-      "servers": [
-        {
-          "url": "https://localhost:4637"
-        }
-      ],
-      "post": {
-        "summary": "Firmar un lote de documentos pdf/json",
-        "operationId": "post-sign",
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "files": {
-                      "$ref": "#/components/schemas/FirmaArregloModoSeguroFirmadoDto",
-                      "x-stoplight": {
-                        "id": "hxwdpxzlcdh2r"
-                      }
-                    }
-                  },
-                  "required": [
-                    "files"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "x-stoplight": {
-                        "id": "4difazyg9kbtx"
-                      }
-                    },
-                    "error": {
-                      "type": "string",
-                      "x-stoplight": {
-                        "id": "c7co8f2glcvm5"
-                      }
-                    }
-                  },
-                  "required": [
-                    "message",
-                    "error"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "firmador"
-        ],
-        "description": "Permite firmar un lote de archivos en formato pdf o json.",
-        "requestBody": {
-          "$ref": "#/components/requestBodies/FirmaModoSeguro"
-        }
-      }
-    },
     "/sign-hash": {
       "servers": [
         {
@@ -503,6 +434,24 @@
                     "value": {
                       "message": "No se pudo firmar el documento",
                       "error": "Uno o más parámetros tienen problemas."
+                    }
+                  },
+                  "Idioma no válido": {
+                    "value": {
+                      "message": "No se pudo firmar el documento",
+                      "error": "El campo language no es válido. Valor permitido: es."
+                    }
+                  },
+                  "Campo no reconocido": {
+                    "value": {
+                      "message": "Error en la petición",
+                      "error": "Campo no reconocido: archivo.base642"
+                    }
+                  },
+                  "Campo con tipo de dato incorrecto": {
+                    "value": {
+                      "message": "Error en la petición",
+                      "error": "El campo 'ci' tiene un valor con formato incorrecto."
                     }
                   }
                 }
@@ -2342,6 +2291,9 @@
                 "language": {
                   "type": "string",
                   "description": "Idioma del sistema. (Opcional)",
+                  "enum": [
+                    "es"
+                  ],
                   "default": "es"
                 },
                 "digest": {

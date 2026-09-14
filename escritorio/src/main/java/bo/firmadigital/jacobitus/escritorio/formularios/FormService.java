@@ -433,11 +433,8 @@ public class FormService extends Stage {
                                     case "pades_hash":
                                         try {
                                             out.write(firmarHash(token, tokenSelected.getAlias(), file, digestName));
-                                            Thread.sleep(1000); // temporal para QA, quitar después
                                         } catch (GeneralSecurityException ex) {
                                             throw new CustomException(ex.getMessage());
-                                        } catch (InterruptedException ex) {
-                                            Thread.currentThread().interrupt();
                                         }
                                         break;
                                     default:
@@ -516,7 +513,6 @@ public class FormService extends Stage {
                 IToken token = tokenSelected.getSlot().getToken();
                 token.iniciar(pin);
                 try {
-                    Thread.sleep(1000); // temporal para QA, quitar después
                     List<InfoCertificado> encontrados = new ArrayList<>();
                     String mensaje = null;
                     List<String> listaAlias = token.listarIdentificadorClaves();
@@ -541,9 +537,6 @@ public class FormService extends Stage {
                         }
                     }
                     return new ResultadoCertificados(encontrados, mensaje);
-                } catch (InterruptedException ex) {
-                    Thread.currentThread().interrupt();
-                    return new ResultadoCertificados(new ArrayList<>(), null);
                 } finally {
                     token.salir();
                 }
