@@ -1656,6 +1656,7 @@ public class FormAplicacion extends Application {
             tokenSelected.setCI(ci);
             tokenSelected.setFiles(pdfArray);
             tokenSelected.setFilesJson(null);
+            tokenSelected.setPinInicial(null);
             FormService service = new FormService(stage, tokenSelected, "pades");
             service.showAndWait();
             synchronized (tokenSelected) {
@@ -1675,6 +1676,7 @@ public class FormAplicacion extends Application {
             tokenSelected.setCI(ci);
             tokenSelected.setFiles(null);
             tokenSelected.setFilesJson(jsonArray);
+            tokenSelected.setPinInicial(null);
             FormService service = new FormService(stage, tokenSelected, "jws");
             service.showAndWait();
             synchronized (tokenSelected) {
@@ -1695,6 +1697,7 @@ public class FormAplicacion extends Application {
             tokenSelected.setCI(ci);
             tokenSelected.setFiles(pdfArray);
             tokenSelected.setFilesJson(jsonArray);
+            tokenSelected.setPinInicial(null);
             FormService service = new FormService(stage, tokenSelected, "both");
             service.showAndWait();
             synchronized (tokenSelected) {
@@ -1705,7 +1708,7 @@ public class FormAplicacion extends Application {
         return tokenSelected;
     }
 
-    public static TokenSelected serviceHash(Slot slot, String ci, JSONArray hashArray) {
+    public static TokenSelected serviceHash(Slot slot, String ci, JSONArray hashArray, String digest, String pin) {
         if (tokenSelected.isShown()) {
             throw new JacobitusException("Ya se tiene una solicitud de firma pendiente.");
         }
@@ -1715,6 +1718,8 @@ public class FormAplicacion extends Application {
             tokenSelected.setFiles(null);
             tokenSelected.setFilesJson(null);
             tokenSelected.setHashArray(hashArray);
+            tokenSelected.setDigest(digest);
+            tokenSelected.setPinInicial(pin);
             FormService service = new FormService(stage, tokenSelected, "pades_hash");
             service.showAndWait();
             synchronized (tokenSelected) {

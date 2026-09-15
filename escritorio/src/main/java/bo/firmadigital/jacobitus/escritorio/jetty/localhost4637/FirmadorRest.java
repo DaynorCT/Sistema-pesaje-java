@@ -5,12 +5,17 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
+import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.exc.UnrecognizedPropertyException;
 
 import bo.firmadigital.jacobitus.escritorio.jetty.JettyHelper;
+import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.ErrorRespuestaDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.FirmaHashModoSeguroDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.FirmaModoSeguroDto;
+import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.comun.IRespuestaDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.servicios.FirmadorServicio;
 
 @Path("/")
@@ -34,14 +39,55 @@ public class FirmadorRest {
     @Path("/sign-hash")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String signHash(String body) {
+    public Response signHash(String body) {
         FirmadorServicio servicio = new FirmadorServicio();
         ObjectMapper om = new ObjectMapper();
         try {
             FirmaHashModoSeguroDto objetoDto = om.readValue(body, FirmaHashModoSeguroDto.class);
-            return om.writeValueAsString(servicio.firmarHashModoSeguro(objetoDto));
+            IRespuestaDto respuesta = servicio.firmarHashModoSeguro(objetoDto);
+            String json = om.writeValueAsString(respuesta);
+            if (respuesta instanceof ErrorRespuestaDto) {
+                return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(json).build();
+            }
+            return Response.ok(json).build();
         } catch (Exception e) {
-            return JettyHelper.generarRespuesta(e.getMessage());
+            boolean esCampoNoReconocido = false;
+            StringBuilder ruta = new StringBuilder();
+            for (Throwable causa = e; causa != null; causa = causa.getCause()) {
+                if (causa instanceof UnrecognizedPropertyException) {
+                    esCampoNoReconocido = true;
+                }
+                if (causa instanceof JsonMappingException) {
+                    for (JsonMappingException.Reference ref : ((JsonMappingException) causa).getPath()) {
+                        if (ruta.length() > 0) {
+                            ruta.append(".");
+                        }
+                        if (ref.getFieldName() != null) {
+                            ruta.append(ref.getFieldName());
+                        } else {
+                            ruta.append("[").append(ref.getIndex()).append("]");
+                        }
+                    }
+                }
+            }
+            if (esCampoNoReconocido) {
+                return errorInternoSignHash(om, "Campo no reconocido: " + ruta);
+            }
+            if (ruta.length() > 0) {
+                return errorInternoSignHash(om, "El campo '" + ruta + "' tiene un valor con formato incorrecto.");
+            }
+            return errorInternoSignHash(om, e.getMessage());
+        }
+    }
+
+    private Response errorInternoSignHash(ObjectMapper om, String error) {
+        ErrorRespuestaDto errorDto = new ErrorRespuestaDto();
+        errorDto.setMessage("Error en la petición");
+        errorDto.setError(error);
+        try {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(om.writeValueAsString(errorDto)).build();
+        } catch (Exception ex) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(JettyHelper.generarRespuesta(error)).build();
         }
     }
 }
