@@ -290,7 +290,7 @@ public class FormService extends Stage {
             try {
                 this.mostrarCertificados(true);
             } catch (RuntimeException ex) {
-                message.setText("No se pudo validar el pin automáticamente. Intente manualmente.");
+                message.setText("No se pudo validar el PIN automáticamente. Inténtelo manualmente.");
             }
         }
     }
@@ -572,7 +572,7 @@ public class FormService extends Stage {
                 String mensaje = ex.getMessage();
                 if (ex.getCause() instanceof IOException) {
                     if (ex.getCause().getMessage() != null && ex.getCause().getMessage().equals("PKCS12 key store mac invalid - wrong password or corrupted file.")) {
-                        mensaje = "Pin incorrecto, intente nuevamente.";
+                        mensaje = "El PIN es incorrecto. Inténtelo nuevamente.";
                     }
                 }
                 if (ex instanceof java.security.cert.CertificateExpiredException) {
@@ -583,7 +583,7 @@ public class FormService extends Stage {
                 }
                 if (ex.getCause() instanceof java.security.UnrecoverableKeyException) {
                     if (ex.getCause().getCause() instanceof javax.security.auth.login.FailedLoginException) {
-                        mensaje = "Por favor verifique el pin.";
+                        mensaje = "Por favor verifique el PIN.";
                     }
                 }
                 if (ex.getCause() instanceof javax.security.auth.login.LoginException) {
