@@ -95,13 +95,20 @@ Ejecutamos:
 $ ./gradlew escritorio:run
 ```
 
+Ejecutamos con un perfil de distribución en específico:
+```bash
+$ ./gradlew escritorio:run -Pprofile=prod
+```
+
 ## Generación del paquete de instalación
 
 Para la generación de un archivo msi/exe es necesario:
 
 - WiX 3.11.x
 
-Generamos el instalador:
+Generamos el instalador indicando el perfil de distribución:
 ```bash
-$ ./gradlew packageApp
+$ ./gradlew packageApp --app-profile=prod
 ```
+
+Para generar instaladores de otros entornos, reemplazamos `prod` por el perfil requerido, por ejemplo `dev`, `test` o `demo`.

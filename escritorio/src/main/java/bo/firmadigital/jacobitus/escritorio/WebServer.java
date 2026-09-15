@@ -15,7 +15,9 @@ import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
+import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.server.handler.HandlerList;
+import org.eclipse.jetty.server.handler.ResourceHandler;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -42,8 +44,9 @@ public class WebServer {
         filterHolder.setInitParameter(CrossOriginFilter.ALLOW_CREDENTIALS_PARAM, "true");
 
         // Sitio web
+        String webResourceBase = jettyServer.getClass().getClassLoader().getResource("web").toExternalForm();
         ServletHolder staticResource = new ServletHolder("default", DefaultServlet.class);
-        staticResource.setInitParameter("resourceBase", jettyServer.getClass().getClassLoader().getResource("web").toExternalForm());
+        staticResource.setInitParameter("resourceBase", webResourceBase);
         staticResource.setInitParameter("dirAllowed", "false");
 
         // https://localhost:9000
@@ -60,16 +63,22 @@ public class WebServer {
         Config config = Config.getInstance();
 
         // https://localhost:4637
+        ResourceHandler resourceHandler4637 = new ResourceHandler();
+        resourceHandler4637.setResourceBase(webResourceBase);
+        resourceHandler4637.setDirAllowed(false);
+        ContextHandler staticContextHandler4637 = new ContextHandler("/");
+        staticContextHandler4637.setVirtualHosts(new String[]{"@localhost4637"});
+        staticContextHandler4637.setHandler(resourceHandler4637);
+
         ServletContextHandler servletContextHandler4637 = new ServletContextHandler(NO_SESSIONS);
         servletContextHandler4637.setContextPath("/");
         servletContextHandler4637.setVirtualHosts(new String[]{"@localhost4637"});
         servletContextHandler4637.addFilter(filterHolder, "/*", null);
-        servletContextHandler4637.addServlet(staticResource, "/");
         if (config.isSecondaryPortEnabled()) {
-            ServletHolder servletHolder4637 = servletContextHandler4637.addServlet(ServletContainer.class, "/sign");
+            ServletHolder servletHolder4637 = servletContextHandler4637.addServlet(ServletContainer.class, "/*");
             servletHolder4637.setInitOrder(1);
-            servletHolder4637.setInitParameter("jersey.config.server.provider.classnames",
-                    "bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.FirmadorRest");
+            servletHolder4637.setInitParameter("jersey.config.server.provider.packages",
+                    "bo.firmadigital.jacobitus.escritorio.jetty.localhost4637");
         }
 
         // https://localhost:3200
@@ -85,7 +94,7 @@ public class WebServer {
         }
 
         HandlerList handlers = new HandlerList();
-        handlers.setHandlers(new Handler[] { servletContextHandler9000, servletContextHandler4637, servletContextHandler3200 });
+        handlers.setHandlers(new Handler[] { servletContextHandler9000, staticContextHandler4637, servletContextHandler4637, servletContextHandler3200 });
         jettyServer.setHandler(handlers);
 
         try {

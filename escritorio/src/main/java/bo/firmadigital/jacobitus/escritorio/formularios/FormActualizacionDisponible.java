@@ -37,6 +37,9 @@ public class FormActualizacionDisponible extends Stage {
 
         ImageView imagen = new ImageView(new Image(
                             this.getClass().getClassLoader().getResource("logo-agetic.png").toExternalForm()));
+        imagen.setFitWidth(280);
+        imagen.setPreserveRatio(true);
+        imagen.setSmooth(true);
 
         Label titulo = new Label("Nueva actualización disponible");
         titulo.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
