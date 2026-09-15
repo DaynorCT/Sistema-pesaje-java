@@ -50,6 +50,11 @@ public class ValidadorExtendidoPdf extends ValidadorExtendido {
         this.ocultarFirmasInvalidasEnRuta = true;
     }
 
+    /** Firmas mostradas solo en UI; no deben bloquear cofirmar tras reparar. */
+    public boolean esFirmasReferenciaTrasReparacion() {
+        return ocultarFirmasInvalidasEnRuta;
+    }
+
     public ValidadorExtendidoPdf(File archivo, ConfiguracionValidador configValidador) {
         this.configValidador = configValidador;
         try {

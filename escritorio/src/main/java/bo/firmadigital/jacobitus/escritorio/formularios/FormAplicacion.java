@@ -1116,11 +1116,24 @@ public class FormAplicacion extends Application {
             if (MagicBytes.PDF.is(item.getFile())) {
                 archivosPdf.add(item.getFile());
                 indicesArchivosPdf.add(i);
-                List<Firma> firmas = new ArrayList<>();
-                for (Firma firma : item) {
-                    firmas.add(firma);
+                if (item instanceof ValidadorExtendidoPdf) {
+                    ValidadorExtendidoPdf pdfItem = (ValidadorExtendidoPdf) item;
+                    if (pdfItem.esFirmasReferenciaTrasReparacion()) {
+                        firmasPorArchivo.add(List.of());
+                    } else {
+                        List<Firma> firmas = new ArrayList<>();
+                        for (Firma firma : item) {
+                            firmas.add(firma);
+                        }
+                        firmasPorArchivo.add(firmas);
+                    }
+                } else {
+                    List<Firma> firmas = new ArrayList<>();
+                    for (Firma firma : item) {
+                        firmas.add(firma);
+                    }
+                    firmasPorArchivo.add(firmas);
                 }
-                firmasPorArchivo.add(firmas);
             }
         }
         return new DatosPdfsEnLista(archivosPdf, firmasPorArchivo, indicesArchivosPdf);
