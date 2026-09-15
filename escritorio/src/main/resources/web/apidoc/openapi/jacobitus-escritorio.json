@@ -383,7 +383,10 @@
                       }
                     },
                     "certificateChain": {
-                      "type": "string",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
                       "x-stoplight": {
                         "id": "1dq6ozh10sdwx"
                       }

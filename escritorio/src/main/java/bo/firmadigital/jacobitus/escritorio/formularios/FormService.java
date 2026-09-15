@@ -7,7 +7,10 @@ import java.security.GeneralSecurityException;
 import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.Signature;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
@@ -26,6 +29,7 @@ import bo.firmadigital.jacobitus.pkcs11.CK_TOKEN_INFO;
 import bo.firmadigital.jacobitus.token.GestorSlot;
 import bo.firmadigital.jacobitus.token.IToken;
 import bo.firmadigital.jacobitus.token.Slot;
+import bo.firmadigital.jacobitus.utilidades.CertificadoHelper;
 import javafx.application.Platform;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -197,7 +201,7 @@ public class FormService extends Stage {
                     gestorSlot.setConfigFirmador(getConfigFirmador());
                     IToken token = gestorSlot.obtenerSlot(tokenSelected.getSlot().getSlotID()).getToken();
                     token.iniciar(tokenSelected.getPin());
-                    if (format == "both") {
+                    if ("both".equals(format)) {
                         JSONArray arr = new JSONArray();
                         int i;
                         for (i = 0; i < filesPdf.length(); i++) {
@@ -289,6 +293,17 @@ public class FormService extends Stage {
                                             token.salir();
                                             throw new KeyStoreException("No se encontró la clave con alias: " + tokenSelected.getAlias());
                                         }
+                                        X509Certificate cert = token.obtenerCertificado(tokenSelected.getAlias());
+                                        Certificate[] chain = token.getCertificateChain(tokenSelected.getAlias());
+                                        List<String> certificateChain = new ArrayList<>();
+                                        if (chain != null) {
+                                            for (Certificate certificate : chain) {
+                                                certificateChain.add(CertificadoHelper.obtenerPem(certificate.getEncoded()));
+                                            }
+                                        }
+                                        tokenSelected.setCertificate(CertificadoHelper.obtenerPem(cert.getEncoded()));
+                                        tokenSelected.setCertificateChain(certificateChain);
+                                        tokenSelected.setEncryptionAlgorithm(signature.getAlgorithm());
                                         signature.initSign(pk);
                                         signature.update(Base64.getDecoder().decode(file));
                                         byte[] signed = signature.sign();
@@ -301,7 +316,7 @@ public class FormService extends Stage {
                                 if (!files.getJSONObject(i).isNull("base64")) {
                                     if (format.equals("pades_hash")) {
                                         obj.put("value", Base64.getEncoder().encodeToString(out.toByteArray()));
-                                        obj.put("algorithm", "");
+                                        obj.put("algorithm", tokenSelected.getEncryptionAlgorithm());
                                     } else {
                                         obj.put("name", files.getJSONObject(i).getString("name"));
                                         obj.put("base64", Base64.getEncoder().encodeToString(out.toByteArray()));

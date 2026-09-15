@@ -14,5 +14,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class FirmaModoSeguroRespuestaDto implements IRespuestaDto {
+    private String message;
+    private String error;
     private List<FirmaPdfItemRespuestaDto> files;
 }

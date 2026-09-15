@@ -1,6 +1,7 @@
 package bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.servicios;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.codehaus.jackson.map.ObjectMapper;
@@ -38,24 +39,21 @@ public class FirmadorServicio {
         return configFirmador;
     }
 
-    public IRespuestaDto firmarModoSeguro(FirmaModoSeguroDto objetoDto) throws Exception {
-        FirmaModoSeguroRespuestaDto respuestaDto = new FirmaModoSeguroRespuestaDto();
-        ErrorRespuestaDto errorDto = new ErrorRespuestaDto();
-
+    public FirmaModoSeguroRespuestaDto firmarModoSeguro(FirmaModoSeguroDto objetoDto) throws Exception {
+        FirmaModoSeguroRespuestaDto respuesta = new FirmaModoSeguroRespuestaDto();
         try {
             ObjectMapper om = new ObjectMapper();
-
-            String format = objetoDto.getFormat();
-            if (format == null || !(format.equals("pades") || format.equals("jws"))) {
-                throw new JacobitusException("Formato no soportado.");
-            }
-
             String ci = objetoDto.getCi();
+            String format = objetoDto.getFormat();
             JSONArray archivo = new JSONArray(om.writeValueAsString(objetoDto.getArchivo()));
 
+            boolean software = false;
+            if (objetoDto.getSoftware() != null) {
+                software = objetoDto.getSoftware();
+            }
             GestorSlot gestorSlot = GestorSlot.getInstance();
             gestorSlot.setConfigFirmador(this.getConfigFirmador());
-            Slot[] slots = gestorSlot.listarSlots(false);
+            Slot[] slots = gestorSlot.listarSlots(software);
             if (slots.length != 1) {
                 throw new JacobitusException("Por favor conecte solo un token.");
             }
@@ -75,16 +73,18 @@ public class FirmadorServicio {
             }
             if (dt.getAlias() != null && dt.getPin() != null) {
                 List<FirmaPdfItemRespuestaDto> lista = Arrays.asList(om.readValue(dt.getFiles().toString(), FirmaPdfItemRespuestaDto[].class));
-                respuestaDto.setFiles(lista);
-                return respuestaDto;
+                respuesta.setMessage("Se firmó correctamente");
+                respuesta.setFiles(lista);
+                return respuesta;
             } else {
-                errorDto.setMessage("Se canceló la firma del documento");
-                return errorDto;
+                respuesta.setMessage("Se canceló la firma del documento");
+                respuesta.setFiles(Collections.emptyList());
+                return respuesta;
             }
         } catch (JSONException | RuntimeException ex) {
-            errorDto.setMessage("No se pudo firmar el documento");
-            errorDto.setError(ex.getMessage());
-            return errorDto;
+            respuesta.setMessage("No se pudo firmar el documento");
+            respuesta.setError(ex.getMessage());
+            return respuesta;
         }
     }
 
