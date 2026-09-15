@@ -1,7 +1,5 @@
 package bo.firmadigital.jacobitus.escritorio.formularios;
 
-import java.io.File;
-import java.util.List;
 import java.util.Optional;
 
 import javafx.animation.KeyFrame;
@@ -34,12 +32,12 @@ public final class AlertaEstructuraPdf {
     alert.initOwner(owner);
     alert.initModality(Modality.APPLICATION_MODAL);
     alert.setTitle("Jacobitus");
-    alert.setHeaderText("No se puede firmar todavía");
+    alert.setHeaderText("No se puede firmar este documento");
     alert.setContentText(null);
     configurarContenido(
         alert,
         detalleAdvertencias,
-        "• Use Archivo → Analizar y reparar PDF para continuar.");
+        "• Use Archivo → Reparar PDF y vuelva a intentar.");
     alert.getButtonTypes().setAll(ButtonType.OK);
     alert.showAndWait();
   }
@@ -50,16 +48,16 @@ public final class AlertaEstructuraPdf {
     alert.initModality(Modality.APPLICATION_MODAL);
     alert.setTitle("Jacobitus");
     alert.setHeaderText(null);
-    alert.setContentText("No se detectaron problemas de estructura en los PDF de la lista.");
+    alert.setContentText("El documento está en condiciones de firmarse.");
     alert.getButtonTypes().setAll(ButtonType.OK);
     alert.showAndWait();
   }
 
   public static Resultado mostrarAnalizarReparar(Stage owner, String detalleAdvertencias) {
     StringBuilder pie = new StringBuilder();
-    pie.append("• Se guardará una copia .reparado.pdf en la carpeta que elija; el original no se modifica.\n");
-    pie.append("• Puede reparar o cancelar para revisar los documentos manualmente.");
-    boolean reparar = mostrarConCountdown(owner, "Se requiere reparar", detalleAdvertencias, pie.toString(), "Reparar");
+    pie.append("• Se creará una copia con el nombre nombre.reparado.pdf en la carpeta que elija.\n");
+    pie.append("• El archivo original no se modifica.");
+    boolean reparar = mostrarConCountdown(owner, "¿Reparar el documento?", detalleAdvertencias, pie.toString(), "Reparar");
     return reparar ? Resultado.REPARAR : Resultado.CANCELAR;
   }
 
@@ -70,22 +68,18 @@ public final class AlertaEstructuraPdf {
     alert.setTitle("Jacobitus");
     alert.setHeaderText("No se pudo reparar");
     alert.setContentText(null);
-    configurarContenido(alert, detalleFallos, "• Obtenga una nueva copia del documento e intente nuevamente.");
+    configurarContenido(alert, detalleFallos, "• Obtenga una copia nueva del documento e intente de nuevo.");
     alert.getButtonTypes().setAll(ButtonType.OK);
     alert.showAndWait();
   }
 
-  public static void mostrarReparacionExitosa(Stage owner, File directorioDestino, List<String> documentosConFirmasPerdidas) {
-    StringBuilder mensaje = new StringBuilder();
-    mensaje.append("• Los documentos reparados se guardaron en:\n  ").append(directorioDestino.getAbsolutePath());
-    mensaje.append("\n• La lista fue actualizada con las copias .reparado.pdf.");
+  public static void mostrarReparacionExitosa(Stage owner) {
     Alert alert = new Alert(AlertType.INFORMATION);
     alert.initOwner(owner);
     alert.initModality(Modality.APPLICATION_MODAL);
     alert.setTitle("Jacobitus");
     alert.setHeaderText(null);
-    alert.setContentText(null);
-    configurarContenido(alert, mensaje.toString().trim(), "");
+    alert.setContentText("Listo. Ya puede firmar el documento reparado.");
     alert.getButtonTypes().setAll(ButtonType.OK);
     alert.showAndWait();
   }
