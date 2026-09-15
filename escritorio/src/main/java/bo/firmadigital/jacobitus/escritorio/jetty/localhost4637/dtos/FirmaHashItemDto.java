@@ -11,7 +11,7 @@ import org.codehaus.jackson.map.annotate.JsonDeserialize;
 @NoArgsConstructor
 @AllArgsConstructor
 public class FirmaHashItemDto {
-    @JsonDeserialize(using = StrictStringDeserializer.class)
+    @JsonDeserialize(using = StringOrNumberDeserializer.class)
     private String id = null;
     @JsonDeserialize(using = StrictStringDeserializer.class)
     private String base64;
