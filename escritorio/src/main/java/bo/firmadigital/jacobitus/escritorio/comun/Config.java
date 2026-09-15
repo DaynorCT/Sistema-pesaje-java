@@ -37,7 +37,7 @@ public class Config {
                 token = null;
             }
         } catch (IOException ex) {
-            throw new JacobitusException("No se pudo obtener las opciones.");
+            throw new JacobitusException("No se pudieron obtener las opciones.");
         }
     }
 

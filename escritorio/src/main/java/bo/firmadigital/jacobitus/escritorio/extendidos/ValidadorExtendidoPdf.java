@@ -42,7 +42,7 @@ public class ValidadorExtendidoPdf extends ValidadorExtendido {
             }
         } catch (Exception ex) {
             firmas = List.of();
-            LOG.log(Level.SEVERE, "No se pudo leer/validar " + archivo.getName(), ex);
+            LOG.log(Level.SEVERE, "No se pudo leer ni validar " + archivo.getName(), ex);
         }
     }
 
@@ -59,7 +59,7 @@ public class ValidadorExtendidoPdf extends ValidadorExtendido {
             }
         } catch (Exception ex) {
             firmas = List.of();
-            LOG.log(Level.SEVERE, "No se pudo leer/validar " + archivo.getName(), ex);
+            LOG.log(Level.SEVERE, "No se pudo leer ni validar " + archivo.getName(), ex);
         }
     }
 
@@ -78,13 +78,13 @@ public class ValidadorExtendidoPdf extends ValidadorExtendido {
             firmas = listarCertificados(is);
         } catch (BadPasswordException ex) {
             if (this.contrasenia == null) {
-                throw new JacobitusException("Documento protegido, se esperaba una contraseña.");
+                throw new JacobitusException("El documento está protegido; se esperaba una contraseña.");
             } else {
-                throw new JacobitusException("Contraseña inválida.");
+                throw new JacobitusException("La contraseña es inválida.");
             }
         } catch (Exception ex) {
             firmas = List.of();
-            LOG.log(Level.SEVERE, "No se pudo leer/validar el documento", ex);
+            LOG.log(Level.SEVERE, "No se pudo leer ni validar el documento", ex);
         }
     }
 
@@ -98,13 +98,13 @@ public class ValidadorExtendidoPdf extends ValidadorExtendido {
             firmas = listarCertificados(is);
         } catch (BadPasswordException ex) {
             if (this.contrasenia == null) {
-                throw new JacobitusException("Documento protegido, se esperaba una contraseña.");
+                throw new JacobitusException("El documento está protegido; se esperaba una contraseña.");
             } else {
-                throw new JacobitusException("Contraseña inválida.");
+                throw new JacobitusException("La contraseña es inválida.");
             }
         } catch (Exception ex) {
             firmas = List.of();
-            LOG.log(Level.SEVERE, "No se pudo leer/validar el documento", ex);
+            LOG.log(Level.SEVERE, "No se pudo leer ni validar el documento", ex);
         }
     }
 

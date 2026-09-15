@@ -228,7 +228,7 @@ public class FormTokenInfo extends Stage {
                 } catch (GeneralSecurityException | IOException ex) {
                     if (ex.getCause() instanceof IOException) {
                         if (ex.getCause().getMessage() != null && ex.getCause().getMessage().equals("PKCS12 key store mac invalid - wrong password or corrupted file.")) {
-                            throw new JacobitusException("Pin incorrecto, intente nuevamente.");
+                            throw new JacobitusException("El PIN es incorrecto. Inténtelo nuevamente.");
                         }
                     }
                     if (ex instanceof java.security.cert.CertificateExpiredException) {
@@ -239,7 +239,7 @@ public class FormTokenInfo extends Stage {
                     }
                     if (ex.getCause() instanceof java.security.UnrecoverableKeyException) {
                         if (ex.getCause().getCause() instanceof javax.security.auth.login.FailedLoginException) {
-                            throw new JacobitusException("Por favor verifique el pin.");
+                            throw new JacobitusException("Por favor verifique el PIN.");
                         }
                     }
                     if (ex.getCause() instanceof javax.security.auth.login.LoginException) {

@@ -126,7 +126,7 @@ public class FirmadorServicio {
             firmar.firmar(new ByteArrayInputStream(file), out, bloquear);
             datos.setPdf_firmado(Base64.getEncoder().encodeToString(out.toByteArray()));
             respuesta.setFinalizado(true);
-            respuesta.setMensaje("Se firmo el pdf correctamente!");
+            respuesta.setMensaje("Se firmó el PDF correctamente.");
         } catch (GeneralSecurityException | IOException ex) {
             try {
                 String mensaje = this.procesarExcepcion(ex);
@@ -172,7 +172,7 @@ public class FirmadorServicio {
             firmar.firmar(new ByteArrayInputStream(file), out, detached);
             datos.setPkcs7(Base64.getEncoder().encodeToString(out.toByteArray()));
             respuesta.setFinalizado(true);
-            respuesta.setMensaje("Se firmo el archivo correctamente!");
+            respuesta.setMensaje("Se firmó el archivo correctamente.");
         } catch (GeneralSecurityException | IOException ex) {
             try {
                 String mensaje = this.procesarExcepcion(ex);
@@ -260,7 +260,7 @@ public class FirmadorServicio {
             firmar.firmar(new ByteArrayInputStream(file), out, enveloped, prefix);
             datos.setXml(Base64.getEncoder().encodeToString(out.toByteArray()));
             respuesta.setFinalizado(true);
-            respuesta.setMensaje("Se firmo el archivo correctamente!");
+            respuesta.setMensaje("Se firmó el archivo correctamente.");
             return respuesta;
         } catch (GeneralSecurityException | IOException ex) {
             try {
@@ -367,7 +367,7 @@ public class FirmadorServicio {
                     .valueToString(x500Name.getRDNs(new ASN1ObjectIdentifier("2.5.4.3"))[0].getFirst().getValue()));
             datos.setFecha_firma(fechaFirma);
             respuesta.setFinalizado(true);
-            respuesta.setMensaje("Se firmo la solicitud correctamente!");
+            respuesta.setMensaje("Se firmó la solicitud correctamente.");
             respuesta.setDatos(datos);
         } catch (IOException | GeneralSecurityException ex) {
             try {
@@ -549,7 +549,7 @@ public class FirmadorServicio {
             String mensaje = ex.getMessage();
             if (ex.getCause() instanceof IOException) {
                 if (ex.getCause().getMessage() != null && ex.getCause().getMessage().equals("PKCS12 key store mac invalid - wrong password or corrupted file.")) {
-                    mensaje = "Pin incorrecto, intente nuevamente.";
+                    mensaje = "El PIN es incorrecto. Inténtelo nuevamente.";
                 }
             }
             if (ex instanceof java.security.cert.CertificateExpiredException) {
@@ -560,7 +560,7 @@ public class FirmadorServicio {
             }
             if (ex.getCause() instanceof java.security.UnrecoverableKeyException) {
                 if (ex.getCause().getCause() instanceof javax.security.auth.login.FailedLoginException) {
-                    mensaje = "Por favor verifique el pin.";
+                    mensaje = "Por favor verifique el PIN.";
                 }
             }
             if (ex.getCause() instanceof javax.security.auth.login.LoginException) {
@@ -578,7 +578,7 @@ public class FirmadorServicio {
         String mensaje = ex.getMessage();
         if (ex.getCause() instanceof IOException) {
             if (ex.getCause().getMessage() != null && ex.getCause().getMessage().equals("PKCS12 key store mac invalid - wrong password or corrupted file.")) {
-                mensaje = "Pin incorrecto, intente nuevamente.";
+                mensaje = "El PIN es incorrecto. Inténtelo nuevamente.";
             }
         }
         if (ex instanceof java.security.cert.CertificateExpiredException) {
@@ -589,7 +589,7 @@ public class FirmadorServicio {
         }
         if (ex.getCause() instanceof java.security.UnrecoverableKeyException) {
             if (ex.getCause().getCause() instanceof javax.security.auth.login.FailedLoginException) {
-                mensaje = "Por favor verifique el pin.";
+                mensaje = "Por favor verifique el PIN.";
             }
         }
         if (ex.getCause() instanceof javax.security.auth.login.LoginException) {

@@ -345,7 +345,7 @@ public class PlataformaServicio {
                 token.salir();
                 respuesta.setDatos(datos);
                 respuesta.setFinalizado(true);
-                respuesta.setMensaje("Se firmo las solicitudes correctamente!");
+                respuesta.setMensaje("Se firmaron las solicitudes correctamente.");
             } else {
                 respuesta.setFinalizado(false);
                 respuesta.setMensaje("El slot " + objetoDto.getSlot() + " no se encuentra disponible.");
@@ -354,7 +354,7 @@ public class PlataformaServicio {
             String mensaje = ex.getMessage();
             if (ex.getCause() instanceof IOException) {
                 if (ex.getCause().getMessage() != null && ex.getCause().getMessage().equals("PKCS12 key store mac invalid - wrong password or corrupted file.")) {
-                    mensaje = "Pin incorrecto, intente nuevamente.";
+                    mensaje = "El PIN es incorrecto. Inténtelo nuevamente.";
                 }
             }
             if (ex instanceof java.security.cert.CertificateExpiredException) {
@@ -365,7 +365,7 @@ public class PlataformaServicio {
             }
             if (ex.getCause() instanceof java.security.UnrecoverableKeyException) {
                 if (ex.getCause().getCause() instanceof javax.security.auth.login.FailedLoginException) {
-                    mensaje = "Por favor verifique el pin.";
+                    mensaje = "Por favor verifique el PIN.";
                 }
             }
             if (ex.getCause() instanceof javax.security.auth.login.LoginException) {

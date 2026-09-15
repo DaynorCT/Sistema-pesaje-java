@@ -185,7 +185,7 @@ public class TokenServicio {
             }
         } else {
             respuesta.setFinalizado(false);
-            respuesta.setMensaje("Datos requeridos slot y pin.");
+            respuesta.setMensaje("Se requieren los datos del slot y del PIN.");
         }
 
         return respuesta;
