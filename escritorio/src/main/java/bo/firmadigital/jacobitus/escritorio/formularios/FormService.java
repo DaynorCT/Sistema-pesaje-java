@@ -76,6 +76,8 @@ import javafx.util.Duration;
 import javafx.util.StringConverter;
 
 public class FormService extends Stage {
+    private static final String TITULO_VENTANA_PIN = "Pin del token";
+
     private final ObservableList<InfoCertificado> listaInfoCertificado;
     private final TokenSelected tokenSelected;
     private final String format;
@@ -180,7 +182,7 @@ public class FormService extends Stage {
     }
 
     public FormService(Stage parent, TokenSelected tokenSelected, String format) {
-        setTitle("Pin del token");
+        setTitle(TITULO_VENTANA_PIN);
         initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);
         tokenSelected.setAlias(null);
@@ -285,6 +287,12 @@ public class FormService extends Stage {
         this.setOnShown((WindowEvent t) -> {
             window.setAlwaysOnTop(true);
             passwordField.requestFocus();
+            PauseTransition esperaRegistroWm = new PauseTransition(Duration.millis(150));
+            esperaRegistroWm.setOnFinished(e -> {
+                ActivadorVentanaX11.activarPorTitulo(TITULO_VENTANA_PIN);
+                passwordField.requestFocus();
+            });
+            esperaRegistroWm.play();
         });
         if (tokenSelected.getPinInicial() != null) {
             try {
