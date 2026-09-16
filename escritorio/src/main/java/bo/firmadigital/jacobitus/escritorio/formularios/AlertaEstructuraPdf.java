@@ -1,5 +1,6 @@
 package bo.firmadigital.jacobitus.escritorio.formularios;
 
+import java.util.List;
 import java.util.Optional;
 
 import javafx.animation.KeyFrame;
@@ -18,7 +19,7 @@ import javafx.util.Duration;
 
 public final class AlertaEstructuraPdf {
 
-  private static final int COUNTDOWN_SEGUNDOS = 10;
+  private static final int COUNTDOWN_SEGUNDOS = 5;
 
   private AlertaEstructuraPdf() {}
 
@@ -55,7 +56,8 @@ public final class AlertaEstructuraPdf {
 
   public static Resultado mostrarAnalizarReparar(Stage owner, String detalleAdvertencias) {
     StringBuilder pie = new StringBuilder();
-    pie.append("• Se creará una copia con el nombre nombre.reparado.pdf en la carpeta que elija.\n");
+    pie.append("• Solo se repararán los documentos listados en «Requieren reparación».\n");
+    pie.append("• Se creará una copia nombre.reparado.pdf en la carpeta que elija.\n");
     pie.append("• El archivo original no se modifica.");
     boolean reparar = mostrarConCountdown(owner, "¿Reparar el documento?", detalleAdvertencias, pie.toString(), "Reparar");
     return reparar ? Resultado.REPARAR : Resultado.CANCELAR;
@@ -69,6 +71,39 @@ public final class AlertaEstructuraPdf {
     alert.setHeaderText("No se pudo reparar");
     alert.setContentText(null);
     configurarContenido(alert, detalleFallos, "• Obtenga una copia nueva del documento e intente de nuevo.");
+    alert.getButtonTypes().setAll(ButtonType.OK);
+    alert.showAndWait();
+  }
+
+  public static void mostrarResultadoReparacion(Stage owner, List<String> exitos, List<String> fallos) {
+    StringBuilder detalle = new StringBuilder();
+    if (exitos != null && !exitos.isEmpty()) {
+      detalle.append("Reparados correctamente (").append(exitos.size()).append("):\n\n");
+      detalle.append(String.join("\n", exitos));
+    }
+    if (fallos != null && !fallos.isEmpty()) {
+      if (detalle.length() > 0) {
+        detalle.append("\n\n");
+      }
+      detalle.append("No se pudo reparar (").append(fallos.size()).append("):\n\n");
+      detalle.append(String.join("\n", fallos));
+    }
+    AlertType tipo =
+        (fallos != null && !fallos.isEmpty()) ? AlertType.WARNING : AlertType.INFORMATION;
+    String encabezado = (fallos != null && !fallos.isEmpty())
+        ? ((exitos != null && !exitos.isEmpty()) ? "Reparación completada con advertencias"
+            : "No se pudo reparar")
+        : "Reparación completada";
+    String pie = (fallos != null && !fallos.isEmpty())
+        ? "• Los documentos reparados están listos para firmar.\n• Obtenga una copia nueva de los que fallaron e intente de nuevo."
+        : "• Ya puede firmar los documentos reparados.";
+    Alert alert = new Alert(tipo);
+    alert.initOwner(owner);
+    alert.initModality(Modality.APPLICATION_MODAL);
+    alert.setTitle("Jacobitus");
+    alert.setHeaderText(encabezado);
+    alert.setContentText(null);
+    configurarContenido(alert, detalle.toString().trim(), pie);
     alert.getButtonTypes().setAll(ButtonType.OK);
     alert.showAndWait();
   }
@@ -89,7 +124,7 @@ public final class AlertaEstructuraPdf {
     areaDetalle.setEditable(false);
     areaDetalle.setWrapText(true);
     int lineas = detalle.split("\n", -1).length;
-    areaDetalle.setPrefRowCount(Math.min(10, Math.max(3, lineas)));
+    areaDetalle.setPrefRowCount(Math.min(16, Math.max(3, lineas)));
     areaDetalle.setPrefColumnCount(72);
     areaDetalle.setMaxWidth(520);
 

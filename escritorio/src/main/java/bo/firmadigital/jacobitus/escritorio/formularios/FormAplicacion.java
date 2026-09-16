@@ -1010,10 +1010,20 @@ public class FormAplicacion extends Application {
             alert.showAndWait();
             return;
         }
-        Optional<String> advertencias = ValidadorEstructuraPdf.revisarAntesDeFirmar(datos.archivosPdf,
+        Optional<String> advertencias = ValidadorEstructuraPdf.resumenAntesDeReparar(datos.archivosPdf,
                 datos.firmasPorArchivo);
         if (advertencias.isEmpty()) {
-            AlertaEstructuraPdf.mostrarSinProblemas(stage);
+            if (datos.archivosPdf.size() > 1) {
+                Alert alert = new Alert(AlertType.INFORMATION,
+                        "Ninguno de los documentos seleccionados requiere reparación.",
+                        ButtonType.OK);
+                alert.initOwner(stage);
+                alert.initModality(Modality.APPLICATION_MODAL);
+                alert.setTitle("Jacobitus");
+                alert.showAndWait();
+            } else {
+                AlertaEstructuraPdf.mostrarSinProblemas(stage);
+            }
             return;
         }
         if (AlertaEstructuraPdf.mostrarAnalizarReparar(stage, advertencias.get())
@@ -1032,14 +1042,9 @@ public class FormAplicacion extends Application {
             alert.showAndWait();
             return;
         }
-        ResultadoReparacionPdf resultadoReparacion = repararPdfsEnLista(datos, directorioDestino);
-        if (!resultadoReparacion.fallos.isEmpty()) {
-            String detalle = "No se pudo reparar los siguientes documentos:\n\n"
-                    + String.join("\n", resultadoReparacion.fallos);
-            AlertaEstructuraPdf.mostrarFalloReparacion(stage, detalle);
-            return;
-        }
-        if (resultadoReparacion.reparados == 0) {
+        ResultadoReparacionPdf resultadoReparacion =
+                repararPdfsEnLista(filtrarDatosConProblemas(datos), directorioDestino);
+        if (resultadoReparacion.reparados == 0 && resultadoReparacion.fallos.isEmpty()) {
             Alert alert = new Alert(AlertType.INFORMATION,
                     "No se reparó ningún archivo. Algunos PDF ya firmados no se pueden reparar desde aquí.",
                     ButtonType.OK);
@@ -1049,7 +1054,8 @@ public class FormAplicacion extends Application {
             alert.showAndWait();
             return;
         }
-        AlertaEstructuraPdf.mostrarReparacionExitosa(stage);
+        AlertaEstructuraPdf.mostrarResultadoReparacion(stage, resultadoReparacion.detalleExitos,
+                resultadoReparacion.fallos);
     }
 
     private DatosPdfsEnLista construirDatosDesdeArchivos(List<File> archivosEntrada) throws IOException {
@@ -1077,6 +1083,21 @@ public class FormAplicacion extends Application {
                 }
             }
             indicesArchivosPdf.add(indiceEnLista);
+        }
+        return new DatosPdfsEnLista(archivosPdf, firmasPorArchivo, indicesArchivosPdf);
+    }
+
+    private DatosPdfsEnLista filtrarDatosConProblemas(DatosPdfsEnLista datos) throws IOException {
+        List<File> archivosPdf = new ArrayList<>();
+        List<List<Firma>> firmasPorArchivo = new ArrayList<>();
+        List<Integer> indicesArchivosPdf = new ArrayList<>();
+        for (int i = 0; i < datos.archivosPdf.size(); i++) {
+            List<Firma> firmas = i < datos.firmasPorArchivo.size() ? datos.firmasPorArchivo.get(i) : List.of();
+            if (ValidadorEstructuraPdf.requiereAtencionAntesDeFirmar(datos.archivosPdf.get(i), firmas)) {
+                archivosPdf.add(datos.archivosPdf.get(i));
+                firmasPorArchivo.add(firmas);
+                indicesArchivosPdf.add(datos.indicesArchivosPdf.get(i));
+            }
         }
         return new DatosPdfsEnLista(archivosPdf, firmasPorArchivo, indicesArchivosPdf);
     }
@@ -1141,6 +1162,7 @@ public class FormAplicacion extends Application {
 
     private ResultadoReparacionPdf repararPdfsEnLista(DatosPdfsEnLista datos, File directorioDestino) throws IOException {
         List<String> fallosReparacion = new ArrayList<>();
+        List<String> exitosReparacion = new ArrayList<>();
         List<String> firmasPerdidas = new ArrayList<>();
         int reparados = 0;
         for (int i = 0; i < datos.archivosPdf.size(); i++) {
@@ -1175,21 +1197,25 @@ public class FormAplicacion extends Application {
                     tbvArchivos.getItems().add(validadorReparado);
                 }
                 reparados++;
+                exitosReparacion.add("• " + archivoReparado.getName());
             } catch (Exception ex) {
                 LOG.log(Level.WARNING, "Fallo inesperado al reparar " + archivoOriginal.getName(), ex);
                 fallosReparacion.add("• " + archivoOriginal.getName());
             }
         }
-        return new ResultadoReparacionPdf(fallosReparacion, firmasPerdidas, reparados);
+        return new ResultadoReparacionPdf(fallosReparacion, exitosReparacion, firmasPerdidas, reparados);
     }
 
     private static final class ResultadoReparacionPdf {
         private final List<String> fallos;
+        private final List<String> detalleExitos;
         private final List<String> firmasPerdidas;
         private final int reparados;
 
-        private ResultadoReparacionPdf(List<String> fallos, List<String> firmasPerdidas, int reparados) {
+        private ResultadoReparacionPdf(
+                List<String> fallos, List<String> detalleExitos, List<String> firmasPerdidas, int reparados) {
             this.fallos = fallos;
+            this.detalleExitos = detalleExitos;
             this.firmasPerdidas = firmasPerdidas;
             this.reparados = reparados;
         }
