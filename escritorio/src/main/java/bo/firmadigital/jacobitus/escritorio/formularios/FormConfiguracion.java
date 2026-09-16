@@ -7,6 +7,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import bo.firmadigital.jacobitus.escritorio.comun.Config;
+import bo.firmadigital.jacobitus.escritorio.utilidades.AutoInicioHelper;
 import bo.firmadigital.jacobitus.firmador.base.ConfiguracionFirmador;
 import bo.firmadigital.jacobitus.token.Slot;
 import bo.firmadigital.jacobitus.token.TokenPKCS12;
@@ -176,6 +177,39 @@ public class FormConfiguracion extends Stage {
                     alert.showAndWait();
                 });
         vbox1.getChildren().add(checkBoxTrayIcon);
+
+        CheckBox checkBoxAutoInicio = new CheckBox("Iniciar automáticamente");
+        final boolean[] checkBoxAutoInicioEvent = { true };
+        checkBoxAutoInicio.setDisable(!AutoInicioHelper.estaSoportado());
+        checkBoxAutoInicio.setSelected(AutoInicioHelper.estaActivado());
+        checkBoxAutoInicio.selectedProperty()
+                .addListener((ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) -> {
+                    if (!checkBoxAutoInicioEvent[0]) {
+                        return;
+                    }
+                    try {
+                        if (newValue) {
+                            AutoInicioHelper.activar();
+                        } else {
+                            AutoInicioHelper.desactivar();
+                        }
+                        config.setAutoStartEnabled(newValue);
+                        config.save();
+                    } catch (RuntimeException ex) {
+                        Logger.getLogger(FormAplicacion.class.getName()).log(Level.WARNING,
+                                "No se pudo configurar el inicio automatico", ex);
+                        Alert alert = new Alert(Alert.AlertType.WARNING, ex.getMessage(), ButtonType.OK);
+                        alert.initOwner(parent);
+                        alert.initModality(Modality.APPLICATION_MODAL);
+                        alert.setTitle("Jacobitus");
+                        alert.setHeaderText(null);
+                        alert.showAndWait();
+                        checkBoxAutoInicioEvent[0] = false;
+                        checkBoxAutoInicio.setSelected(oldValue);
+                        checkBoxAutoInicioEvent[0] = true;
+                    }
+                });
+        vbox1.getChildren().add(checkBoxAutoInicio);
 
         CheckBox checkBoxConfirmarSalida = new CheckBox("Confirmar antes de salir");
         checkBoxConfirmarSalida.setSelected(config.isConfirmarSalidaEnabled());
