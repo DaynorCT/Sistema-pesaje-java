@@ -40,8 +40,7 @@ def appRuntimeProperties = { profile ->
     [
             "-Djacobitus.version=${appBaseVersion}",
             "-Djacobitus.profile=${appProfile(profile)}",
-            "-Djacobitus.compilacion=${buildTimestamp}",
-            "-Djacobitus.descripcion=${appDescription}"
+            "-Djacobitus.compilacion=${buildTimestamp}"
     ]
 }
 
@@ -198,6 +197,28 @@ tasks.withType(JavaExec).configureEach {
     jvmArgs += '-Dfile.encoding=UTF-8'
 }
 
+def generatedResourcesDir = layout.buildDirectory.dir('generated/resources/main')
+
+tasks.register('generateAppInfo') {
+    outputs.dir generatedResourcesDir
+    doLast {
+        def outputDir = generatedResourcesDir.get().asFile
+        outputDir.mkdirs()
+        def propertiesFile = new File(outputDir, 'jacobitus.properties')
+        propertiesFile.text = "descripcion=${appDescription}\n"
+    }
+}
+
+sourceSets {
+    main {
+        resources.srcDir generatedResourcesDir
+    }
+}
+
+tasks.named('processResources') {
+    dependsOn tasks.named('generateAppInfo')
+}
+
 tasks.named('run', JavaExec) {
     doFirst {
         def runProfile = project.findProperty('profile') ?: 'dev'
@@ -205,8 +226,7 @@ tasks.named('run', JavaExec) {
                 .findAll { arg ->
                             !arg.startsWith('-Djacobitus.version=') &&
                             !arg.startsWith('-Djacobitus.profile=') &&
-                            !arg.startsWith('-Djacobitus.compilacion=') &&
-                            !arg.startsWith('-Djacobitus.descripcion=')
+                            !arg.startsWith('-Djacobitus.compilacion=')
                 }
                 + appRuntimeProperties(runProfile))
     }
@@ -268,7 +288,6 @@ def jpackageCmd = [
     '--java-options', "-Djacobitus.version=${appBaseVersion}",
     '--java-options', '-Djacobitus.profile=',
     '--java-options', "-Djacobitus.compilacion=${buildTimestamp}",
-    '--java-options', "-Djacobitus.descripcion=${appDescription}",
     '--license-file', os.isWindows() ? 'license.rtf' : 'license.txt'
 ]
 
@@ -449,7 +468,6 @@ tasks.register('packageRpm', PackageRpmTask) {
                     '--java-options', appRuntimeProperties(project.ext.buildAppProfile)[0],
                     '--java-options', appRuntimeProperties(project.ext.buildAppProfile)[1],
                     '--java-options', appRuntimeProperties(project.ext.buildAppProfile)[2],
-                    '--java-options', appRuntimeProperties(project.ext.buildAppProfile)[3],
                     '--type', 'app-image',
                     '--icon', './iconos/icon.png',
             ])
@@ -610,7 +628,6 @@ tasks.register('packageArch', PackageArchTask) {
                     '--java-options', appRuntimeProperties(project.ext.buildAppProfile)[0],
                     '--java-options', appRuntimeProperties(project.ext.buildAppProfile)[1],
                     '--java-options', appRuntimeProperties(project.ext.buildAppProfile)[2],
-                    '--java-options', appRuntimeProperties(project.ext.buildAppProfile)[3],
                     '--type', 'app-image',
                     '--icon', './iconos/icon.png',
             ])
