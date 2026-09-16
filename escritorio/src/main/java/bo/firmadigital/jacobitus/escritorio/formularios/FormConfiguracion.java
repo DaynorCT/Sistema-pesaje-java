@@ -184,7 +184,6 @@ public class FormConfiguracion extends Stage {
                     alert.setHeaderText(null);
                     alert.showAndWait();
                 });
-        vbox1.getChildren().add(checkBoxTrayIcon);
 
         CheckBox checkBoxAutoInicio = new CheckBox("Iniciar automáticamente");
         final boolean[] checkBoxAutoInicioEvent = { true };
@@ -239,6 +238,7 @@ public class FormConfiguracion extends Stage {
                     }
                 });
         vbox1.getChildren().add(checkBoxAutoInicio);
+        vbox1.getChildren().add(checkBoxTrayIcon);
 
         CheckBox checkBoxConfirmarSalida = new CheckBox("Confirmar antes de salir");
         checkBoxConfirmarSalida.setSelected(config.isConfirmarSalidaEnabled());
