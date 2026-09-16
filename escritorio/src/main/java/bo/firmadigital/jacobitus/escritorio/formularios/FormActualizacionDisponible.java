@@ -32,6 +32,7 @@ public class FormActualizacionDisponible extends Stage {
 
         setTitle("Jacobitus - Actualización disponible");
 
+        IconosVentana.aplicarAplicacion(this);
         initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);
 
@@ -118,6 +119,7 @@ public class FormActualizacionDisponible extends Stage {
         alert.setTitle("Jacobitus");
         alert.setHeaderText("Error");
         alert.setContentText(msg);
+        IconosVentana.aplicarModal(alert);
         alert.showAndWait();
     }
 }

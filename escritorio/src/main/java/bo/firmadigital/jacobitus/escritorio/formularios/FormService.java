@@ -181,6 +181,7 @@ public class FormService extends Stage {
 
     public FormService(Stage parent, TokenSelected tokenSelected, String format) {
         setTitle("Pin del token");
+        IconosVentana.aplicarAplicacion(this);
         initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);
         tokenSelected.setAlias(null);
@@ -486,6 +487,7 @@ public class FormService extends Stage {
             alert.initOwner(this);
             alert.initModality(Modality.APPLICATION_MODAL);
             alert.setTitle("Jacobitus");
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
             if (task.getException() instanceof CustomException) {
                 close();

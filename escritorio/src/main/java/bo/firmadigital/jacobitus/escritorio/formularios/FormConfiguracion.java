@@ -52,6 +52,7 @@ public class FormConfiguracion extends Stage {
 
     public FormConfiguracion(Stage parent) {
         setTitle("Opciones de configuración");
+        IconosVentana.aplicarConfiguracion(this);
         initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);
         config = Config.getInstance();
@@ -114,6 +115,7 @@ public class FormConfiguracion extends Stage {
                         alert.initOwner(parent);
                         alert.initModality(Modality.APPLICATION_MODAL);
                         alert.setTitle("Jacobitus");
+                        IconosVentana.aplicarModal(alert);
                         alert.showAndWait();
                     }
                 });
@@ -127,6 +129,7 @@ public class FormConfiguracion extends Stage {
                         alert.initOwner(parent);
                         alert.initModality(Modality.APPLICATION_MODAL);
                         alert.setTitle("Jacobitus");
+                        IconosVentana.aplicarModal(alert);
                         alert.showAndWait();
                     }
                 });
@@ -151,6 +154,7 @@ public class FormConfiguracion extends Stage {
                         alert.initModality(Modality.APPLICATION_MODAL);
                         alert.setTitle("Jacobitus");
                         alert.setHeaderText(null);
+                        IconosVentana.aplicarModal(alert);
                         alert.showAndWait();
                         checkBoxTrayIconEvent[0] = false;
                         checkBoxTrayIcon.setSelected(false);
@@ -174,6 +178,7 @@ public class FormConfiguracion extends Stage {
                         alert.initModality(Modality.APPLICATION_MODAL);
                         alert.setTitle("Jacobitus");
                         alert.setHeaderText(null);
+                        IconosVentana.aplicarModal(alert);
                         alert.showAndWait();
                     }
                     Alert alert = new Alert(Alert.AlertType.WARNING,
@@ -182,6 +187,7 @@ public class FormConfiguracion extends Stage {
                     alert.initModality(Modality.APPLICATION_MODAL);
                     alert.setTitle("Jacobitus");
                     alert.setHeaderText(null);
+                    IconosVentana.aplicarModal(alert);
                     alert.showAndWait();
                 });
 
@@ -215,6 +221,7 @@ public class FormConfiguracion extends Stage {
                             alert.initModality(Modality.APPLICATION_MODAL);
                             alert.setTitle("Jacobitus");
                             alert.setHeaderText(null);
+                            IconosVentana.aplicarModal(alert);
                             alert.showAndWait();
                             checkBoxAutoInicioEvent[0] = false;
                             checkBoxAutoInicio.setSelected(estadoReal);
@@ -231,6 +238,7 @@ public class FormConfiguracion extends Stage {
                         alert.initModality(Modality.APPLICATION_MODAL);
                         alert.setTitle("Jacobitus");
                         alert.setHeaderText(null);
+                        IconosVentana.aplicarModal(alert);
                         alert.showAndWait();
                         checkBoxAutoInicioEvent[0] = false;
                         checkBoxAutoInicio.setSelected(oldValue);
@@ -335,6 +343,7 @@ public class FormConfiguracion extends Stage {
                     alert.initOwner(parent);
                     alert.initModality(Modality.APPLICATION_MODAL);
                     alert.setTitle("Jacobitus");
+                    IconosVentana.aplicarModal(alert);
                     alert.showAndWait();
                 }
             }

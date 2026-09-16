@@ -28,6 +28,7 @@ public class FormContrasena extends Stage {
 
     public FormContrasena(Stage parent, int tipo) {
         setTitle("Pin del token");
+        IconosVentana.aplicarAplicacion(this);
         initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);
         BorderPane root = new BorderPane();

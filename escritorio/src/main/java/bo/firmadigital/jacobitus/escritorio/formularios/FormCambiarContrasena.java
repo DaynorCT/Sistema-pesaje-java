@@ -37,6 +37,7 @@ public class FormCambiarContrasena extends Stage {
     public FormCambiarContrasena(Stage parent, long slot) {
         stage = parent;
         setTitle("Pin del token");
+        IconosVentana.aplicarAplicacion(this);
         initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);
         VBox root = new VBox();
@@ -129,6 +130,7 @@ public class FormCambiarContrasena extends Stage {
                         alert.initOwner(stage);
                         alert.initModality(Modality.APPLICATION_MODAL);
                         alert.setTitle("Jacobitus");
+                        IconosVentana.aplicarModal(alert);
                         alert.showAndWait();
                         close();
                         return;
@@ -145,6 +147,7 @@ public class FormCambiarContrasena extends Stage {
         alert.initOwner(stage);
         alert.initModality(Modality.APPLICATION_MODAL);
         alert.setTitle("Jacobitus");
+        IconosVentana.aplicarModal(alert);
         alert.showAndWait();
     }
 }

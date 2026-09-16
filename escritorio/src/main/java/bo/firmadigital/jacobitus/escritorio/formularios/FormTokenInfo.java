@@ -76,6 +76,7 @@ public class FormTokenInfo extends Stage {
     public FormTokenInfo(Stage parent, long slot) {
         this.slot = slot;
         setTitle("Claves contenidas en el Token - " + slot);
+        IconosVentana.aplicarAplicacion(this);
         initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);
         BorderPane root = new BorderPane();
@@ -113,6 +114,7 @@ public class FormTokenInfo extends Stage {
             alert.setHeaderText("Esta acción dejará vulnerable su clave privada.\nHágalo solo si conoce los riesgos.");
             alert.setContentText("¿Desea continuar?");
             alert.getButtonTypes().setAll(ButtonType.YES, ButtonType.NO);
+            IconosVentana.aplicarModal(alert);
             if (alert.showAndWait().get() == ButtonType.YES) {
                 DirectoryChooser directoryChooser = new DirectoryChooser();
                 directoryChooser.setTitle("Seleccione directorio de destino");
@@ -131,6 +133,7 @@ public class FormTokenInfo extends Stage {
             alert.setHeaderText("Esta acción eliminará la clave y el certificado de forma permanente.");
             alert.setContentText("¿Desea continuar?");
             alert.getButtonTypes().setAll(ButtonType.YES, ButtonType.NO);
+            IconosVentana.aplicarModal(alert);
             if (alert.showAndWait().get() == ButtonType.YES) {
                 new Thread(borrarClave()).start();
             }
@@ -187,7 +190,7 @@ public class FormTokenInfo extends Stage {
         Scene scene = new Scene(root, 560, 260);
         setScene(scene);
 
-        setOnShown((WindowEvent t) -> {
+        setOnShown((WindowEvent t) -> javafx.application.Platform.runLater(() -> {
             FormContrasena contrasena = new FormContrasena(FormTokenInfo.this, Constants.INFO);
             contrasena.showAndWait();
             if (contrasena.getPass() == null) {
@@ -196,7 +199,7 @@ public class FormTokenInfo extends Stage {
                 pass = contrasena.getPass();
                 new Thread(listarCertificados(pass)).start();
             }
-        });
+        }));
     }
 
     public Task<Boolean> listarCertificados(String pass) {
@@ -257,6 +260,7 @@ public class FormTokenInfo extends Stage {
             Alert alert = new Alert(AlertType.WARNING, err);
             alert.initOwner(this);
             alert.initModality(Modality.APPLICATION_MODAL);
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
             FormContrasena contrasena = new FormContrasena(FormTokenInfo.this, Constants.INFO);
             contrasena.showAndWait();
@@ -304,6 +308,7 @@ public class FormTokenInfo extends Stage {
             Alert alert = new Alert(AlertType.WARNING, err);
             alert.initOwner(this);
             alert.initModality(Modality.APPLICATION_MODAL);
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
             buttonClave.setDisable(false);
         });
@@ -351,6 +356,7 @@ public class FormTokenInfo extends Stage {
             Alert alert = new Alert(AlertType.WARNING, err);
             alert.initOwner(this);
             alert.initModality(Modality.APPLICATION_MODAL);
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
         });
         return task;
@@ -394,6 +400,7 @@ public class FormTokenInfo extends Stage {
             Alert alert = new Alert(AlertType.INFORMATION, "El certificado se exportó correctamente.");
             alert.initOwner(this);
             alert.initModality(Modality.APPLICATION_MODAL);
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
         });
         task.setOnFailed((WorkerStateEvent evt) -> {
@@ -401,6 +408,7 @@ public class FormTokenInfo extends Stage {
             Alert alert = new Alert(AlertType.WARNING, err);
             alert.initOwner(this);
             alert.initModality(Modality.APPLICATION_MODAL);
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
         });
         return task;
@@ -443,6 +451,7 @@ public class FormTokenInfo extends Stage {
             Alert alert = new Alert(AlertType.INFORMATION, "La clave se exportó correctamente.");
             alert.initOwner(this);
             alert.initModality(Modality.APPLICATION_MODAL);
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
         });
         task.setOnFailed((WorkerStateEvent evt) -> {
@@ -450,6 +459,7 @@ public class FormTokenInfo extends Stage {
             Alert alert = new Alert(AlertType.WARNING, err);
             alert.initOwner(this);
             alert.initModality(Modality.APPLICATION_MODAL);
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
         });
         return task;
@@ -486,6 +496,7 @@ public class FormTokenInfo extends Stage {
             Alert alert = new Alert(AlertType.WARNING, err);
             alert.initOwner(this);
             alert.initModality(Modality.APPLICATION_MODAL);
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
         });
         return task;

@@ -166,10 +166,6 @@ public class FormAplicacion extends Application {
         if (FormAplicacion.stage != null) {
             alert.initOwner(FormAplicacion.stage);
             alert.initModality(Modality.WINDOW_MODAL);
-            alert.setOnShowing(event -> {
-                Stage alertStage = (Stage) alert.getDialogPane().getScene().getWindow();
-                alertStage.getIcons().setAll(FormAplicacion.stage.getIcons());
-            });
         }
 
         Label mensaje = new Label("Se cerrará la aplicación y todos sus servicios locales.");
@@ -182,6 +178,7 @@ public class FormAplicacion extends Application {
         contenido.getChildren().add(noPreguntar);
         alert.getDialogPane().setContent(contenido);
 
+        IconosVentana.aplicarModal(alert);
         Optional<ButtonType> result = alert.showAndWait();
         boolean confirmado = result.isPresent() && result.get() == salirButton;
         if (confirmado && noPreguntar.isSelected()) {
@@ -239,6 +236,7 @@ public class FormAplicacion extends Application {
         String version = Informacion.VERSION;
         String variante = Informacion.PROFILE.isEmpty() ? null : Informacion.PROFILE.toUpperCase();
         stage.setTitle("Jacobitus" + (variante != null ? " [" + variante + "]" : "") + " - " + version);
+        IconosVentana.aplicarAplicacion(stage);
         if (!usarServicioLocalhost) {
             // Alert alert = new Alert(AlertType.ERROR, "Servicio detenido, no podrá
             // interactuar con aplicaciones web.", ButtonType.OK);
@@ -246,10 +244,10 @@ public class FormAplicacion extends Application {
             alert.initOwner(stage);
             alert.initModality(Modality.APPLICATION_MODAL);
             alert.setTitle("Jacobitus");
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
             stage.setTitle("Jacobitus" + (variante != null ? " [" + variante + "]" : "") + " - " + version + " (Servicio detenido)");
         }
-        stage.getIcons().add(new Image(this.getClass().getClassLoader().getResourceAsStream("icon.png")));
         if (usarBarraTareasConfiguracion && !usarBarraTareas) {
             String mensaje = barraTareas.getUltimoDiagnostico();
             if (mensaje == null) {
@@ -260,6 +258,7 @@ public class FormAplicacion extends Application {
             alert.initModality(Modality.APPLICATION_MODAL);
             alert.setTitle("Jacobitus");
             alert.setHeaderText(null);
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
         }
         PlataformaInfo plataformaInfo = PlataformaHelper.identificar();
@@ -361,6 +360,7 @@ public class FormAplicacion extends Application {
                     vBox.getChildren().add(certInformation);
                     Stage certificadoStage = new Stage();
                     certificadoStage.setTitle("Certificado");
+                    IconosVentana.aplicarAplicacion(certificadoStage);
                     certificadoStage.initOwner(stage);
                     certificadoStage.initModality(Modality.APPLICATION_MODAL);
                     Scene scene = new Scene(vBox);
@@ -387,6 +387,7 @@ public class FormAplicacion extends Application {
                 alert.initOwner(stage);
                 alert.initModality(Modality.APPLICATION_MODAL);
                 alert.setTitle("Jacobitus");
+                IconosVentana.aplicarModal(alert);
                 alert.showAndWait();
             } else {
                 CK_TOKEN_INFO itemSeleccionado = tbvDispositivos.getSelectionModel().getSelectedItem();
@@ -395,6 +396,7 @@ public class FormAplicacion extends Application {
                     alert.initOwner(stage);
                     alert.initModality(Modality.APPLICATION_MODAL);
                     alert.setTitle("Jacobitus");
+                    IconosVentana.aplicarModal(alert);
                     alert.showAndWait();
                 } else {
                     if ((tbvArchivos.getItems().get(0)).isRemoto()) {
@@ -410,6 +412,7 @@ public class FormAplicacion extends Application {
                         alert.initOwner(stage);
                         alert.initModality(Modality.APPLICATION_MODAL);
                         alert.setTitle("Jacobitus");
+                        IconosVentana.aplicarModal(alert);
                         alert.showAndWait();
                     } else {
                         FormFirmante formFirmante = new FormFirmante(stage, itemSeleccionado.getSlot(), Constants.PDF);
@@ -429,6 +432,7 @@ public class FormAplicacion extends Application {
                 alert.initOwner(stage);
                 alert.initModality(Modality.APPLICATION_MODAL);
                 alert.setTitle("Jacobitus");
+                IconosVentana.aplicarModal(alert);
                 alert.showAndWait();
             } else {
                 CK_TOKEN_INFO itemSeleccionado = tbvDispositivos.getSelectionModel().getSelectedItem();
@@ -437,6 +441,7 @@ public class FormAplicacion extends Application {
                     alert.initOwner(stage);
                     alert.initModality(Modality.APPLICATION_MODAL);
                     alert.setTitle("Jacobitus");
+                    IconosVentana.aplicarModal(alert);
                     alert.showAndWait();
                 } else {
                     if ((tbvArchivos.getItems().get(0)).isRemoto()) {
@@ -452,6 +457,7 @@ public class FormAplicacion extends Application {
                         alert.initOwner(stage);
                         alert.initModality(Modality.APPLICATION_MODAL);
                         alert.setTitle("Jacobitus");
+                        IconosVentana.aplicarModal(alert);
                         alert.showAndWait();
                     } else {
                         FormFirmante formFirmante = new FormFirmante(stage, itemSeleccionado.getSlot(), Constants.PKCS7);
@@ -470,6 +476,7 @@ public class FormAplicacion extends Application {
                 alert.initOwner(stage);
                 alert.initModality(Modality.APPLICATION_MODAL);
                 alert.setTitle("Jacobitus");
+                IconosVentana.aplicarModal(alert);
                 alert.showAndWait();
             } else {
                 CK_TOKEN_INFO itemSeleccionado = tbvDispositivos.getSelectionModel().getSelectedItem();
@@ -478,6 +485,7 @@ public class FormAplicacion extends Application {
                     alert.initOwner(stage);
                     alert.initModality(Modality.APPLICATION_MODAL);
                     alert.setTitle("Jacobitus");
+                    IconosVentana.aplicarModal(alert);
                     alert.showAndWait();
                 } else {
                     DirectoryChooser directoryChooser = new DirectoryChooser();
@@ -489,6 +497,7 @@ public class FormAplicacion extends Application {
                         alert.initOwner(stage);
                         alert.initModality(Modality.APPLICATION_MODAL);
                         alert.setTitle("Jacobitus");
+                        IconosVentana.aplicarModal(alert);
                         alert.showAndWait();
                     } else {
                         FormFirmante formFirmante = new FormFirmante(stage, itemSeleccionado.getSlot(), Constants.DSIG);
@@ -509,6 +518,7 @@ public class FormAplicacion extends Application {
                 alert.initOwner(stage);
                 alert.initModality(Modality.APPLICATION_MODAL);
                 alert.setTitle("Jacobitus");
+                IconosVentana.aplicarModal(alert);
                 alert.showAndWait();
             } else {
                 CK_TOKEN_INFO itemSeleccionado = tbvDispositivos.getSelectionModel().getSelectedItem();
@@ -517,6 +527,7 @@ public class FormAplicacion extends Application {
                     alert.initOwner(stage);
                     alert.initModality(Modality.APPLICATION_MODAL);
                     alert.setTitle("Jacobitus");
+                    IconosVentana.aplicarModal(alert);
                     alert.showAndWait();
                 } else {
                     DirectoryChooser directoryChooser = new DirectoryChooser();
@@ -528,6 +539,7 @@ public class FormAplicacion extends Application {
                         alert.initOwner(stage);
                         alert.initModality(Modality.APPLICATION_MODAL);
                         alert.setTitle("Jacobitus");
+                        IconosVentana.aplicarModal(alert);
                         alert.showAndWait();
                     } else {
                         FormFirmante formFirmante = new FormFirmante(stage, itemSeleccionado.getSlot(), Constants.JWS);
@@ -613,6 +625,7 @@ public class FormAplicacion extends Application {
             alert.setGraphic(null);
             alert.getDialogPane().setPrefWidth(400);
             alert.getDialogPane().setContent(contenido);
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
         });
 
@@ -652,11 +665,13 @@ public class FormAplicacion extends Application {
                     Alert alert = new Alert(AlertType.INFORMATION, "El softoken se exportó correctamente.");
                     alert.initOwner(stage);
                     alert.initModality(Modality.APPLICATION_MODAL);
+                    IconosVentana.aplicarModal(alert);
                     alert.showAndWait();
                 } catch (IOException ex) {
                     Alert alert = new Alert(AlertType.ERROR, ex.getMessage());
                     alert.initOwner(stage);
                     alert.initModality(Modality.APPLICATION_MODAL);
+                    IconosVentana.aplicarModal(alert);
                     alert.showAndWait();
                 }
             }
@@ -798,6 +813,7 @@ public class FormAplicacion extends Application {
                     alert.initModality(Modality.APPLICATION_MODAL);
                     alert.setTitle("Jacobitus");
                     alert.setHeaderText(null);
+                    IconosVentana.aplicarModal(alert);
                     alert.showAndWait();
                 });
             }, "Jacobitus-TrayIcon");
@@ -910,6 +926,7 @@ public class FormAplicacion extends Application {
                 label.setText(
                         "No se encontro el controlador del token, por favor descargue e instale del siguiente link.");
             }
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
             stage.getScene().setCursor(Cursor.DEFAULT);
         });
@@ -954,6 +971,7 @@ public class FormAplicacion extends Application {
             alert.initOwner(stage);
             alert.initModality(Modality.APPLICATION_MODAL);
             alert.setTitle("Jacobitus");
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
             stage.getScene().setCursor(Cursor.DEFAULT);
         });
@@ -1021,6 +1039,7 @@ public class FormAplicacion extends Application {
             alert.initOwner(stage);
             alert.initModality(Modality.APPLICATION_MODAL);
             alert.setTitle("Jacobitus");
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
             stage.getScene().setCursor(Cursor.DEFAULT);
         });
@@ -1066,6 +1085,7 @@ public class FormAplicacion extends Application {
             alert.initOwner(stage);
             alert.initModality(Modality.APPLICATION_MODAL);
             alert.setTitle("Jacobitus");
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
             stage.getScene().setCursor(Cursor.DEFAULT);
         });
@@ -1127,6 +1147,7 @@ public class FormAplicacion extends Application {
             alert.initOwner(stage);
             alert.initModality(Modality.APPLICATION_MODAL);
             alert.setTitle("Jacobitus");
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
             stage.getScene().setCursor(Cursor.DEFAULT);
         });
@@ -1195,6 +1216,7 @@ public class FormAplicacion extends Application {
             alert.initOwner(stage);
             alert.initModality(Modality.APPLICATION_MODAL);
             alert.setTitle("Jacobitus");
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
             stage.getScene().setCursor(Cursor.DEFAULT);
         });
@@ -1262,6 +1284,7 @@ public class FormAplicacion extends Application {
             alert.initOwner(stage);
             alert.initModality(Modality.APPLICATION_MODAL);
             alert.setTitle("Jacobitus");
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
             stage.getScene().setCursor(Cursor.DEFAULT);
         });
@@ -1328,6 +1351,7 @@ public class FormAplicacion extends Application {
             alert.initOwner(stage);
             alert.initModality(Modality.APPLICATION_MODAL);
             alert.setTitle("Jacobitus");
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
             stage.getScene().setCursor(Cursor.DEFAULT);
         });
@@ -1462,6 +1486,7 @@ public class FormAplicacion extends Application {
                                         "¿Desea desinstalar el certificado local? "
                                                 + "El navegador podría mostrar advertencias de seguridad.");
 
+                                IconosVentana.aplicarModal(confirmacion);
                                 Optional<ButtonType> action = confirmacion.showAndWait();
 
                                 if (action.isPresent()
@@ -1502,6 +1527,7 @@ public class FormAplicacion extends Application {
                                         "¿Desea instalar el certificado local para "
                                                 + "habilitar una conexión HTTPS confiable con Jacobitus?");
 
+                                IconosVentana.aplicarModal(confirmacion);
                                 Optional<ButtonType> action = confirmacion.showAndWait();
 
                                 if (action.isPresent()
@@ -1550,6 +1576,7 @@ public class FormAplicacion extends Application {
                             .getDialogPane()
                             .setContent(contenido);
 
+                    IconosVentana.aplicarModal(certificadoLocalAlerta);
                     certificadoLocalAlerta.showAndWait();
 
                     stage.getScene().setCursor(Cursor.DEFAULT);
@@ -1568,6 +1595,7 @@ public class FormAplicacion extends Application {
             alert.initOwner(stage);
             alert.initModality(Modality.APPLICATION_MODAL);
             alert.setTitle("Jacobitus");
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
 
             stage.getScene().setCursor(Cursor.DEFAULT);
@@ -1592,6 +1620,7 @@ public class FormAplicacion extends Application {
             alert.initOwner(stage);
             alert.initModality(Modality.APPLICATION_MODAL);
             alert.setTitle("Jacobitus");
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
         });
     }

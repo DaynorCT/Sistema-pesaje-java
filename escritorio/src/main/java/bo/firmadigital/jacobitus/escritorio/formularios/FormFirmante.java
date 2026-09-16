@@ -61,6 +61,7 @@ public class FormFirmante extends Stage {
         this.tipo = tipo;
         this.label = null;
         setTitle("Seleccione el certificado a utilizar para la firma");
+        IconosVentana.aplicarAplicacion(this);
         initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);
         BorderPane root = new BorderPane();
@@ -102,7 +103,7 @@ public class FormFirmante extends Stage {
             close();
         });
 
-        setOnShown((WindowEvent t) -> {
+        setOnShown((WindowEvent t) -> javafx.application.Platform.runLater(() -> {
             FormContrasena contrasena = new FormContrasena(FormFirmante.this, tipo);
             contrasena.showAndWait();
             if (contrasena.getPass() == null) {
@@ -114,7 +115,7 @@ public class FormFirmante extends Stage {
                 node = contrasena.getNode();
                 new Thread(listarCertificados(pass)).start();
             }
-        });
+        }));
     }
 
     public String getLabel() {
@@ -200,6 +201,7 @@ public class FormFirmante extends Stage {
             Alert alert = new Alert(AlertType.WARNING, err);
             alert.initOwner(this);
             alert.initModality(Modality.APPLICATION_MODAL);
+            IconosVentana.aplicarModal(alert);
             alert.showAndWait();
 
             this.pass = null;
