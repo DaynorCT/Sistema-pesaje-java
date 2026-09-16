@@ -118,6 +118,7 @@ public class FormAplicacion extends Application {
 
     private static boolean usarServicioLocalhost;
     private static boolean usarBarraTareas = true;
+    private static boolean iniciarEnSegundoPlano = false;
     
     private static String urlArchivo = null;
     private static String tokenAutorizacion;
@@ -776,9 +777,14 @@ public class FormAplicacion extends Application {
         Scene scene = new Scene(root, 640, 480);
         scene.getStylesheets().add(this.getClass().getClassLoader().getResource("jacobitus.css").toExternalForm());
         stage.setScene(scene);
-        stage.show();
-        stage.setIconified(false);
-        stage.toFront();
+        boolean mostrarVentanaInicio = !iniciarEnSegundoPlano || !usarBarraTareas;
+        if (mostrarVentanaInicio) {
+            stage.show();
+            stage.setIconified(false);
+            stage.toFront();
+        } else {
+            Platform.setImplicitExit(false);
+        }
 
         if (errorAlIniciarBandejaSistema) {
             Thread thread = new Thread(() -> {
@@ -801,7 +807,9 @@ public class FormAplicacion extends Application {
 
         if (usarBarraTareas) {
             Platform.setImplicitExit(false);
-            new Thread(listarTokens()).start();
+            if (mostrarVentanaInicio) {
+                new Thread(listarTokens()).start();
+            }
         } else {
             Platform.runLater(() -> {
                 if (actualizacionInfo != null && actualizacionInfo.isActualizacionDisponible()) {
@@ -825,7 +833,7 @@ public class FormAplicacion extends Application {
 
         if (urlArchivo == null) {
             if (urlParametro == null) {
-                if (usarBarraTareas) {
+                if (usarBarraTareas && mostrarVentanaInicio) {
                     SmartCard.cards(this.getConfigFirmador());
                 } else {
                     // new Thread(listarTokens()).start();
@@ -880,6 +888,11 @@ public class FormAplicacion extends Application {
         progressBar.progressProperty().bind(task.progressProperty());
         task.setOnFailed((WorkerStateEvent evt) -> {
             String error = task.getException().getMessage();
+            if (!stage.isShowing()) {
+                Logger.getLogger(FormAplicacion.class.getName()).log(Level.INFO, error);
+                stage.getScene().setCursor(Cursor.DEFAULT);
+                return;
+            }
             Alert alert = new Alert(AlertType.WARNING);
             alert.initOwner(stage);
             alert.initModality(Modality.APPLICATION_MODAL);
@@ -1616,8 +1629,13 @@ public class FormAplicacion extends Application {
     }
 
     public static void run(boolean usarServicioLocalhost, boolean usarBarraTareas) {
+        run(usarServicioLocalhost, usarBarraTareas, false);
+    }
+
+    public static void run(boolean usarServicioLocalhost, boolean usarBarraTareas, boolean iniciarEnSegundoPlano) {
         FormAplicacion.usarServicioLocalhost = usarServicioLocalhost;
         FormAplicacion.usarBarraTareas = usarBarraTareas;
+        FormAplicacion.iniciarEnSegundoPlano = iniciarEnSegundoPlano;
         if (!FormAplicacion.lanzada) {
             FormAplicacion.lanzada = true;
             launch();

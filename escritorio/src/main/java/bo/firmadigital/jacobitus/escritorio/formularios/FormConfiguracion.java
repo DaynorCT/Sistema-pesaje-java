@@ -159,6 +159,14 @@ public class FormConfiguracion extends Stage {
                     }
                     config.setTrayIconEnabled(newValue);
                     config.save();
+                    if (AutoInicioHelper.estaActivado()) {
+                        try {
+                            AutoInicioHelper.activar();
+                        } catch (RuntimeException ex) {
+                            Logger.getLogger(FormAplicacion.class.getName()).log(Level.WARNING,
+                                    "No se pudo actualizar el inicio automatico", ex);
+                        }
+                    }
                     if (newValue && SistemaOperativoHelper.esUnix()) {
                         Alert alert = new Alert(Alert.AlertType.WARNING,
                                 TaskBar.diagnosticoActivacionUnix(), ButtonType.OK);
@@ -181,7 +189,10 @@ public class FormConfiguracion extends Stage {
         CheckBox checkBoxAutoInicio = new CheckBox("Iniciar automáticamente");
         final boolean[] checkBoxAutoInicioEvent = { true };
         checkBoxAutoInicio.setDisable(!AutoInicioHelper.estaSoportado());
-        checkBoxAutoInicio.setSelected(AutoInicioHelper.estaActivado());
+        boolean autoInicioActivado = AutoInicioHelper.estaActivado();
+        checkBoxAutoInicio.setSelected(autoInicioActivado);
+        config.setAutoStartEnabled(autoInicioActivado);
+        config.save();
         checkBoxAutoInicio.selectedProperty()
                 .addListener((ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) -> {
                     if (!checkBoxAutoInicioEvent[0]) {
@@ -193,12 +204,30 @@ public class FormConfiguracion extends Stage {
                         } else {
                             AutoInicioHelper.desactivar();
                         }
-                        config.setAutoStartEnabled(newValue);
+                        boolean estadoReal = AutoInicioHelper.estaActivado();
+                        config.setAutoStartEnabled(estadoReal);
                         config.save();
+                        if (estadoReal != newValue) {
+                            Alert alert = new Alert(Alert.AlertType.WARNING,
+                                    "El sistema operativo no permitió cambiar el inicio automático.\n"
+                                            + "Revise la configuración de aplicaciones de inicio del sistema.",
+                                    ButtonType.OK);
+                            alert.initOwner(parent);
+                            alert.initModality(Modality.APPLICATION_MODAL);
+                            alert.setTitle("Jacobitus");
+                            alert.setHeaderText(null);
+                            alert.showAndWait();
+                            checkBoxAutoInicioEvent[0] = false;
+                            checkBoxAutoInicio.setSelected(estadoReal);
+                            checkBoxAutoInicioEvent[0] = true;
+                        }
                     } catch (RuntimeException ex) {
                         Logger.getLogger(FormAplicacion.class.getName()).log(Level.WARNING,
                                 "No se pudo configurar el inicio automatico", ex);
-                        Alert alert = new Alert(Alert.AlertType.WARNING, ex.getMessage(), ButtonType.OK);
+                        Alert alert = new Alert(Alert.AlertType.WARNING,
+                                "No se pudo cambiar el inicio automático.\n"
+                                        + "Revise la configuración de aplicaciones de inicio de Windows.",
+                                ButtonType.OK);
                         alert.initOwner(parent);
                         alert.initModality(Modality.APPLICATION_MODAL);
                         alert.setTitle("Jacobitus");
