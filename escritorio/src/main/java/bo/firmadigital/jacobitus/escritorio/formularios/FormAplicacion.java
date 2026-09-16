@@ -568,7 +568,7 @@ public class FormAplicacion extends Application {
             versionVariante.setVisible(variante != null);
             versionVariante.setManaged(variante != null);
             versionVariante.setStyle("-fx-background-color: #2f5f73; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 3 10 3 10;");
-            Label descripcion = new Label("Solución de escritorio para firma digital");
+            Label descripcion = new Label(Informacion.DESCRIPCION);
             descripcion.setWrapText(true);
             VBox presentacion = new VBox(4, nombre, versionAplicacion, versionVariante, descripcion);
             presentacion.setAlignment(Pos.CENTER);
