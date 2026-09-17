@@ -286,12 +286,13 @@ public class FormService extends Stage {
         FormService window = this;
         this.setOnShown((WindowEvent t) -> {
             window.setAlwaysOnTop(true);
-            passwordField.requestFocus();
-            PauseTransition esperaRegistroWm = new PauseTransition(Duration.millis(150));
+
+            PauseTransition esperaRegistroWm = new PauseTransition(Duration.millis(100));
             esperaRegistroWm.setOnFinished(e -> {
                 ActivadorVentanaX11.activarPorTitulo(TITULO_VENTANA_PIN);
                 passwordField.requestFocus();
             });
+
             esperaRegistroWm.play();
         });
         if (tokenSelected.getPinInicial() != null) {

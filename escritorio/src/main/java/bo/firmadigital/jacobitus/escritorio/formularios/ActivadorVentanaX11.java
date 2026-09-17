@@ -1,7 +1,6 @@
 package bo.firmadigital.jacobitus.escritorio.formularios;
 
 import java.nio.charset.StandardCharsets;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.sun.jna.Native;
@@ -20,14 +19,8 @@ import com.sun.jna.ptr.PointerByReference;
 
 import bo.firmadigital.jacobitus.utilidades.SistemaOperativoHelper;
 
-/**
- * Activa una ventana propia enviando el mismo mensaje EWMH que usa
- * {@code wmctrl -a <titulo>}. Necesario porque en Mutter (y WMs similares)
- * el pedido de foco hecho por la propia app vía JavaFX/Glass se ignora
- * (protección anti "focus stealing"); solo se honra el protocolo EWMH.
- * Solo tiene efecto en sesiones X11 (no Wayland nativo).
- */
 class ActivadorVentanaX11 {
+    private static final Logger LOG = Logger.getLogger(ActivadorVentanaX11.class.getName());
     private static final int MAX_VENTANAS = 512;
     private static final int MAX_BYTES_NOMBRE = 1024;
 
@@ -44,29 +37,32 @@ class ActivadorVentanaX11 {
             return false;
         }
         try {
+            long pid = ProcessHandle.current().pid();
             Window raiz = x11.XDefaultRootWindow(display);
             Atom netClientList = x11.XInternAtom(display, "_NET_CLIENT_LIST", false);
+            Atom netWmPid = x11.XInternAtom(display, "_NET_WM_PID", false);
             Atom netWmName = x11.XInternAtom(display, "_NET_WM_NAME", false);
             Atom utf8String = x11.XInternAtom(display, "UTF8_STRING", false);
             Atom netActiveWindow = x11.XInternAtom(display, "_NET_ACTIVE_WINDOW", false);
 
-            Window objetivo = buscarVentanaPorTitulo(x11, display, raiz, netClientList, netWmName, utf8String, titulo);
+            Window objetivo = buscarVentana(x11, display, raiz, netClientList, netWmPid, x11.XA_CARDINAL, netWmName,
+                    utf8String, pid, titulo);
             if (objetivo == null) {
+                LOG.warning("ActivadorVentanaX11: ventana no encontrada");
                 return false;
             }
             activar(x11, display, raiz, objetivo, netActiveWindow);
             return true;
         } catch (Exception ex) {
-            Logger.getLogger(ActivadorVentanaX11.class.getName()).log(Level.WARNING,
-                    "No se pudo activar la ventana '" + titulo + "' vía X11", ex);
+            LOG.warning("ActivadorVentanaX11: " + ex);
             return false;
         } finally {
             x11.XCloseDisplay(display);
         }
     }
 
-    private static Window buscarVentanaPorTitulo(X11 x11, Display display, Window raiz, Atom netClientList,
-            Atom netWmName, Atom utf8String, String titulo) {
+    private static Window buscarVentana(X11 x11, Display display, Window raiz, Atom netClientList, Atom netWmPid,
+            Atom cardinal, Atom netWmName, Atom utf8String, long pid, String titulo) {
         NativeLongByReference cantidadVentanas = new NativeLongByReference();
         Pointer listaVentanas = leerPropiedad(x11, display, raiz, netClientList, x11.XA_WINDOW, MAX_VENTANAS,
                 cantidadVentanas);
@@ -79,26 +75,48 @@ class ActivadorVentanaX11 {
                 long id = listaVentanas.getNativeLong((long) i * Native.LONG_SIZE).longValue();
                 Window ventana = new Window(id);
 
-                NativeLongByReference cantidadNombre = new NativeLongByReference();
-                Pointer nombreCrudo = leerPropiedad(x11, display, ventana, netWmName, utf8String, MAX_BYTES_NOMBRE,
-                        cantidadNombre);
-                if (nombreCrudo == null) {
+                if (!coincidePid(x11, display, ventana, netWmPid, cardinal, pid)) {
                     continue;
                 }
-                try {
-                    int cantidadBytes = (int) cantidadNombre.getValue().longValue();
-                    String nombre = cantidadBytes <= 0 ? null
-                            : new String(nombreCrudo.getByteArray(0, cantidadBytes), StandardCharsets.UTF_8);
-                    if (titulo.equals(nombre)) {
-                        return ventana;
-                    }
-                } finally {
-                    x11.XFree(nombreCrudo);
+                if (coincideTitulo(x11, display, ventana, netWmName, utf8String, titulo)) {
+                    return ventana;
                 }
             }
             return null;
         } finally {
             x11.XFree(listaVentanas);
+        }
+    }
+
+    private static boolean coincidePid(X11 x11, Display display, Window ventana, Atom netWmPid, Atom cardinal,
+            long pid) {
+        NativeLongByReference cantidadPid = new NativeLongByReference();
+        Pointer pidCrudo = leerPropiedad(x11, display, ventana, netWmPid, cardinal, 1, cantidadPid);
+        if (pidCrudo == null) {
+            return false;
+        }
+        try {
+            return pidCrudo.getNativeLong(0).longValue() == pid;
+        } finally {
+            x11.XFree(pidCrudo);
+        }
+    }
+
+    private static boolean coincideTitulo(X11 x11, Display display, Window ventana, Atom netWmName, Atom utf8String,
+            String titulo) {
+        NativeLongByReference cantidadNombre = new NativeLongByReference();
+        Pointer nombreCrudo = leerPropiedad(x11, display, ventana, netWmName, utf8String, MAX_BYTES_NOMBRE,
+                cantidadNombre);
+        if (nombreCrudo == null) {
+            return false;
+        }
+        try {
+            int cantidadBytes = (int) cantidadNombre.getValue().longValue();
+            String nombre = cantidadBytes <= 0 ? null
+                    : new String(nombreCrudo.getByteArray(0, cantidadBytes), StandardCharsets.UTF_8);
+            return titulo.equals(nombre);
+        } finally {
+            x11.XFree(nombreCrudo);
         }
     }
 
