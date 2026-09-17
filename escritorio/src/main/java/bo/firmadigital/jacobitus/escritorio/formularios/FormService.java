@@ -55,6 +55,7 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
@@ -65,10 +66,13 @@ import javafx.scene.control.Label;
 import javafx.scene.paint.Color;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.Separator;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.AnchorPane;
-import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
@@ -85,7 +89,11 @@ public class FormService extends Stage {
     private final Label estado;
     private final ProgressBar progressBar;
     private final Button buttonFirmar;
+    private final Button buttonCancelar;
     private final Label message;
+    private boolean firmaEnCurso = false;
+    private boolean cancelacionFirmaSolicitada = false;
+    private Task<Boolean> tareaFirma;
 
     private ConfiguracionFirmador getConfigFirmador() {
         Config config = Config.getInstance();
@@ -180,29 +188,36 @@ public class FormService extends Stage {
     }
 
     public FormService(Stage parent, TokenSelected tokenSelected, String format) {
-        setTitle("Pin del token");
+        setTitle("Autorizar firma digital");
         IconosVentana.aplicarAplicacion(this);
-        initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);
         tokenSelected.setAlias(null);
         tokenSelected.setPin(null);
         tokenSelected.setErrorMessage(null);
         this.tokenSelected = tokenSelected;
         this.format = format;
-        GridPane root = new GridPane();
-        root.setHgap(5);
-        root.setVgap(5);
-        root.setPadding(new Insets(5, 5, 5, 5));
-        Scene scene = new Scene(root, 300, 175 + (tokenSelected.getSlot() == null ? 27 : 0));
-        setScene(scene);
-        int r = 0;
+
+        VBox root = new VBox(10);
+        root.setPrefWidth(430);
+        root.setPadding(new Insets(18, 20, 18, 20));
+        root.setStyle("-fx-background-color: #f7f8fa;");
+
+        Label titulo = new Label("Solicitud de firma digital");
+        titulo.setStyle("-fx-font-size: 17px; -fx-font-weight: bold; -fx-text-fill: #1f2933;");
+
+        Label descripcion = new Label("Un servicio solicitó firmar digitalmente " + totalDocumentosTexto() + ".");
+        descripcion.setWrapText(true);
+        descripcion.setStyle("-fx-text-fill: #3d4852;");
+        root.getChildren().addAll(titulo, descripcion, new Separator());
+
+        root.getChildren().add(crearEtiquetaSeccion("Token"));
         if (tokenSelected.getSlot() == null) {
             ObservableList<DetalleToken> tokens = FXCollections.observableArrayList();
             for (Slot slot : tokenSelected.getSlots()) {
                 tokens.add(new DetalleToken(slot.detalleToken()));
             }
             ChoiceBox<DetalleToken> tokensChoiceBox = new ChoiceBox<DetalleToken>(tokens);
-            tokensChoiceBox.prefWidthProperty().bind(root.widthProperty());
+            tokensChoiceBox.maxWidthProperty().bind(root.widthProperty());
             tokensChoiceBox.setPrefHeight(27);
             tokensChoiceBox.getSelectionModel().selectedIndexProperty()
                     .addListener((ObservableValue<? extends Number> ov, Number t, Number t1) -> {
@@ -211,23 +226,27 @@ public class FormService extends Stage {
                         tokenSelected.setSlot(gestorSlot.obtenerSlot(tokens.get(ov.getValue().intValue()).getSlot()));
                     });
             tokensChoiceBox.getSelectionModel().selectFirst();
-            root.add(tokensChoiceBox, 0, 0, 2, 1);
-            r++;
+            root.getChildren().add(tokensChoiceBox);
+        } else {
+            Label tokenDetalle = new Label(tokenSelected.getSlot().detalleToken().getLabel());
+            tokenDetalle.setWrapText(true);
+            tokenDetalle.setStyle("-fx-font-weight: bold; -fx-text-fill: #1f2933;");
+            root.getChildren().add(tokenDetalle);
         }
+
         passwordField = new PasswordField();
         passwordField.setPromptText("Su contraseña");
         if (tokenSelected.getPinInicial() != null) {
             passwordField.setText(tokenSelected.getPinInicial());
         }
-        root.add(passwordField, 0, 0 + r, 1, 1);
-        button = new Button("Actualizar");
-        AnchorPane anchorPane = new AnchorPane();
-        AnchorPane.setTopAnchor(button, 0d);
-        AnchorPane.setLeftAnchor(button, 0d);
-        AnchorPane.setBottomAnchor(button, 0d);
-        AnchorPane.setRightAnchor(button, 0d);
-        anchorPane.getChildren().add(button);
-        root.add(anchorPane, 1, 0 + r, 1, 1);
+        button = new Button("Buscar certificados");
+        button.setMinWidth(145);
+        HBox pinBox = new HBox(8, passwordField, button);
+        pinBox.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(passwordField, Priority.ALWAYS);
+        passwordField.setMaxWidth(Double.MAX_VALUE);
+        root.getChildren().addAll(crearEtiquetaSeccion("PIN del token"), pinBox);
+
         listaInfoCertificado = FXCollections.observableArrayList();
         cbInfoCertificado = new ChoiceBox<InfoCertificado>(listaInfoCertificado);
         cbInfoCertificado.setConverter(new StringConverter<InfoCertificado>() {
@@ -240,7 +259,7 @@ public class FormService extends Stage {
                 if (infoCertificado.getInfoSujeto().getCargo().equals("")) {
                     return infoCertificado.getInfoSujeto().getNombreComun();
                 } else {
-                    return infoCertificado.getInfoSujeto().getNombreComun() + "\n" + infoCertificado.getInfoSujeto().getCargo();
+                    return infoCertificado.getInfoSujeto().getNombreComun() + " - " + infoCertificado.getInfoSujeto().getCargo();
                 }
             }
 
@@ -249,27 +268,46 @@ public class FormService extends Stage {
                 return null;
             }
         });
-        cbInfoCertificado.prefWidthProperty().bind(root.widthProperty());
-        cbInfoCertificado.setPrefHeight(55);
+        cbInfoCertificado.maxWidthProperty().bind(root.widthProperty());
+        cbInfoCertificado.setPrefHeight(32);
         cbInfoCertificado.setDisable(true);
-        root.add(cbInfoCertificado, 0, 1 + r, 2, 1);
-        estado = new Label("Archivos: 0 de " + (
-            (tokenSelected.getFiles() == null ? 0 : tokenSelected.getFiles().length()) + 
-            (tokenSelected.getFilesJson() == null ? 0 : tokenSelected.getFilesJson().length()) +
-            (tokenSelected.getHashArray() == null ? 0 : tokenSelected.getHashArray().length())
-        ));
-        root.add(estado, 0, 2 + r, 2, 1);
+        root.getChildren().addAll(crearEtiquetaSeccion("Certificado"), cbInfoCertificado);
+
+        estado = new Label("Documentos: 0 de " + totalDocumentos());
+        estado.setStyle("-fx-text-fill: #3d4852;");
+        root.getChildren().add(estado);
+
         progressBar = new ProgressBar();
         progressBar.setProgress(0);
-        progressBar.prefWidthProperty().bind(root.widthProperty());
-        root.add(progressBar, 0, 3 + r, 2, 1);
-        buttonFirmar = new Button("Firmar");
+        progressBar.maxWidthProperty().bind(root.widthProperty());
+        root.getChildren().add(progressBar);
+
+        message = new Label("Ingrese el PIN para buscar certificados disponibles en el token.");
+        message.setWrapText(true);
+        message.setTextFill(Color.web("#5f6c7b"));
+        root.getChildren().add(message);
+
+        Region espacio = new Region();
+        HBox.setHgrow(espacio, Priority.ALWAYS);
+        buttonCancelar = new Button("Cancelar");
+        buttonCancelar.setOnAction(t -> {
+            if (firmaEnCurso) {
+                solicitarCancelacionFirma();
+            } else {
+                close();
+            }
+        });
+        buttonFirmar = new Button("Firmar documento");
         buttonFirmar.setDisable(true);
-        buttonFirmar.prefWidthProperty().bind(root.widthProperty());
-        root.add(buttonFirmar, 0, 4 + r, 2, 1);
-        message = new Label("");
-        message.setTextFill(Color.RED);
-        root.add(message, 0, 5 + r, 2, 1);
+        buttonFirmar.setMinWidth(125);
+        HBox acciones = new HBox(8, espacio, buttonCancelar, buttonFirmar);
+        acciones.setAlignment(Pos.CENTER_RIGHT);
+        root.getChildren().addAll(new Separator(), acciones);
+
+        Scene scene = new Scene(root);
+        setScene(scene);
+        setMinWidth(430);
+        setResizable(false);
 
         passwordField.addEventHandler(KeyEvent.KEY_PRESSED, ev -> {
             if (ev.getCode() == KeyCode.ENTER) {
@@ -285,15 +323,43 @@ public class FormService extends Stage {
         FormService window = this;
         this.setOnShown((WindowEvent t) -> {
             window.setAlwaysOnTop(true);
+            window.sizeToScene();
             passwordField.requestFocus();
+        });
+        this.setOnCloseRequest(t -> {
+            if (firmaEnCurso) {
+                solicitarCancelacionFirma();
+                t.consume();
+            }
         });
         if (tokenSelected.getPinInicial() != null) {
             try {
                 this.mostrarCertificados(true);
             } catch (RuntimeException ex) {
                 message.setText("No se pudo validar el PIN automáticamente. Inténtelo manualmente.");
+                message.setTextFill(Color.RED);
             }
         }
+    }
+
+    private Label crearEtiquetaSeccion(String texto) {
+        Label label = new Label(texto);
+        label.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #52616f;");
+        return label;
+    }
+
+    private int totalDocumentos() {
+        return (tokenSelected.getFiles() == null ? 0 : tokenSelected.getFiles().length())
+                + (tokenSelected.getFilesJson() == null ? 0 : tokenSelected.getFilesJson().length())
+                + (tokenSelected.getHashArray() == null ? 0 : tokenSelected.getHashArray().length());
+    }
+
+    private String totalDocumentosTexto() {
+        int total = totalDocumentos();
+        if (total == 1) {
+            return "1 documento";
+        }
+        return total + " documentos";
     }
 
     public TokenSelected getDatos() {
@@ -318,163 +384,173 @@ public class FormService extends Stage {
                     gestorSlot.setConfigFirmador(getConfigFirmador());
                     IToken token = gestorSlot.obtenerSlot(tokenSelected.getSlot().getSlotID()).getToken();
                     token.iniciar(tokenSelected.getPin());
-                    if (format.equals("pades_hash") && tokenSelected.getCI() != null) {
-                        InfoCertificado infoCertificado = new InfoCertificado(tokenSelected.getAlias(),
-                                token.obtenerCertificado(tokenSelected.getAlias()));
-                        String numDocumento = infoCertificado.getInfoSujeto().getNumeroDocumento();
-                        if (!infoCertificado.getInfoSujeto().getComplemento().equals("")) {
-                            numDocumento += "-" + infoCertificado.getInfoSujeto().getComplemento();
+                    try {
+                        if (format.equals("pades_hash") && tokenSelected.getCI() != null) {
+                            InfoCertificado infoCertificado = new InfoCertificado(tokenSelected.getAlias(),
+                                    token.obtenerCertificado(tokenSelected.getAlias()));
+                            String numDocumento = infoCertificado.getInfoSujeto().getNumeroDocumento();
+                            if (!infoCertificado.getInfoSujeto().getComplemento().equals("")) {
+                                numDocumento += "-" + infoCertificado.getInfoSujeto().getComplemento();
+                            }
+                            if (!tokenSelected.getCI().equals(numDocumento)) {
+                                throw new CustomException("El CI del token no corresponde con el CI de la persona para la que se solicitó la firma.");
+                            }
                         }
-                        if (!tokenSelected.getCI().equals(numDocumento)) {
-                            token.salir();
-                            throw new CustomException("El CI del token no corresponde con el CI de la persona para la que se solicitó la firma.");
+                        if (format.equals("pades_hash")) {
+                            X509Certificate certificado = token.obtenerCertificado(tokenSelected.getAlias());
+                            tokenSelected.setCertificate(Base64.getEncoder().encodeToString(certificado.getEncoded()));
+                            List<String> cadena = new ArrayList<>();
+                            for (Certificate c : token.getCertificateChain(tokenSelected.getAlias())) {
+                                cadena.add(Base64.getEncoder().encodeToString(c.getEncoded()));
+                            }
+                            tokenSelected.setCertificateChain(cadena);
+                            tokenSelected.setEncryptionAlgorithm(certificado.getPublicKey().getAlgorithm());
                         }
-                    }
-                    if (format.equals("pades_hash")) {
-                        X509Certificate certificado = token.obtenerCertificado(tokenSelected.getAlias());
-                        tokenSelected.setCertificate(Base64.getEncoder().encodeToString(certificado.getEncoded()));
-                        List<String> cadena = new ArrayList<>();
-                        for (Certificate c : token.getCertificateChain(tokenSelected.getAlias())) {
-                            cadena.add(Base64.getEncoder().encodeToString(c.getEncoded()));
-                        }
-                        tokenSelected.setCertificateChain(cadena);
-                        tokenSelected.setEncryptionAlgorithm(certificado.getPublicKey().getAlgorithm());
-                    }
-                    if ("both".equals(format)) {
-                        JSONArray arr = new JSONArray();
-                        int i;
-                        for (i = 0; i < filesPdf.length(); i++) {
-                            try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-                                String[] base64 = filesPdf.getJSONObject(i).getString("pdf").split("base64,");
-                                byte[] file = Base64.getDecoder().decode(base64.length == 2 ? base64[1] : base64[0]);
-                                FirmadorPdf.firmar(new ByteArrayInputStream(file), out, false, token,
-                                        tokenSelected.getAlias());
-                                JSONObject obj = new JSONObject();
-                                if (!filesPdf.getJSONObject(i).isNull("pdf")) {
-                                    obj.put("id", filesPdf.getJSONObject(i).getString("id"));
-                                    obj.put("pdf_firmado", Base64.getEncoder().encodeToString(out.toByteArray()));
+                        if ("both".equals(format)) {
+                            JSONArray arr = new JSONArray();
+                            int i;
+                            for (i = 0; i < filesPdf.length(); i++) {
+                                if (cancelacionFirmaSolicitada) {
+                                    return false;
                                 }
-                                arr.put(obj);
-                                final int a = i + 1;
-                                Platform.runLater(() -> {
-                                    estado.setText("Archivos: " + a + " de " + (filesPdf.length() + filesJson.length()));
-                                });
-                                updateProgress(a, filesPdf.length() + filesJson.length());
-                            } catch (RuntimeException ex) {
-                                token.salir();
-                                throw new CustomException(ex.getMessage());
-                            }
-                        }
-                        tokenSelected.setFiles(arr);
-
-                        JSONArray arrJson = new JSONArray();
-                        for (int j = 0; j < filesJson.length(); j++) {
-                            try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-                                String[] base64 = filesJson.getJSONObject(j).getString("json").split("base64,");
-                                byte[] file = Base64.getDecoder().decode(base64.length == 2 ? base64[1] : base64[0]);
-                                FirmadorJws.firmar(new ByteArrayInputStream(file), out, false, token,
-                                        tokenSelected.getAlias());
-                                JSONObject obj = new JSONObject();
-                                obj.put("id", filesJson.getJSONObject(j).getString("id"));
-                                obj.put("json_firmado", Base64.getEncoder().encodeToString(out.toByteArray()));
-                                arrJson.put(obj);
-                                final int a = i + j + 1;
-                                Platform.runLater(() -> {
-                                    estado.setText("Archivos: " + a + " de " + (filesPdf.length() + filesJson.length()));
-                                });
-                                updateProgress(a, filesPdf.length() + filesJson.length());
-                            } catch (RuntimeException ex) {
-                                token.salir();
-                                throw new CustomException(ex.getMessage());
-                            }
-                        }
-                        tokenSelected.setFilesJson(arrJson);
-                    } else {
-                        /* Compatibilidad Firmatic */
-                        JSONArray filesFirmados = new JSONArray();
-                        JSONArray files = new JSONArray();
-                        switch (format) {
-                            case "pades":
-                                files = filesPdf;
-                                break;
-                            case "jws":
-                                files = filesJson;
-                                break;
-                            case "pades_hash":
-                                files = hashArray;
-                                break;
-                            default:
-                                throw new JacobitusException(String.format("Formato %s no admitido.", format));                            
-                        }
-                        int i;
-                        for (i = 0; i < files.length(); i++) {
-                            try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-                                if(format.equals("pades_hash")) {
-                                    String dateString = files.getJSONObject(i).getString("date");
-                                    DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSZ");
-                                    try {
-                                        OffsetDateTime.parse(dateString, dateFormatter);
-                                    } catch (DateTimeParseException ex) {
-                                        throw new CustomException("Formato de fecha inválido. Formato esperado: yyyy-MM-dd HH:mm:ss.SSSZ");
+                                try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                                    String[] base64 = filesPdf.getJSONObject(i).getString("pdf").split("base64,");
+                                    byte[] file = Base64.getDecoder().decode(base64.length == 2 ? base64[1] : base64[0]);
+                                    FirmadorPdf.firmar(new ByteArrayInputStream(file), out, false, token,
+                                            tokenSelected.getAlias());
+                                    JSONObject obj = new JSONObject();
+                                    if (!filesPdf.getJSONObject(i).isNull("pdf")) {
+                                        obj.put("id", filesPdf.getJSONObject(i).getString("id"));
+                                        obj.put("pdf_firmado", Base64.getEncoder().encodeToString(out.toByteArray()));
                                     }
+                                    arr.put(obj);
+                                    final int a = i + 1;
+                                    Platform.runLater(() -> {
+                                        estado.setText("Documentos: " + a + " de " + (filesPdf.length() + filesJson.length()));
+                                    });
+                                    updateProgress(a, filesPdf.length() + filesJson.length());
+                                } catch (RuntimeException ex) {
+                                    throw new CustomException(ex.getMessage());
                                 }
+                            }
+                            tokenSelected.setFiles(arr);
 
-                                String[] base64 = files.getJSONObject(i).getString("base64").split("base64,");
-                                byte[] file = Base64.getDecoder().decode(base64.length == 2 ? base64[1] : base64[0]);
-                                String digestName = format.equals("pades_hash") ? resolverDigest(tokenSelected.getDigest()) : null;
-                                switch (format) {
-                                    case "pades":
-                                        FirmadorPdf.firmar(new ByteArrayInputStream(file), out, false, token,
-                                                tokenSelected.getAlias());
-                                        break;
-                                    case "jws":
-                                        FirmadorJws.firmar(new ByteArrayInputStream(file), out, false, token,
-                                                tokenSelected.getAlias());
-                                        break;
-                                    case "pades_hash":
+                            JSONArray arrJson = new JSONArray();
+                            for (int j = 0; j < filesJson.length(); j++) {
+                                if (cancelacionFirmaSolicitada) {
+                                    return false;
+                                }
+                                try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                                    String[] base64 = filesJson.getJSONObject(j).getString("json").split("base64,");
+                                    byte[] file = Base64.getDecoder().decode(base64.length == 2 ? base64[1] : base64[0]);
+                                    FirmadorJws.firmar(new ByteArrayInputStream(file), out, false, token,
+                                            tokenSelected.getAlias());
+                                    JSONObject obj = new JSONObject();
+                                    obj.put("id", filesJson.getJSONObject(j).getString("id"));
+                                    obj.put("json_firmado", Base64.getEncoder().encodeToString(out.toByteArray()));
+                                    arrJson.put(obj);
+                                    final int a = i + j + 1;
+                                    Platform.runLater(() -> {
+                                        estado.setText("Documentos: " + a + " de " + (filesPdf.length() + filesJson.length()));
+                                    });
+                                    updateProgress(a, filesPdf.length() + filesJson.length());
+                                } catch (RuntimeException ex) {
+                                    throw new CustomException(ex.getMessage());
+                                }
+                            }
+                            tokenSelected.setFilesJson(arrJson);
+                        } else {
+                            /* Compatibilidad Firmatic */
+                            JSONArray filesFirmados = new JSONArray();
+                            JSONArray files = new JSONArray();
+                            switch (format) {
+                                case "pades":
+                                    files = filesPdf;
+                                    break;
+                                case "jws":
+                                    files = filesJson;
+                                    break;
+                                case "pades_hash":
+                                    files = hashArray;
+                                    break;
+                                default:
+                                    throw new JacobitusException(String.format("Formato %s no admitido.", format));
+                            }
+                            int i;
+                            for (i = 0; i < files.length(); i++) {
+                                if (cancelacionFirmaSolicitada) {
+                                    return false;
+                                }
+                                try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                                    if(format.equals("pades_hash")) {
+                                        String dateString = files.getJSONObject(i).getString("date");
+                                        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSZ");
                                         try {
-                                            out.write(firmarHash(token, tokenSelected.getAlias(), file, digestName));
-                                        } catch (GeneralSecurityException ex) {
-                                            throw new CustomException(ex.getMessage());
+                                            OffsetDateTime.parse(dateString, dateFormatter);
+                                        } catch (DateTimeParseException ex) {
+                                            throw new CustomException("Formato de fecha inválido. Formato esperado: yyyy-MM-dd HH:mm:ss.SSSZ");
                                         }
-                                        break;
-                                    default:
-                                        throw new JacobitusException(String.format("Formato %s no admitido.", format));
-                                }
-                                JSONObject obj = new JSONObject();
-                                if (!files.getJSONObject(i).isNull("base64")) {
-                                    if (format.equals("pades_hash")) {
-                                        obj.put("value", Base64.getEncoder().encodeToString(out.toByteArray()));
-                                        obj.put("algorithm", "RSA_" + digestName);
-                                    } else {
-                                        obj.put("name", files.getJSONObject(i).getString("name"));
-                                        obj.put("base64", Base64.getEncoder().encodeToString(out.toByteArray()));
                                     }
+
+                                    String[] base64 = files.getJSONObject(i).getString("base64").split("base64,");
+                                    byte[] file = Base64.getDecoder().decode(base64.length == 2 ? base64[1] : base64[0]);
+                                    String digestName = format.equals("pades_hash") ? resolverDigest(tokenSelected.getDigest()) : null;
+                                    switch (format) {
+                                        case "pades":
+                                            FirmadorPdf.firmar(new ByteArrayInputStream(file), out, false, token,
+                                                    tokenSelected.getAlias());
+                                            break;
+                                        case "jws":
+                                            FirmadorJws.firmar(new ByteArrayInputStream(file), out, false, token,
+                                                    tokenSelected.getAlias());
+                                            break;
+                                        case "pades_hash":
+                                            try {
+                                                out.write(firmarHash(token, tokenSelected.getAlias(), file, digestName));
+                                            } catch (GeneralSecurityException ex) {
+                                                throw new CustomException(ex.getMessage());
+                                            }
+                                            break;
+                                        default:
+                                            throw new JacobitusException(String.format("Formato %s no admitido.", format));
+                                    }
+                                    JSONObject obj = new JSONObject();
+                                    if (!files.getJSONObject(i).isNull("base64")) {
+                                        if (format.equals("pades_hash")) {
+                                            obj.put("value", Base64.getEncoder().encodeToString(out.toByteArray()));
+                                            obj.put("algorithm", "RSA_" + digestName);
+                                        } else {
+                                            obj.put("name", files.getJSONObject(i).getString("name"));
+                                            obj.put("base64", Base64.getEncoder().encodeToString(out.toByteArray()));
+                                        }
+                                    }
+                                    filesFirmados.put(obj);
+                                    final int a = i + 1;
+                                    Platform.runLater(() -> {
+                                        estado.setText("Documentos: " + a + " de " + (filesPdf.length() + filesJson.length() + hashArray.length()));
+                                    });
+                                    updateProgress(a, filesPdf.length() + filesJson.length() + hashArray.length());
+                                } catch (IllegalArgumentException ex) {
+                                    throw new CustomException("Uno o más parámetros tienen problemas.");
+                                } catch (RuntimeException ex) {
+                                    throw new CustomException(ex.getMessage());
                                 }
-                                filesFirmados.put(obj);
-                                final int a = i + 1;
-                                Platform.runLater(() -> {
-                                    estado.setText("Archivos: " + a + " de " + (filesPdf.length() + filesJson.length() + hashArray.length()));
-                                });
-                                updateProgress(a, filesPdf.length() + filesJson.length() + hashArray.length());
-                            } catch (IllegalArgumentException ex) {
-                                token.salir();
-                                throw new CustomException("Uno o más parámetros tienen problemas.");
-                            } catch (RuntimeException ex) {
-                                token.salir();
-                                throw new CustomException(ex.getMessage());
                             }
+                            tokenSelected.setFiles(filesFirmados);
+                            /* FIN - Compatibilidad Firmatic */
                         }
-                        tokenSelected.setFiles(filesFirmados);
-                        /* FIN - Compatibilidad Firmatic */
+                    } finally {
+                        token.salir();
                     }
-                    token.salir();
                 }
                 return true;
             }
         };
         progressBar.progressProperty().bind(task.progressProperty());
         task.setOnFailed((WorkerStateEvent evt) -> {
+            firmaEnCurso = false;
+            cancelacionFirmaSolicitada = false;
+            tareaFirma = null;
             resetearProgreso();
             tokenSelected.setAlias(null);
             tokenSelected.setPin(null);
@@ -483,6 +559,7 @@ public class FormService extends Stage {
             button.setDisable(false);
             buttonFirmar.setDisable(false);
             cbInfoCertificado.setDisable(false);
+            buttonCancelar.setDisable(false);
             Alert alert = new Alert(AlertType.WARNING, task.getException().getMessage(), ButtonType.OK);
             alert.initOwner(this);
             alert.initModality(Modality.APPLICATION_MODAL);
@@ -494,13 +571,21 @@ public class FormService extends Stage {
             }
         });
         task.setOnSucceeded((WorkerStateEvent evt) -> {
+            firmaEnCurso = false;
+            if (!Boolean.TRUE.equals(task.getValue())) {
+                tokenSelected.setAlias(null);
+                tokenSelected.setPin(null);
+            }
+            cancelacionFirmaSolicitada = false;
+            tareaFirma = null;
             close();
         });
         return task;
     }
 
     private void mostrarCertificados(boolean autoFirmarSiUnico) {
-        message.setText("");
+        message.setText("Buscando certificados en el token...");
+        message.setTextFill(Color.web("#5f6c7b"));
         listaInfoCertificado.clear();
         buttonFirmar.setDisable(true);
         cbInfoCertificado.setDisable(true);
@@ -551,7 +636,8 @@ public class FormService extends Stage {
             listaInfoCertificado.addAll(resultado.certificados);
             if (!listaInfoCertificado.isEmpty()) {
                 cbInfoCertificado.getSelectionModel().selectFirst();
-                message.setText("");
+                message.setText("Seleccione el certificado y confirme la firma.");
+                message.setTextFill(Color.web("#5f6c7b"));
                 buttonFirmar.requestFocus();
                 if (autoFirmarSiUnico && listaInfoCertificado.size() == 1) {
                     PauseTransition delay = new PauseTransition(Duration.millis(1000));
@@ -563,6 +649,7 @@ public class FormService extends Stage {
                 }
             } else {
                 message.setText(resultado.mensaje == null ? "" : resultado.mensaje);
+                message.setTextFill(Color.RED);
                 passwordField.setDisable(false);
                 button.setDisable(false);
             }
@@ -594,8 +681,10 @@ public class FormService extends Stage {
                     }
                 }
                 message.setText(mensaje);
+                message.setTextFill(Color.RED);
             } catch (Exception ex1) {
                 message.setText(ex1.getMessage());
+                message.setTextFill(Color.RED);
             }
             passwordField.setDisable(false);
             button.setDisable(false);
@@ -605,13 +694,28 @@ public class FormService extends Stage {
 
     private void aplicarFirma() {
         if (cbInfoCertificado.getValue() instanceof InfoCertificado) {
+            message.setText("Firmando documentos...");
+            message.setTextFill(Color.web("#5f6c7b"));
             passwordField.setDisable(true);
             button.setDisable(true);
             buttonFirmar.setDisable(true);
+            buttonCancelar.setDisable(false);
             cbInfoCertificado.setDisable(true);
+            firmaEnCurso = true;
+            cancelacionFirmaSolicitada = false;
             tokenSelected.setPin(passwordField.getText());
             tokenSelected.setAlias(((InfoCertificado) cbInfoCertificado.getValue()).getAlias());
-            new Thread(firmar()).start();
+            tareaFirma = firmar();
+            new Thread(tareaFirma).start();
+        }
+    }
+
+    private void solicitarCancelacionFirma() {
+        if (tareaFirma != null && firmaEnCurso) {
+            message.setText("Cancelando firma, espere a que finalice el documento en curso...");
+            message.setTextFill(Color.web("#5f6c7b"));
+            buttonCancelar.setDisable(true);
+            cancelacionFirmaSolicitada = true;
         }
     }
 
