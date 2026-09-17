@@ -705,7 +705,7 @@ public class FormAplicacion extends Application {
         tbvDispositivos.setRowFactory(tv -> {
             TableRow<CK_TOKEN_INFO> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
-                if (event.getButton() == MouseButton.SECONDARY) {
+                if (event.getButton() == MouseButton.SECONDARY && !row.isEmpty()) {
                     tokenInfoSeleccionado = row.getItem();
                     tokenContextMenu.getItems().get(2).setVisible(tokenInfoSeleccionado.getSlot() == -1);
                     tokenContextMenu.show(tbvDispositivos, event.getScreenX(), event.getScreenY());
@@ -726,7 +726,7 @@ public class FormAplicacion extends Application {
                     HostServices hostServices = getHostServices();
                     hostServices.showDocument(row.getItem().getAbsolutePath());
                 }
-                if (event.getButton() == MouseButton.SECONDARY) {
+                if (event.getButton() == MouseButton.SECONDARY && !row.isEmpty()) {
                     validador = row.getItem();
                     try {
                         exportarItem.setVisible(MagicBytes.P7S.is(validador.getFile()));
@@ -874,13 +874,12 @@ public class FormAplicacion extends Application {
         });
     }
 
-    public Task<Boolean> listarTokens() {
+    public Task<List<CK_TOKEN_INFO>> listarTokens() {
         progressBar.progressProperty().unbind();
-        Task<Boolean> task = new Task<Boolean>() {
+        Task<List<CK_TOKEN_INFO>> task = new Task<List<CK_TOKEN_INFO>>() {
             @SuppressWarnings("unchecked")
             @Override
-            protected Boolean call() throws Exception {
-                FormAplicacion.stage.getScene().setCursor(Cursor.WAIT);
+            protected List<CK_TOKEN_INFO> call() throws Exception {
                 try {
                     GestorSlot gestorSlot = GestorSlot.getInstance();
                     gestorSlot.setConfigFirmador(getConfigFirmador());
@@ -889,20 +888,22 @@ public class FormAplicacion extends Application {
                     for (Slot slot : slots) {
                         listaInfoToken.add(slot.detalleToken());
                     }
-                    tbvDispositivos.setItems(FXCollections.observableList(listaInfoToken));
                     updateProgress(100, 100);
-                    FormAplicacion.stage.getScene().setCursor(Cursor.DEFAULT);
-                    return true;
+                    return listaInfoToken;
                 } catch (RuntimeException ex) {
                     updateProgress(100, 100);
-                    tbvDispositivos.getItems().clear();
-                    FormAplicacion.stage.getScene().setCursor(Cursor.DEFAULT);
                     throw ex;
                 }
             }
         };
         progressBar.progressProperty().bind(task.progressProperty());
+        stage.getScene().setCursor(Cursor.WAIT);
+        task.setOnSucceeded((WorkerStateEvent evt) -> {
+            tbvDispositivos.setItems(FXCollections.observableList(task.getValue()));
+            stage.getScene().setCursor(Cursor.DEFAULT);
+        });
         task.setOnFailed((WorkerStateEvent evt) -> {
+            tbvDispositivos.getItems().clear();
             String error = task.getException().getMessage();
             if (!stage.isShowing()) {
                 Logger.getLogger(FormAplicacion.class.getName()).log(Level.INFO, error);
@@ -933,13 +934,12 @@ public class FormAplicacion extends Application {
         return task;
     }
 
-    public Task<Boolean> validar(List<File> archivos) {
+    public Task<List<ValidadorExtendido>> validar(List<File> archivos) {
         progressBar.progressProperty().unbind();
-        Task<Boolean> task = new Task<Boolean>() {
+        Task<List<ValidadorExtendido>> task = new Task<List<ValidadorExtendido>>() {
             @SuppressWarnings("unchecked")
             @Override
-            protected Boolean call() throws Exception {
-                stage.getScene().setCursor(Cursor.WAIT);
+            protected List<ValidadorExtendido> call() throws Exception {
                 List<ValidadorExtendido> archivosProcesados = new LinkedList();
                 for (int i = 0; i < archivos.size(); i++) {
                     if (archivos.get(i).getName().endsWith(".odt")) {
@@ -960,12 +960,15 @@ public class FormAplicacion extends Application {
                     }
                     updateProgress(i + 1, archivos.size());
                 }
-                tbvArchivos.setItems(FXCollections.observableList(archivosProcesados));
-                stage.getScene().setCursor(Cursor.DEFAULT);
-                return true;
+                return archivosProcesados;
             }
         };
         progressBar.progressProperty().bind(task.progressProperty());
+        stage.getScene().setCursor(Cursor.WAIT);
+        task.setOnSucceeded((WorkerStateEvent evt) -> {
+            tbvArchivos.setItems(FXCollections.observableList(task.getValue()));
+            stage.getScene().setCursor(Cursor.DEFAULT);
+        });
         task.setOnFailed((WorkerStateEvent evt) -> {
             Alert alert = new Alert(AlertType.WARNING, task.getException().getMessage(), ButtonType.OK);
             alert.initOwner(stage);
@@ -983,8 +986,6 @@ public class FormAplicacion extends Application {
         Task<Boolean> task = new Task<Boolean>() {
             @Override
             protected Boolean call() throws Exception {
-                stage.getScene().setCursor(Cursor.WAIT);
-
                 GestorSlot gestorSlot = GestorSlot.getInstance();
                 gestorSlot.setConfigFirmador(getConfigFirmador());
                 IToken token = gestorSlot.obtenerSlot(slotID).getToken();
@@ -1016,7 +1017,9 @@ public class FormAplicacion extends Application {
                                 firmador.firmar(is, os, bloquear, false);
                             }
                             updateProgress(i + 1, archivos.size());
-                            tbvArchivos.getItems().set(i, new ValidadorExtendidoPdf(archivoFirmado, getConfigValidador()));
+                            final int indice = i;
+                            ValidadorExtendido archivoValidado = new ValidadorExtendidoPdf(archivoFirmado, getConfigValidador());
+                            Platform.runLater(() -> tbvArchivos.getItems().set(indice, archivoValidado));
                         } catch (Exception ex) {
                             updateProgress(i + 1, archivos.size());
                             errores.append(archivos.get(i).getAbsolutePath()).append(": ")
@@ -1025,7 +1028,6 @@ public class FormAplicacion extends Application {
                     }
                     updateProgress(100, 100);
                 }
-                stage.getScene().setCursor(Cursor.DEFAULT);
                 if (errores.length() == 0) {
                     return true;
                 } else {
@@ -1034,6 +1036,7 @@ public class FormAplicacion extends Application {
             }
         };
         progressBar.progressProperty().bind(task.progressProperty());
+        stage.getScene().setCursor(Cursor.WAIT);
         task.setOnFailed((WorkerStateEvent evt) -> {
             Alert alert = new Alert(AlertType.WARNING, task.getException().getMessage(), ButtonType.OK);
             alert.initOwner(stage);
@@ -1043,16 +1046,18 @@ public class FormAplicacion extends Application {
             alert.showAndWait();
             stage.getScene().setCursor(Cursor.DEFAULT);
         });
+        task.setOnSucceeded((WorkerStateEvent evt) -> {
+            stage.getScene().setCursor(Cursor.DEFAULT);
+        });
         return task;
     }
 
-    public Task<Boolean> validarPKCS7(List<File> archivos) {
+    public Task<List<ValidadorExtendido>> validarPKCS7(List<File> archivos) {
         progressBar.progressProperty().unbind();
-        Task<Boolean> task = new Task<Boolean>() {
+        Task<List<ValidadorExtendido>> task = new Task<List<ValidadorExtendido>>() {
             @SuppressWarnings("unchecked")
             @Override
-            protected Boolean call() throws Exception {
-                stage.getScene().setCursor(Cursor.WAIT);
+            protected List<ValidadorExtendido> call() throws Exception {
                 List<ValidadorExtendido> archivosProcesados = new LinkedList();
                 for (int i = 0; i < archivos.size(); i++) {
                     if (MagicBytes.PDF.is(archivos.get(i))) {
@@ -1074,12 +1079,15 @@ public class FormAplicacion extends Application {
                     }
                     updateProgress(i + 1, archivos.size());
                 }
-                tbvArchivos.setItems(FXCollections.observableList(archivosProcesados));
-                stage.getScene().setCursor(Cursor.DEFAULT);
-                return true;
+                return archivosProcesados;
             }
         };
         progressBar.progressProperty().bind(task.progressProperty());
+        stage.getScene().setCursor(Cursor.WAIT);
+        task.setOnSucceeded((WorkerStateEvent evt) -> {
+            tbvArchivos.setItems(FXCollections.observableList(task.getValue()));
+            stage.getScene().setCursor(Cursor.DEFAULT);
+        });
         task.setOnFailed((WorkerStateEvent evt) -> {
             Alert alert = new Alert(AlertType.WARNING, task.getException().getMessage(), ButtonType.OK);
             alert.initOwner(stage);
@@ -1097,8 +1105,6 @@ public class FormAplicacion extends Application {
         Task<Boolean> task = new Task<Boolean>() {
             @Override
             protected Boolean call() throws Exception {
-                stage.getScene().setCursor(Cursor.WAIT);
-
                 GestorSlot gestorSlot = GestorSlot.getInstance();
                 gestorSlot.setConfigFirmador(getConfigFirmador());
                 IToken token = gestorSlot.obtenerSlot(slotID).getToken();
@@ -1124,7 +1130,9 @@ public class FormAplicacion extends Application {
                                 firmador.firmar(is, os);
                             }
                             updateProgress(i + 1, archivos.size());
-                            tbvArchivos.getItems().set(i, new ValidadorExtendidoPKCS7(archivoFirmado, getConfigValidador()));
+                            final int indice = i;
+                            ValidadorExtendido archivoValidado = new ValidadorExtendidoPKCS7(archivoFirmado, getConfigValidador());
+                            Platform.runLater(() -> tbvArchivos.getItems().set(indice, archivoValidado));
                         } catch (Exception ex) {
                             updateProgress(i + 1, archivos.size());
                             errores.append(archivos.get(i).getAbsolutePath()).append(": ").append(ex.getMessage())
@@ -1133,7 +1141,6 @@ public class FormAplicacion extends Application {
                     }
                     updateProgress(100, 100);
                 }
-                stage.getScene().setCursor(Cursor.DEFAULT);
                 if (errores.length() == 0) {
                     return true;
                 } else {
@@ -1142,6 +1149,7 @@ public class FormAplicacion extends Application {
             }
         };
         progressBar.progressProperty().bind(task.progressProperty());
+        stage.getScene().setCursor(Cursor.WAIT);
         task.setOnFailed((WorkerStateEvent evt) -> {
             Alert alert = new Alert(AlertType.WARNING, task.getException().getMessage(), ButtonType.OK);
             alert.initOwner(stage);
@@ -1149,6 +1157,9 @@ public class FormAplicacion extends Application {
             alert.setTitle("Jacobitus");
             IconosVentana.aplicarModal(alert);
             alert.showAndWait();
+            stage.getScene().setCursor(Cursor.DEFAULT);
+        });
+        task.setOnSucceeded((WorkerStateEvent evt) -> {
             stage.getScene().setCursor(Cursor.DEFAULT);
         });
         return task;
@@ -1160,8 +1171,6 @@ public class FormAplicacion extends Application {
         Task<Boolean> task = new Task<Boolean>() {
             @Override
             protected Boolean call() throws Exception {
-                stage.getScene().setCursor(Cursor.WAIT);
-
                 GestorSlot gestorSlot = GestorSlot.getInstance();
                 gestorSlot.setConfigFirmador(getConfigFirmador());
                 IToken token = gestorSlot.obtenerSlot(slotID).getToken();
@@ -1193,7 +1202,9 @@ public class FormAplicacion extends Application {
                                 firmador.firmar(is, os, forzarEnvoltura, usarPrefijo);
                             }
                             updateProgress(i + 1, archivos.size());
-                            tbvArchivos.getItems().set(i, new ValidadorExtendidoXml(archivoFirmado, null, getConfigValidador()));
+                            final int indice = i;
+                            ValidadorExtendido archivoValidado = new ValidadorExtendidoXml(archivoFirmado, null, getConfigValidador());
+                            Platform.runLater(() -> tbvArchivos.getItems().set(indice, archivoValidado));
                         } catch (Exception ex) {
                             updateProgress(i + 1, archivos.size());
                             errores.append(archivos.get(i).getAbsolutePath()).append(": ").append(ex.getMessage())
@@ -1202,7 +1213,6 @@ public class FormAplicacion extends Application {
                     }
                     updateProgress(100, 100);
                 }
-                stage.getScene().setCursor(Cursor.DEFAULT);
                 if (errores.length() == 0) {
                     return true;
                 } else {
@@ -1211,6 +1221,7 @@ public class FormAplicacion extends Application {
             }
         };
         progressBar.progressProperty().bind(task.progressProperty());
+        stage.getScene().setCursor(Cursor.WAIT);
         task.setOnFailed((WorkerStateEvent evt) -> {
             Alert alert = new Alert(AlertType.WARNING, task.getException().getMessage(), ButtonType.OK);
             alert.initOwner(stage);
@@ -1218,6 +1229,9 @@ public class FormAplicacion extends Application {
             alert.setTitle("Jacobitus");
             IconosVentana.aplicarModal(alert);
             alert.showAndWait();
+            stage.getScene().setCursor(Cursor.DEFAULT);
+        });
+        task.setOnSucceeded((WorkerStateEvent evt) -> {
             stage.getScene().setCursor(Cursor.DEFAULT);
         });
         return task;
@@ -1228,8 +1242,6 @@ public class FormAplicacion extends Application {
         Task<Boolean> task = new Task<Boolean>() {
             @Override
             protected Boolean call() throws Exception {
-                stage.getScene().setCursor(Cursor.WAIT);
-
                 GestorSlot gestorSlot = GestorSlot.getInstance();
                 gestorSlot.setConfigFirmador(getConfigFirmador());
                 IToken token = gestorSlot.obtenerSlot(slotID).getToken();
@@ -1261,7 +1273,9 @@ public class FormAplicacion extends Application {
                                 firmador.firmar(is, os, false, false);
                             }
                             updateProgress(i + 1, archivos.size());
-                            tbvArchivos.getItems().set(i, new ValidadorExtendidoJws(archivoFirmado, null, getConfigValidador()));
+                            final int indice = i;
+                            ValidadorExtendido archivoValidado = new ValidadorExtendidoJws(archivoFirmado, null, getConfigValidador());
+                            Platform.runLater(() -> tbvArchivos.getItems().set(indice, archivoValidado));
                         } catch (Exception ex) {
                             updateProgress(i + 1, archivos.size());
                             errores.append(archivos.get(i).getAbsolutePath()).append(": ").append(ex.getMessage())
@@ -1270,7 +1284,6 @@ public class FormAplicacion extends Application {
                     }
                     updateProgress(100, 100);
                 }
-                stage.getScene().setCursor(Cursor.DEFAULT);
                 if (errores.length() == 0) {
                     return true;
                 } else {
@@ -1279,6 +1292,7 @@ public class FormAplicacion extends Application {
             }
         };
         progressBar.progressProperty().bind(task.progressProperty());
+        stage.getScene().setCursor(Cursor.WAIT);
         task.setOnFailed((WorkerStateEvent evt) -> {
             Alert alert = new Alert(AlertType.WARNING, task.getException().getMessage(), ButtonType.OK);
             alert.initOwner(stage);
@@ -1288,16 +1302,18 @@ public class FormAplicacion extends Application {
             alert.showAndWait();
             stage.getScene().setCursor(Cursor.DEFAULT);
         });
+        task.setOnSucceeded((WorkerStateEvent evt) -> {
+            stage.getScene().setCursor(Cursor.DEFAULT);
+        });
         return task;
     }
 
-    public Task<Boolean> descargarArchivo(String urlArchivo, String tokenAutorizacion, String urlRespuesta) {
+    public Task<List<ValidadorExtendido>> descargarArchivo(String urlArchivo, String tokenAutorizacion, String urlRespuesta) {
         progressBar.progressProperty().unbind();
-        Task<Boolean> task = new Task<Boolean>() {
+        Task<List<ValidadorExtendido>> task = new Task<List<ValidadorExtendido>>() {
             @SuppressWarnings("unchecked")
             @Override
-            protected Boolean call() throws Exception {
-                stage.getScene().setCursor(Cursor.WAIT);
+            protected List<ValidadorExtendido> call() throws Exception {
                 URL url = new URL(urlArchivo);
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 if (tokenAutorizacion != null) {
@@ -1334,18 +1350,21 @@ public class FormAplicacion extends Application {
                     } else {
                         archivosDescargados.add(new ValidadorExtendidoPKCS7(f, urlRespuesta, tokenAutorizacion, getConfigValidador()));
                     }
-                    tbvArchivos.setItems(FXCollections.observableList(archivosDescargados));
                     if (size == 0) {
                         updateProgress(1, 1);
                     }
-                    stage.getScene().setCursor(Cursor.DEFAULT);
-                    return true;
+                    return archivosDescargados;
                 } else {
                     throw new JacobitusException("No se pudo descargar el archivo.");
                 }
             }
         };
         progressBar.progressProperty().bind(task.progressProperty());
+        stage.getScene().setCursor(Cursor.WAIT);
+        task.setOnSucceeded((WorkerStateEvent evt) -> {
+            tbvArchivos.setItems(FXCollections.observableList(task.getValue()));
+            stage.getScene().setCursor(Cursor.DEFAULT);
+        });
         task.setOnFailed((WorkerStateEvent evt) -> {
             Alert alert = new Alert(AlertType.WARNING, task.getException().getMessage(), ButtonType.OK);
             alert.initOwner(stage);

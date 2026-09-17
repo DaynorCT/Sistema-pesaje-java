@@ -83,7 +83,7 @@ public class FormFirmante extends Stage {
                 public void updateItem(InfoCertificado infoCertificado, boolean empty) {
                     super.updateItem(infoCertificado, empty);
                     if (infoCertificado != null) {
-                        CertInformation pane = new CertInformation(infoCertificado, true);
+                        CertInformation pane = new CertInformation(infoCertificado, false);
                         Tooltip tooltip = new Tooltip();
                         tooltip.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
                         tooltip.setGraphic(pane);
@@ -99,6 +99,9 @@ public class FormFirmante extends Stage {
         setScene(scene);
 
         table.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+            if (newSelection == null) {
+                return;
+            }
             label = ((InfoCertificado)newSelection).getAlias();
             close();
         });
@@ -142,12 +145,13 @@ public class FormFirmante extends Stage {
         return node;
     }
 
-    public Task<Boolean> listarCertificados(String pass) {
+    public Task<List<InfoCertificado>> listarCertificados(String pass) {
         progressBar.progressProperty().unbind();
-        Task<Boolean> task = new Task<Boolean>() {
+        Task<List<InfoCertificado>> task = new Task<List<InfoCertificado>>() {
             @SuppressWarnings("unchecked")
             @Override
-            protected Boolean call() {
+            protected List<InfoCertificado> call() {
+                IToken token = null;
                 try {
                     GestorSlot gestorSlot = GestorSlot.getInstance();
                     gestorSlot.setConfigFirmador(getConfigFirmador());
@@ -155,7 +159,7 @@ public class FormFirmante extends Stage {
                     if (oSlot == null) {
                         throw new IOException("El slot " + slot + " no se encuentra disponible.");
                     }
-                    IToken token = oSlot.getToken();
+                    token = oSlot.getToken();
                     token.iniciar(pass);
                     List<String> listaAlias = token.listarIdentificadorClaves();
                     List<InfoCertificado> listaInfoCertificado = new LinkedList<>();
@@ -163,10 +167,7 @@ public class FormFirmante extends Stage {
                         InfoCertificado infoCertificado = new InfoCertificado(alias, token.obtenerCertificado(alias));
                         listaInfoCertificado.add(infoCertificado);
                     }
-                    token.salir();
-                    table.setItems(FXCollections.observableList(listaInfoCertificado));
-                    TableViewHelper.ajustarColumnas(table);
-                    return true;
+                    return listaInfoCertificado;
                 } catch (GeneralSecurityException | IOException ex) {
                     if (ex.getCause() instanceof IOException) {
                         if (ex.getCause().getMessage() != null && ex.getCause().getMessage().equals("PKCS12 key store mac invalid - wrong password or corrupted file.")) {
@@ -191,11 +192,18 @@ public class FormFirmante extends Stage {
                     }
                     throw new JacobitusException(ex.getMessage());
                 } finally {
+                    if (token != null) {
+                        token.salir();
+                    }
                     updateProgress(100, 100);
                 }
             }
         };
         progressBar.progressProperty().bind(task.progressProperty());
+        task.setOnSucceeded((WorkerStateEvent evt) -> {
+            table.setItems(FXCollections.observableList(task.getValue()));
+            TableViewHelper.ajustarColumnas(table);
+        });
         task.setOnFailed((WorkerStateEvent evt) -> {
             String err = task.getException().getMessage();
             Alert alert = new Alert(AlertType.WARNING, err);
