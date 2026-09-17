@@ -46,7 +46,7 @@ public class WebServer {
         filterHolder.setInitParameter(CrossOriginFilter.ACCESS_CONTROL_ALLOW_ORIGIN_HEADER, "*");
         filterHolder.setInitParameter(CrossOriginFilter.ALLOWED_HEADERS_PARAM,
                 "Content-Type,Authorization,X-Requested-With,Content-Length,Accept,Origin");
-        filterHolder.setInitParameter(CrossOriginFilter.ALLOWED_METHODS_PARAM, "GET,PUT,POST,DELETE");
+        filterHolder.setInitParameter(CrossOriginFilter.ALLOWED_METHODS_PARAM, "GET,PUT,POST,DELETE,OPTIONS");
         filterHolder.setInitParameter(CrossOriginFilter.ALLOW_CREDENTIALS_PARAM, "true");
 
         // Sitio web
