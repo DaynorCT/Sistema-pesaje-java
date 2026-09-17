@@ -2,6 +2,8 @@ package bo.firmadigital.jacobitus.escritorio;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 public class Informacion {
@@ -24,7 +26,7 @@ public class Informacion {
             if (inputStream == null) {
                 return "";
             }
-            propiedades.load(inputStream);
+            propiedades.load(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
             return propiedades.getProperty(nombre, "");
         } catch (IOException ex) {
             return "";
