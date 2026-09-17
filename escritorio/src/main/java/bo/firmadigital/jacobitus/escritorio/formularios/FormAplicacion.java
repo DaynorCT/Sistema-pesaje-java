@@ -98,6 +98,7 @@ import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
@@ -568,29 +569,33 @@ public class FormAplicacion extends Application {
             String changePinVersion = new ChangePinJNI().version();
             ImageView logo = new ImageView(
                     new Image(this.getClass().getClassLoader().getResource("logo-agetic-sin-tag.png").toExternalForm()));
-            logo.setFitWidth(280);
+            logo.setFitWidth(240);
             logo.setPreserveRatio(true);
             logo.setSmooth(true);
             Label nombre = new Label("Jacobitus Escritorio");
-            nombre.setStyle("-fx-font-size: 22px; -fx-font-weight: bold;");
+            nombre.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1f2933;");
             nombre.setWrapText(true);
             Label versionAplicacion = new Label("Versión " + version);
-            versionAplicacion.setStyle("-fx-font-size: 16px;");
+            versionAplicacion.setStyle("-fx-font-size: 15px; -fx-text-fill: #263238;");
             Label versionVariante = new Label(variante != null ? "VERSIÓN " + variante : "");
             versionVariante.setVisible(variante != null);
             versionVariante.setManaged(variante != null);
-            versionVariante.setStyle("-fx-background-color: #2f5f73; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 3 10 3 10;");
+            versionVariante.setStyle("-fx-background-color: #2f5f73; -fx-background-radius: 2; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 3 10 3 10;");
             Label descripcion = new Label(Informacion.DESCRIPCION);
             descripcion.setWrapText(true);
-            VBox presentacion = new VBox(4, nombre, versionAplicacion, versionVariante, descripcion);
+            descripcion.setMaxWidth(340);
+            descripcion.setAlignment(Pos.CENTER);
+            descripcion.setTextAlignment(TextAlignment.CENTER);
+            descripcion.setStyle("-fx-text-fill: #263238;");
+            VBox presentacion = new VBox(5, nombre, versionAplicacion, versionVariante, descripcion);
             presentacion.setAlignment(Pos.CENTER);
-            VBox cabecera = new VBox(0, logo, presentacion);
+            VBox cabecera = new VBox(8, logo, presentacion);
             cabecera.setAlignment(Pos.CENTER);
 
             Label detalle = new Label("Información técnica");
             detalle.setStyle("-fx-font-weight: bold;");
             GridPane versiones = new GridPane();
-            versiones.setHgap(32);
+            versiones.setHgap(42);
             versiones.setVgap(6);
             String[][] componentes = {
                 {"Jacobitus Librería", versionLibreria},
@@ -606,16 +611,17 @@ public class FormAplicacion extends Application {
             Label institucion = new Label(
                     "Agencia de Gobierno Electrónico y Tecnologías de Información y Comunicación");
             institucion.setWrapText(true);
+            institucion.setMaxWidth(340);
             Hyperlink repositorio = new Hyperlink("Código fuente · GitLab Software Libre");
             repositorio.setPadding(new Insets(4, 0, 4, 0));
             repositorio.setWrapText(true);
             repositorio.setOnAction(event -> getHostServices().showDocument(
                     "https://gitlab.softwarelibre.gob.bo/adsib/jacobitus-total/jacobitus-escritorio"));
-            VBox informacionTecnica = new VBox(8, detalle, versiones);
-            VBox pie = new VBox(4, institucion, repositorio);
-            VBox contenido = new VBox(12, cabecera, new Separator(), informacionTecnica,
+            VBox informacionTecnica = new VBox(9, detalle, versiones);
+            VBox pie = new VBox(5, institucion, repositorio);
+            VBox contenido = new VBox(14, cabecera, new Separator(), informacionTecnica,
                     new Separator(), pie);
-            contenido.setPadding(new Insets(0, 16, 8, 16));
+            contenido.setPadding(new Insets(4, 18, 8, 18));
 
             Alert alert = new Alert(AlertType.INFORMATION);
             alert.initOwner(stage);
@@ -623,7 +629,7 @@ public class FormAplicacion extends Application {
             alert.setTitle("Acerca de Jacobitus");
             alert.setHeaderText(null);
             alert.setGraphic(null);
-            alert.getDialogPane().setPrefWidth(400);
+            alert.getDialogPane().setPrefWidth(430);
             alert.getDialogPane().setContent(contenido);
             IconosVentana.aplicarModal(alert);
             alert.showAndWait();

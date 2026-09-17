@@ -14,7 +14,7 @@ version = '2.1.0'
 mainClassName = 'bo.firmadigital.jacobitus.escritorio.Main'
 
 def appName = 'Jacobitus Escritorio'
-def appDescription = 'Solución de escritorio para firma digital'
+def appDescription = 'Aplicaci\u00f3n de escritorio para firma digital.'
 def jarName = "jacobitus-escritorio"
 def vendorName = 'AGETIC'
 def maintainer = 'desarrollo@firmadigital.bo'
