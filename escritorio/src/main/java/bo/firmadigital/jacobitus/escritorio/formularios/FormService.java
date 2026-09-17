@@ -295,6 +295,11 @@ public class FormService extends Stage {
 
             esperaRegistroWm.play();
         });
+        this.setOnCloseRequest(t -> {
+            if (progressBar.progressProperty().isBound()) {
+                t.consume();
+            }
+        });
         if (tokenSelected.getPinInicial() != null) {
             try {
                 this.mostrarCertificados(true);
