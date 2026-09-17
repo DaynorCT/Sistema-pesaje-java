@@ -2,15 +2,21 @@ package bo.firmadigital.jacobitus.escritorio;
 
 import static org.eclipse.jetty.servlet.ServletContextHandler.NO_SESSIONS;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
+import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
@@ -63,7 +69,19 @@ public class WebServer {
         Config config = Config.getInstance();
 
         // https://localhost:4637
-        ResourceHandler resourceHandler4637 = new ResourceHandler();
+        ResourceHandler resourceHandler4637 = new ResourceHandler() {
+            @Override
+            public void handle(String target, Request baseRequest, HttpServletRequest request,
+                    HttpServletResponse response) throws IOException, ServletException {
+                agregarCabecerasCors(request, response);
+                if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    baseRequest.setHandled(true);
+                    return;
+                }
+                super.handle(target, baseRequest, request, response);
+            }
+        };
         resourceHandler4637.setResourceBase(webResourceBase);
         resourceHandler4637.setDirAllowed(false);
         ContextHandler staticContextHandler4637 = new ContextHandler("/");
@@ -174,5 +192,16 @@ public class WebServer {
         }
  
         jettyServer.setConnectors(connectors.toArray(new Connector[0]));
+    }
+
+    private static void agregarCabecerasCors(HttpServletRequest request, HttpServletResponse response) {
+        String origin = request.getHeader("Origin");
+        response.setHeader("Access-Control-Allow-Origin", origin != null ? origin : "*");
+        response.setHeader("Access-Control-Allow-Headers",
+                "Content-Type,Authorization,X-Requested-With,Content-Length,Accept,Origin");
+        response.setHeader("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+        response.setHeader("Access-Control-Allow-Credentials", "true");
+        response.setHeader("Access-Control-Allow-Private-Network", "true");
+        response.setHeader("Vary", "Origin");
     }
 }
