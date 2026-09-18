@@ -6,6 +6,8 @@ import bo.firmadigital.jacobitus.firmador.base.ConfiguracionFirmador;
 import bo.firmadigital.jacobitus.token.GestorSlot;
 import bo.firmadigital.jacobitus.token.IToken;
 import bo.firmadigital.jacobitus.token.Slot;
+import javafx.concurrent.Task;
+import javafx.concurrent.WorkerStateEvent;
 import javafx.geometry.Insets;
 import javafx.scene.Cursor;
 import javafx.scene.Scene;
@@ -37,6 +39,7 @@ public class FormCambiarContrasena extends Stage {
     public FormCambiarContrasena(Stage parent, long slot) {
         stage = parent;
         setTitle("Pin del token");
+        IconosVentana.aplicarAplicacion(this);
         initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);
         VBox root = new VBox();
@@ -56,6 +59,11 @@ public class FormCambiarContrasena extends Stage {
         root.getChildren().add(label2);
         PasswordField passwordField2 = new PasswordField();
         passwordField2.setPromptText("Repita nuevo pin");
+        root.getChildren().add(passwordField2);
+
+        Button buttonAceptar = new Button("Aceptar");
+        Button buttonCancelar = new Button("Cancelar");
+
         oldPasswordField.addEventHandler(KeyEvent.KEY_PRESSED, ev -> {
             if (ev.getCode() == KeyCode.ENTER) {
                 passwordField.requestFocus();
@@ -68,18 +76,18 @@ public class FormCambiarContrasena extends Stage {
         });
         passwordField2.addEventHandler(KeyEvent.KEY_PRESSED, ev -> {
             if (ev.getCode() == KeyCode.ENTER) {
-                cambiarContrasenia(slot, oldPasswordField.getText(), passwordField.getText(), passwordField2.getText());
+                cambiarContrasenia(slot, oldPasswordField.getText(), passwordField.getText(),
+                        passwordField2.getText(), buttonAceptar, buttonCancelar);
             }
         });
-        root.getChildren().add(passwordField2);
-        Button buttonAceptar = new Button("Aceptar");
         buttonAceptar.setOnAction(t -> {
-            cambiarContrasenia(slot, oldPasswordField.getText(), passwordField.getText(), passwordField2.getText());
+            cambiarContrasenia(slot, oldPasswordField.getText(), passwordField.getText(),
+                    passwordField2.getText(), buttonAceptar, buttonCancelar);
         });
-        Button buttonCancelar = new Button("Cancelar");
         buttonCancelar.setOnAction(t -> {
             close();
         });
+
         HBox hBox = new HBox();
         hBox.getChildren().addAll(buttonAceptar, buttonCancelar);
         root.getChildren().add(hBox);
@@ -87,64 +95,89 @@ public class FormCambiarContrasena extends Stage {
         setScene(scene);
     }
 
-    private void cambiarContrasenia(long slot, String oldPassword, String pass, String pass2) {
-        stage.getScene().setCursor(Cursor.WAIT);
-        String error;
-        if (pass.equals(pass2)) {
-            if (pass.length() < 8) {
-                error = "La contraseña es muy corta.";
-            } else {
-                int num = 0, may = 0, minu = 0;
-                char[] password = pass.toCharArray();
-                for (int i = 0; i < pass.length(); i++) {
-                    if (password[i] >= '0' && password[i] <= '9') {
-                        num++;
-                    } else if (password[i] >= 'A' && password[i] <= 'Z') {
-                        may++;
-                    } else if (password[i] >= 'a' && password[i] <= 'z') {
-                        minu++;
-                    }
-                }
-                if (slot == -1 && (num < 1 || may < 1 || minu < 1)) {
-                    error = "La contraseña debe contener al menos un número, una letra mayúscula y una letra minúscula.";
-                } else {
-                    GestorSlot gestorSlot = GestorSlot.getInstance();
-                    gestorSlot.setConfigFirmador(this.getConfigFirmador());
-                    Slot oSlot = gestorSlot.obtenerSlot(slot);
-                    if (oSlot == null) {
-                        throw new JacobitusException("El slot " + slot + " no se encuentra disponible.");
-                    }
-                    IToken token = oSlot.getToken();
-                    try {
-                        String oldPass = oldPassword;
-                        if (oldPass.startsWith("@unlock:")) {
-                            token.unlockPin(oldPass.split("@unlock:")[1], pass);
-                        } else if (oldPass.startsWith("@so:")) {
-                            token.modificarPinSo(oldPass.split("@so:")[1], pass);
-                        } else {
-                            token.modificarPin(oldPass, pass);
-                        }
-                        stage.getScene().setCursor(Cursor.WAIT);
-                        Alert alert = new Alert(Alert.AlertType.INFORMATION, "Se cambió la contraseña.", ButtonType.OK);
-                        alert.initOwner(stage);
-                        alert.initModality(Modality.APPLICATION_MODAL);
-                        alert.setTitle("Jacobitus");
-                        alert.showAndWait();
-                        close();
-                        return;
-                    } catch (Exception ex) {
-                        error = ex.getMessage();
-                    }
-                }
-            }
-        } else {
-            error = "Las contraseñas no coinciden.";
+    private void cambiarContrasenia(long slot, String oldPassword, String pass, String pass2,
+            Button buttonAceptar, Button buttonCancelar) {
+        String error = validarNuevaContrasenia(slot, pass, pass2);
+        if (error != null) {
+            mostrarError(error);
+            return;
         }
+
         stage.getScene().setCursor(Cursor.WAIT);
+        buttonAceptar.setDisable(true);
+        buttonCancelar.setDisable(true);
+
+        Task<Void> task = new Task<Void>() {
+            @Override
+            protected Void call() {
+                GestorSlot gestorSlot = GestorSlot.getInstance();
+                gestorSlot.setConfigFirmador(FormCambiarContrasena.this.getConfigFirmador());
+                Slot oSlot = gestorSlot.obtenerSlot(slot);
+                if (oSlot == null) {
+                    throw new JacobitusException("El slot " + slot + " no se encuentra disponible.");
+                }
+                IToken token = oSlot.getToken();
+                if (oldPassword.startsWith("@unlock:")) {
+                    token.unlockPin(oldPassword.split("@unlock:")[1], pass);
+                } else if (oldPassword.startsWith("@so:")) {
+                    token.modificarPinSo(oldPassword.split("@so:")[1], pass);
+                } else {
+                    token.modificarPin(oldPassword, pass);
+                }
+                return null;
+            }
+        };
+        task.setOnSucceeded((WorkerStateEvent evt) -> {
+            stage.getScene().setCursor(Cursor.DEFAULT);
+            Alert alert = new Alert(Alert.AlertType.INFORMATION, "Se cambió la contraseña.", ButtonType.OK);
+            alert.initOwner(stage);
+            alert.initModality(Modality.APPLICATION_MODAL);
+            alert.setTitle("Jacobitus");
+            IconosVentana.aplicarModal(alert);
+            alert.showAndWait();
+            close();
+        });
+        task.setOnFailed((WorkerStateEvent evt) -> {
+            stage.getScene().setCursor(Cursor.DEFAULT);
+            buttonAceptar.setDisable(false);
+            buttonCancelar.setDisable(false);
+            mostrarError(task.getException().getMessage());
+        });
+        new Thread(task).start();
+    }
+
+    private String validarNuevaContrasenia(long slot, String pass, String pass2) {
+        if (!pass.equals(pass2)) {
+            return "Las contraseñas no coinciden.";
+        }
+        if (pass.length() < 8) {
+            return "La contraseña es muy corta.";
+        }
+        int num = 0;
+        int may = 0;
+        int minu = 0;
+        char[] password = pass.toCharArray();
+        for (int i = 0; i < pass.length(); i++) {
+            if (password[i] >= '0' && password[i] <= '9') {
+                num++;
+            } else if (password[i] >= 'A' && password[i] <= 'Z') {
+                may++;
+            } else if (password[i] >= 'a' && password[i] <= 'z') {
+                minu++;
+            }
+        }
+        if (slot == -1 && (num < 1 || may < 1 || minu < 1)) {
+            return "La contraseña debe contener al menos un número, una letra mayúscula y una letra minúscula.";
+        }
+        return null;
+    }
+
+    private void mostrarError(String error) {
         Alert alert = new Alert(Alert.AlertType.ERROR, error, ButtonType.OK);
         alert.initOwner(stage);
         alert.initModality(Modality.APPLICATION_MODAL);
         alert.setTitle("Jacobitus");
+        IconosVentana.aplicarModal(alert);
         alert.showAndWait();
     }
 }

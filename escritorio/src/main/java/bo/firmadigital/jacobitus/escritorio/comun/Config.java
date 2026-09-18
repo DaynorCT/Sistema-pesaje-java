@@ -137,6 +137,19 @@ public class Config {
         }
     }
 
+    public boolean isAutoStartEnabled() {
+        String autoStart = options.getProperty("autoStart");
+        return autoStart != null && autoStart.equals("true");
+    }
+
+    public void setAutoStartEnabled(boolean autoStart) {
+        if (autoStart) {
+            options.setProperty("autoStart", "true");
+        } else {
+            options.setProperty("autoStart", "false");
+        }
+    }
+
     public File getToken() {
         token = new File(user, "softoken.p12");
         if (!token.exists()) {

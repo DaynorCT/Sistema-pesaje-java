@@ -26,6 +26,7 @@ public class FormContrasenaNueva extends Stage {
     public FormContrasenaNueva(Stage parent) {
         stage = parent;
         setTitle("Pin del token");
+        IconosVentana.aplicarAplicacion(this);
         initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);
         VBox root = new VBox();
@@ -103,6 +104,7 @@ public class FormContrasenaNueva extends Stage {
         alert.initOwner(stage);
         alert.initModality(Modality.APPLICATION_MODAL);
         alert.setTitle("Jacobitus");
+        IconosVentana.aplicarModal(alert);
         alert.showAndWait();
     }
 }

@@ -7,6 +7,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import bo.firmadigital.jacobitus.escritorio.comun.Config;
+import bo.firmadigital.jacobitus.escritorio.utilidades.AutoInicioHelper;
 import bo.firmadigital.jacobitus.firmador.base.ConfiguracionFirmador;
 import bo.firmadigital.jacobitus.token.Slot;
 import bo.firmadigital.jacobitus.token.TokenPKCS12;
@@ -51,6 +52,7 @@ public class FormConfiguracion extends Stage {
 
     public FormConfiguracion(Stage parent) {
         setTitle("Opciones de configuración");
+        IconosVentana.aplicarConfiguracion(this);
         initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);
         config = Config.getInstance();
@@ -113,6 +115,7 @@ public class FormConfiguracion extends Stage {
                         alert.initOwner(parent);
                         alert.initModality(Modality.APPLICATION_MODAL);
                         alert.setTitle("Jacobitus");
+                        IconosVentana.aplicarModal(alert);
                         alert.showAndWait();
                     }
                 });
@@ -126,6 +129,7 @@ public class FormConfiguracion extends Stage {
                         alert.initOwner(parent);
                         alert.initModality(Modality.APPLICATION_MODAL);
                         alert.setTitle("Jacobitus");
+                        IconosVentana.aplicarModal(alert);
                         alert.showAndWait();
                     }
                 });
@@ -150,6 +154,7 @@ public class FormConfiguracion extends Stage {
                         alert.initModality(Modality.APPLICATION_MODAL);
                         alert.setTitle("Jacobitus");
                         alert.setHeaderText(null);
+                        IconosVentana.aplicarModal(alert);
                         alert.showAndWait();
                         checkBoxTrayIconEvent[0] = false;
                         checkBoxTrayIcon.setSelected(false);
@@ -158,6 +163,14 @@ public class FormConfiguracion extends Stage {
                     }
                     config.setTrayIconEnabled(newValue);
                     config.save();
+                    if (AutoInicioHelper.estaActivado()) {
+                        try {
+                            AutoInicioHelper.activar();
+                        } catch (RuntimeException ex) {
+                            Logger.getLogger(FormAplicacion.class.getName()).log(Level.WARNING,
+                                    "No se pudo actualizar el inicio automatico", ex);
+                        }
+                    }
                     if (newValue && SistemaOperativoHelper.esUnix()) {
                         Alert alert = new Alert(Alert.AlertType.WARNING,
                                 TaskBar.diagnosticoActivacionUnix(), ButtonType.OK);
@@ -165,6 +178,7 @@ public class FormConfiguracion extends Stage {
                         alert.initModality(Modality.APPLICATION_MODAL);
                         alert.setTitle("Jacobitus");
                         alert.setHeaderText(null);
+                        IconosVentana.aplicarModal(alert);
                         alert.showAndWait();
                     }
                     Alert alert = new Alert(Alert.AlertType.WARNING,
@@ -173,8 +187,65 @@ public class FormConfiguracion extends Stage {
                     alert.initModality(Modality.APPLICATION_MODAL);
                     alert.setTitle("Jacobitus");
                     alert.setHeaderText(null);
+                    IconosVentana.aplicarModal(alert);
                     alert.showAndWait();
                 });
+
+        CheckBox checkBoxAutoInicio = new CheckBox("Iniciar automáticamente");
+        final boolean[] checkBoxAutoInicioEvent = { true };
+        checkBoxAutoInicio.setDisable(!AutoInicioHelper.estaSoportado());
+        boolean autoInicioActivado = AutoInicioHelper.estaActivado();
+        checkBoxAutoInicio.setSelected(autoInicioActivado);
+        config.setAutoStartEnabled(autoInicioActivado);
+        config.save();
+        checkBoxAutoInicio.selectedProperty()
+                .addListener((ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) -> {
+                    if (!checkBoxAutoInicioEvent[0]) {
+                        return;
+                    }
+                    try {
+                        if (newValue) {
+                            AutoInicioHelper.activar();
+                        } else {
+                            AutoInicioHelper.desactivar();
+                        }
+                        boolean estadoReal = AutoInicioHelper.estaActivado();
+                        config.setAutoStartEnabled(estadoReal);
+                        config.save();
+                        if (estadoReal != newValue) {
+                            Alert alert = new Alert(Alert.AlertType.WARNING,
+                                    "El sistema operativo no permitió cambiar el inicio automático.\n"
+                                            + "Revise la configuración de aplicaciones de inicio del sistema.",
+                                    ButtonType.OK);
+                            alert.initOwner(parent);
+                            alert.initModality(Modality.APPLICATION_MODAL);
+                            alert.setTitle("Jacobitus");
+                            alert.setHeaderText(null);
+                            IconosVentana.aplicarModal(alert);
+                            alert.showAndWait();
+                            checkBoxAutoInicioEvent[0] = false;
+                            checkBoxAutoInicio.setSelected(estadoReal);
+                            checkBoxAutoInicioEvent[0] = true;
+                        }
+                    } catch (RuntimeException ex) {
+                        Logger.getLogger(FormAplicacion.class.getName()).log(Level.WARNING,
+                                "No se pudo configurar el inicio automatico", ex);
+                        Alert alert = new Alert(Alert.AlertType.WARNING,
+                                "No se pudo cambiar el inicio automático.\n"
+                                        + "Revise la configuración de aplicaciones de inicio de Windows.",
+                                ButtonType.OK);
+                        alert.initOwner(parent);
+                        alert.initModality(Modality.APPLICATION_MODAL);
+                        alert.setTitle("Jacobitus");
+                        alert.setHeaderText(null);
+                        IconosVentana.aplicarModal(alert);
+                        alert.showAndWait();
+                        checkBoxAutoInicioEvent[0] = false;
+                        checkBoxAutoInicio.setSelected(oldValue);
+                        checkBoxAutoInicioEvent[0] = true;
+                    }
+                });
+        vbox1.getChildren().add(checkBoxAutoInicio);
         vbox1.getChildren().add(checkBoxTrayIcon);
 
         CheckBox checkBoxConfirmarSalida = new CheckBox("Confirmar antes de salir");
@@ -272,6 +343,7 @@ public class FormConfiguracion extends Stage {
                     alert.initOwner(parent);
                     alert.initModality(Modality.APPLICATION_MODAL);
                     alert.setTitle("Jacobitus");
+                    IconosVentana.aplicarModal(alert);
                     alert.showAndWait();
                 }
             }

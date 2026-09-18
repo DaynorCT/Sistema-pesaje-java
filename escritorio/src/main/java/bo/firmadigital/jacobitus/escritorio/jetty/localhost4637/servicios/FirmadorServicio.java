@@ -41,6 +41,22 @@ public class FirmadorServicio {
     public FirmadorServicio() {
     }
 
+    private void requerido(boolean presente, String... campos) {
+        if (!presente) {
+            throw new JacobitusException("El campo '" + String.join("' o '", campos) + "' es obligatorio.");
+        }
+    }
+
+    private void validarCamposObligatorios(FirmaHashModoSeguroDto objetoDto) {
+        requerido(objetoDto.getFormat() != null, "format");
+        List<FirmaHashItemDto> archivoItems = objetoDto.getArchivo();
+        requerido(archivoItems != null && !archivoItems.isEmpty(), "archivo");
+        for (FirmaHashItemDto item : archivoItems) {
+            requerido(item.getBase64() != null && !item.getBase64().isEmpty(), "archivo.base64", "archivo[].base64");
+            requerido(item.getDate() != null, "archivo.date", "archivo[].date");
+        }
+    }
+
     private ConfiguracionFirmador getConfigFirmador() {
         Config config = Config.getInstance();
         ConfiguracionFirmador configFirmador = new ConfiguracionFirmador();
@@ -107,33 +123,26 @@ public class FirmadorServicio {
         try {
             ObjectMapper om = new ObjectMapper();
 
+            validarCamposObligatorios(objetoDto);
+
             String format = objetoDto.getFormat();
-            if (format == null || !format.equals("pades_hash")) {
+            if (!format.equals("pades_hash")) {
                 throw new JacobitusException("Formato no soportado.");
             }
 
             String digest = objetoDto.getDigest();
             if (digest != null && !Arrays.asList("sha1", "sha224", "sha256", "sha384", "sha512").contains(digest.toLowerCase())) {
-                throw new JacobitusException("El campo digest no es válido. Valores permitidos: sha1, sha224, sha256, sha384, sha512.");
+                throw new JacobitusException("El campo 'digest' no es válido. Valores permitidos: sha1, sha224, sha256, sha384, sha512.");
             }
 
             String language = objetoDto.getLanguage();
             if (language != null && !language.equals("es")) {
-                throw new JacobitusException("El campo language no es válido. Valor permitido: es.");
+                throw new JacobitusException("El campo 'language' no es válido. Valor permitido: es.");
             }
 
             List<FirmaHashItemDto> archivoItems = objetoDto.getArchivo();
-            if (archivoItems == null || archivoItems.isEmpty()) {
-                throw new JacobitusException("El campo archivo es obligatorio.");
-            }
             DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSZ");
             for (FirmaHashItemDto item : archivoItems) {
-                if (item.getBase64() == null || item.getBase64().isEmpty()) {
-                    throw new JacobitusException("El campo archivo.base64 o archivo[].base64 es obligatorio.");
-                }
-                if (item.getDate() == null) {
-                    throw new JacobitusException("El campo archivo.date o archivo[].date es obligatorio.");
-                }
                 try {
                     OffsetDateTime.parse(item.getDate(), dateFormatter);
                 } catch (DateTimeParseException ex) {

@@ -30,6 +30,7 @@ public class FormDetalle extends Stage {
     @SuppressWarnings("unchecked")
     public FormDetalle(Stage parent, ValidadorExtendido validar, HostServices hostServices) {
         setTitle("Detalle de firmas");
+        IconosVentana.aplicarAplicacion(this);
         initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);
         TreeItem<String> rootItem = new TreeItem<>(validar.getAbsolutePath());

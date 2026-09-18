@@ -7,9 +7,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.codehaus.jackson.map.DeserializationConfig;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.exc.UnrecognizedPropertyException;
 
 import bo.firmadigital.jacobitus.escritorio.jetty.JettyHelper;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.ErrorRespuestaDto;
@@ -42,6 +42,7 @@ public class FirmadorRest {
     public Response signHash(String body) {
         FirmadorServicio servicio = new FirmadorServicio();
         ObjectMapper om = new ObjectMapper();
+        om.configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         try {
             FirmaHashModoSeguroDto objetoDto = om.readValue(body, FirmaHashModoSeguroDto.class);
             IRespuestaDto respuesta = servicio.firmarHashModoSeguro(objetoDto);
@@ -51,12 +52,8 @@ public class FirmadorRest {
             }
             return Response.ok(json).build();
         } catch (Exception e) {
-            boolean esCampoNoReconocido = false;
             StringBuilder ruta = new StringBuilder();
             for (Throwable causa = e; causa != null; causa = causa.getCause()) {
-                if (causa instanceof UnrecognizedPropertyException) {
-                    esCampoNoReconocido = true;
-                }
                 if (causa instanceof JsonMappingException) {
                     for (JsonMappingException.Reference ref : ((JsonMappingException) causa).getPath()) {
                         if (ruta.length() > 0) {
@@ -69,9 +66,6 @@ public class FirmadorRest {
                         }
                     }
                 }
-            }
-            if (esCampoNoReconocido) {
-                return errorInternoSignHash(om, "Campo no reconocido: " + ruta);
             }
             if (ruta.length() > 0) {
                 return errorInternoSignHash(om, "El campo '" + ruta + "' tiene un valor con formato incorrecto.");

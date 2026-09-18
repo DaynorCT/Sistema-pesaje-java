@@ -20,6 +20,7 @@ public class FormContrasenaMac extends Stage {
 
     public FormContrasenaMac(Stage parent) {
         setTitle("Seguridad MacOS");
+        IconosVentana.aplicarAplicacion(this);
         initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);
         BorderPane root = new BorderPane();

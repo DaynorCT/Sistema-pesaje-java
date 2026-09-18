@@ -14,7 +14,7 @@ version = '2.1.0'
 mainClassName = 'bo.firmadigital.jacobitus.escritorio.Main'
 
 def appName = 'Jacobitus Escritorio'
-def appDescription = 'Solución completa para la administración de tu dispositivo criptográfico y firma digital'
+def appDescription = 'Aplicaci\u00f3n de escritorio para firma digital.'
 def jarName = "jacobitus-escritorio"
 def vendorName = 'AGETIC'
 def maintainer = 'desarrollo@firmadigital.bo'
@@ -197,12 +197,34 @@ tasks.withType(JavaExec).configureEach {
     jvmArgs += '-Dfile.encoding=UTF-8'
 }
 
+def generatedResourcesDir = layout.buildDirectory.dir('generated/resources/main')
+
+tasks.register('generateAppInfo') {
+    outputs.dir generatedResourcesDir
+    doLast {
+        def outputDir = generatedResourcesDir.get().asFile
+        outputDir.mkdirs()
+        def propertiesFile = new File(outputDir, 'jacobitus.properties')
+        propertiesFile.text = "descripcion=${appDescription}\n"
+    }
+}
+
+sourceSets {
+    main {
+        resources.srcDir generatedResourcesDir
+    }
+}
+
+tasks.named('processResources') {
+    dependsOn tasks.named('generateAppInfo')
+}
+
 tasks.named('run', JavaExec) {
     doFirst {
         def runProfile = project.findProperty('profile') ?: 'dev'
         setJvmArgs((getJvmArgs() ?: [])
                 .findAll { arg ->
-                    !arg.startsWith('-Djacobitus.version=') &&
+                            !arg.startsWith('-Djacobitus.version=') &&
                             !arg.startsWith('-Djacobitus.profile=') &&
                             !arg.startsWith('-Djacobitus.compilacion=')
                 }
