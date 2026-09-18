@@ -8,3 +8,10 @@
     -fx-font-weight: bold;
     -fx-padding: 5 10 5 10;
 }
+
+.table-view.tabla-sin-scroll-horizontal .scroll-bar:horizontal {
+    -fx-pref-height: 0;
+    -fx-max-height: 0;
+    -fx-opacity: 0;
+    -fx-padding: 0;
+}

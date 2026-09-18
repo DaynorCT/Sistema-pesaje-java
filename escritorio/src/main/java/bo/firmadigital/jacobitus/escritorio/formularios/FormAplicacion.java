@@ -43,6 +43,7 @@ import bo.firmadigital.jacobitus.escritorio.utilidades.ActualizacionesHelper;
 import bo.firmadigital.jacobitus.escritorio.utilidades.CertUtil;
 import bo.firmadigital.jacobitus.escritorio.utilidades.Conversor;
 import bo.firmadigital.jacobitus.escritorio.utilidades.PlataformaHelper;
+import bo.firmadigital.jacobitus.escritorio.utilidades.TableViewHelper;
 import bo.firmadigital.jacobitus.escritorio.utilidades.UrlFileName;
 import bo.firmadigital.jacobitus.firmador.FirmadorJws;
 import bo.firmadigital.jacobitus.firmador.FirmadorPKCS7;
@@ -706,7 +707,7 @@ public class FormAplicacion extends Application {
         TableColumn tbcDispositivo = new TableColumn("Token");
         tbcDispositivo.setCellValueFactory(new PropertyValueFactory("label"));
         tbvDispositivos.getColumns().setAll(tbcDispositivo);
-        tbvDispositivos.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        TableViewHelper.ajustarColumnaUnica(tbvDispositivos, tbcDispositivo);
         tbvDispositivos.setMaxHeight(76);
         tbvDispositivos.setRowFactory(tv -> {
             TableRow<CK_TOKEN_INFO> row = new TableRow<>();
@@ -724,7 +725,7 @@ public class FormAplicacion extends Application {
         TableColumn tbcArchivo = new TableColumn("Archivo");
         tbcArchivo.setCellValueFactory(new PropertyValueFactory("pathValidated"));
         tbvArchivos.getColumns().setAll(tbcArchivo);
-        tbvArchivos.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        TableViewHelper.ajustarColumnaUnica(tbvArchivos, tbcArchivo);
         tbvArchivos.setRowFactory(tv -> {
             TableRow<ValidadorExtendido> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
