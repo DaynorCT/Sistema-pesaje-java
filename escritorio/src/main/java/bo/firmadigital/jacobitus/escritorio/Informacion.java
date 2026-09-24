@@ -10,6 +10,8 @@ public class Informacion {
     public static final String NOMBRE = "jacobitus-escritorio";
     public static final String VERSION = System.getProperty("jacobitus.version", "0.0.0");
     public static final String PROFILE = System.getProperty("jacobitus.profile", "").trim();
+    /** Versión para mostrar en la interfaz; VERSION permanece como versión oficial. */
+    public static final String VERSION_VISIBLE = obtenerVersionVisible();
     public static final String DESCRIPCION = obtenerPropiedad("descripcion");
     public static final Long COMPILACION = Long.getLong("jacobitus.compilacion", 0L);
 
@@ -31,5 +33,9 @@ public class Informacion {
         } catch (IOException ex) {
             return "";
         }
+    }
+
+    private static String obtenerVersionVisible() {
+        return "v" + VERSION + (PROFILE.isEmpty() ? "" : "-" + PROFILE);
     }
 }

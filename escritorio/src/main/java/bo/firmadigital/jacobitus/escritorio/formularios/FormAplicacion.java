@@ -235,9 +235,9 @@ public class FormAplicacion extends Application {
             usarBarraTareas = false;
         }
 
-        String version = Informacion.VERSION;
+        String versionVisible = Informacion.VERSION_VISIBLE;
         String variante = Informacion.PROFILE.isEmpty() ? null : Informacion.PROFILE.toUpperCase();
-        stage.setTitle("Jacobitus" + (variante != null ? " [" + variante + "]" : "") + " - " + version);
+        stage.setTitle("Jacobitus" + (variante != null ? " [PRE-RELEASE]" : "") + " - " + versionVisible);
         IconosVentana.aplicarAplicacion(stage);
         if (!usarServicioLocalhost) {
             // Alert alert = new Alert(AlertType.ERROR, "Servicio detenido, no podrá
@@ -248,7 +248,7 @@ public class FormAplicacion extends Application {
             alert.setTitle("Jacobitus");
             IconosVentana.aplicarModal(alert);
             alert.showAndWait();
-            stage.setTitle("Jacobitus" + (variante != null ? " [" + variante + "]" : "") + " - " + version + " (Servicio detenido)");
+            stage.setTitle("Jacobitus" + (variante != null ? " [PRE-RELEASE]" : "") + " - " + versionVisible + " (Servicio detenido)");
         }
         if (usarBarraTareasConfiguracion && !usarBarraTareas) {
             String mensaje = barraTareas.getUltimoDiagnostico();
@@ -576,12 +576,12 @@ public class FormAplicacion extends Application {
             Label nombre = new Label("Jacobitus Escritorio");
             nombre.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1f2933;");
             nombre.setWrapText(true);
-            Label versionAplicacion = new Label("Versión " + version);
+            Label versionAplicacion = new Label("Versión " + Informacion.VERSION_VISIBLE);
             versionAplicacion.setStyle("-fx-font-size: 15px; -fx-text-fill: #263238;");
-            Label versionVariante = new Label(variante != null ? "VERSIÓN " + variante : "");
+            Label versionVariante = new Label(variante != null ? "PRE-RELEASE · " + variante : "");
             versionVariante.setVisible(variante != null);
             versionVariante.setManaged(variante != null);
-            versionVariante.setStyle("-fx-background-color: #2f5f73; -fx-background-radius: 2; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 3 10 3 10;");
+            versionVariante.setStyle("-fx-background-color: #9a3412; -fx-background-radius: 4; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 4 10 4 10;");
             Label descripcion = new Label(Informacion.DESCRIPCION);
             descripcion.setWrapText(true);
             descripcion.setMaxWidth(340);
@@ -640,7 +640,7 @@ public class FormAplicacion extends Application {
         ayudaMenu.getItems().addAll(certificadoLocalItem, separador, acercaDeItem);
         menuBar.getMenus().add(ayudaMenu);
         if (variante != null) {
-            Label versionBanner = new Label("VERSIÓN " + variante + " - " + version);
+            Label versionBanner = new Label("⚠ Versión preliminar · Puede contener errores");
             versionBanner.getStyleClass().add("version-banner");
             versionBanner.setMaxWidth(Double.MAX_VALUE);
             versionBanner.setAlignment(Pos.CENTER);
@@ -767,6 +767,10 @@ public class FormAplicacion extends Application {
         BorderPane tables = new BorderPane(tbvArchivos);
         BorderPane middle = new BorderPane(tables);
         progressBar = new ProgressBar();
+        progressBar.setProgress(0);
+        if (variante != null) {
+            progressBar.getStyleClass().add("progress-bar-prerelease");
+        }
         progressBar.prefWidthProperty().bind(middle.widthProperty());
 
         tables.setTop(tbvDispositivos);
