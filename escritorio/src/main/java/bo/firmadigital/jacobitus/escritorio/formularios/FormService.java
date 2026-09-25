@@ -89,6 +89,7 @@ public class FormService extends Stage {
     private final PasswordField passwordField;
     private final Button button;
     private final ChoiceBox<InfoCertificado> cbInfoCertificado;
+    private final Label etiquetaCertificado;
     private Label estadoToken;
     private final Label estado;
     private final ProgressBar progressBar;
@@ -293,7 +294,12 @@ public class FormService extends Stage {
         cbInfoCertificado.maxWidthProperty().bind(root.widthProperty());
         cbInfoCertificado.setPrefHeight(32);
         cbInfoCertificado.setDisable(true);
-        root.getChildren().addAll(crearEtiquetaSeccion("Certificado"), cbInfoCertificado);
+        etiquetaCertificado = crearEtiquetaSeccion("Certificado");
+        etiquetaCertificado.setVisible(false);
+        etiquetaCertificado.setManaged(false);
+        cbInfoCertificado.setVisible(false);
+        cbInfoCertificado.setManaged(false);
+        root.getChildren().addAll(etiquetaCertificado, cbInfoCertificado);
 
         estado = new Label("Documentos: 0 de " + totalDocumentos());
         estado.setStyle("-fx-text-fill: #3d4852;");
@@ -308,6 +314,10 @@ public class FormService extends Stage {
         message.setWrapText(true);
         message.setTextFill(Color.web("#5f6c7b"));
         root.getChildren().add(message);
+
+        Region espacioVertical = new Region();
+        VBox.setVgrow(espacioVertical, Priority.ALWAYS);
+        root.getChildren().add(espacioVertical);
 
         Region espacio = new Region();
         HBox.setHgrow(espacio, Priority.ALWAYS);
@@ -329,7 +339,8 @@ public class FormService extends Stage {
         Scene scene = new Scene(root);
         setScene(scene);
         setMinWidth(430);
-        setResizable(false);
+        setMinHeight(360);
+        setResizable(true);
 
         passwordField.addEventHandler(KeyEvent.KEY_PRESSED, ev -> {
             if (ev.getCode() == KeyCode.ENTER) {
@@ -768,16 +779,24 @@ public class FormService extends Stage {
             listaInfoCertificado.addAll(resultado.certificados);
             if (!listaInfoCertificado.isEmpty()) {
                 cbInfoCertificado.getSelectionModel().selectFirst();
-                message.setText("Seleccione el certificado y confirme la firma.");
+                boolean unicoCertificado = listaInfoCertificado.size() == 1;
+                etiquetaCertificado.setVisible(!unicoCertificado);
+                etiquetaCertificado.setManaged(!unicoCertificado);
+                cbInfoCertificado.setVisible(!unicoCertificado);
+                cbInfoCertificado.setManaged(!unicoCertificado);
+                sizeToScene();
+                message.setText(unicoCertificado
+                        ? "Certificado seleccionado automáticamente. Confirme la firma."
+                        : "Seleccione el certificado y confirme la firma.");
                 message.setTextFill(Color.web("#5f6c7b"));
                 buttonFirmar.requestFocus();
-                if (autoFirmarSiUnico && listaInfoCertificado.size() == 1) {
+                if (autoFirmarSiUnico && unicoCertificado) {
                     PauseTransition delay = new PauseTransition(Duration.millis(1000));
                     delay.setOnFinished(e -> this.aplicarFirma());
                     delay.play();
                 } else {
                     buttonFirmar.setDisable(false);
-                    cbInfoCertificado.setDisable(false);
+                    cbInfoCertificado.setDisable(unicoCertificado);
                 }
             } else {
                 message.setText(resultado.mensaje == null ? "" : resultado.mensaje);
