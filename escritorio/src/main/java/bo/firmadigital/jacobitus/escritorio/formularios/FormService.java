@@ -244,11 +244,17 @@ public class FormService extends Stage {
         }
         button = new Button("Buscar certificados");
         button.setMinWidth(145);
+        button.setDisable(passwordField.getText().isEmpty());
+        passwordField.textProperty().addListener((observable, anterior, nuevo) ->
+                button.setDisable(nuevo == null || nuevo.isEmpty()));
         HBox pinBox = new HBox(8, passwordField, button);
         pinBox.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(passwordField, Priority.ALWAYS);
         passwordField.setMaxWidth(Double.MAX_VALUE);
         root.getChildren().addAll(crearEtiquetaSeccion("PIN del token"), pinBox);
+
+        Label avisoBloqMayus = IndicadorTeclado.crearIndicadorBloqMayus(passwordField);
+        root.getChildren().add(avisoBloqMayus);
 
         listaInfoCertificado = FXCollections.observableArrayList();
         cbInfoCertificado = new ChoiceBox<InfoCertificado>(listaInfoCertificado);
@@ -314,7 +320,9 @@ public class FormService extends Stage {
 
         passwordField.addEventHandler(KeyEvent.KEY_PRESSED, ev -> {
             if (ev.getCode() == KeyCode.ENTER) {
-                this.mostrarCertificados(false);
+                if (!passwordField.getText().isEmpty()) {
+                    this.mostrarCertificados(false);
+                }
             }
         });
         button.setOnAction(t -> {
@@ -566,7 +574,7 @@ public class FormService extends Stage {
             tokenSelected.setPin(null);
             tokenSelected.setErrorMessage(task.getException().getMessage());
             passwordField.setDisable(false);
-            button.setDisable(false);
+            button.setDisable(passwordField.getText().isEmpty());
             buttonFirmar.setDisable(false);
             cbInfoCertificado.setDisable(false);
             buttonCancelar.setDisable(false);
@@ -661,7 +669,7 @@ public class FormService extends Stage {
                 message.setText(resultado.mensaje == null ? "" : resultado.mensaje);
                 message.setTextFill(Color.RED);
                 passwordField.setDisable(false);
-                button.setDisable(false);
+                    button.setDisable(passwordField.getText().isEmpty());
             }
         });
         task.setOnFailed((WorkerStateEvent evt) -> {
@@ -697,7 +705,7 @@ public class FormService extends Stage {
                 message.setTextFill(Color.RED);
             }
             passwordField.setDisable(false);
-            button.setDisable(false);
+            button.setDisable(passwordField.getText().isEmpty());
         });
         new Thread(task).start();
     }

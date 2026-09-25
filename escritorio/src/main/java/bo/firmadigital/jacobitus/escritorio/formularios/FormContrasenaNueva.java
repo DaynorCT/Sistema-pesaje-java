@@ -53,6 +53,7 @@ public class FormContrasenaNueva extends Stage {
             }
         });
         root.getChildren().add(passwordField2);
+        root.getChildren().add(IndicadorTeclado.crearIndicadorBloqMayus(passwordField, passwordField2));
         Button buttonAceptar = new Button("Aceptar");
         buttonAceptar.setOnAction(t -> {
             establecerContrasenia(passwordField.getText(), passwordField2.getText());
@@ -65,8 +66,11 @@ public class FormContrasenaNueva extends Stage {
         HBox hBox = new HBox();
         hBox.getChildren().addAll(buttonAceptar, buttonCancelar);
         root.getChildren().add(hBox);
-        Scene scene = new Scene(root, 300, 165);
+        Scene scene = new Scene(root);
         setScene(scene);
+        setMinWidth(300);
+        setWidth(300);
+        setResizable(true);
     }
 
     private void establecerContrasenia(String contrasenia1, String contrasenia2) {

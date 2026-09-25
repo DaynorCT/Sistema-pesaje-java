@@ -23,7 +23,6 @@ public class FormContrasena extends Stage {
     private boolean bloquea = false;
     private boolean forzarEnveloped = false;
     private boolean usarPrefijo = false;
-    private int height = 120;
     private TextField  nodeField;
 
     public FormContrasena(Stage parent, int tipo) {
@@ -51,6 +50,7 @@ public class FormContrasena extends Stage {
             }
         });
         vBox.getChildren().add(passwordField);
+        vBox.getChildren().add(IndicadorTeclado.crearIndicadorBloqMayus(passwordField));
         vBox.getChildren().add(new Separator(Orientation.HORIZONTAL));
         switch (tipo) {
             case 0:
@@ -80,7 +80,6 @@ public class FormContrasena extends Stage {
                 checkBoxPrefix.selectedProperty().addListener((ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) -> {
                     usarPrefijo = newValue;
                 });
-                height = 180;
                 break;
         }
         vBox.getChildren().add(new Separator(Orientation.HORIZONTAL));
@@ -101,14 +100,11 @@ public class FormContrasena extends Stage {
         hBox.setSpacing(4);
         hBox.getChildren().addAll(buttonAceptar, buttonCancelar);
         root.setBottom(hBox);
-        Scene scene = new Scene(root, 300, height);
+        Scene scene = new Scene(root);
         setScene(scene);
-
-        javafx.application.Platform.runLater(() -> {
-            this.sizeToScene();
-            this.setWidth(300);
-            this.setHeight(height + 60.0);
-        });
+        setMinWidth(300);
+        setWidth(300);
+        setResizable(true);
     }
 
     public String getPass() {
