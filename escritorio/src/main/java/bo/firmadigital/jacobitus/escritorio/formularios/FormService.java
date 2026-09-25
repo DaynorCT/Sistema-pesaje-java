@@ -85,9 +85,11 @@ public class FormService extends Stage {
     private final ObservableList<InfoCertificado> listaInfoCertificado;
     private final TokenSelected tokenSelected;
     private final String format;
+    private final boolean software;
     private final PasswordField passwordField;
     private final Button button;
     private final ChoiceBox<InfoCertificado> cbInfoCertificado;
+    private Label estadoToken;
     private final Label estado;
     private final ProgressBar progressBar;
     private final Button buttonFirmar;
@@ -96,6 +98,7 @@ public class FormService extends Stage {
     private boolean firmaEnCurso = false;
     private boolean cancelacionFirmaSolicitada = false;
     private Task<Boolean> tareaFirma;
+    private PauseTransition esperaToken;
 
     private ConfiguracionFirmador getConfigFirmador() {
         Config config = Config.getInstance();
@@ -190,6 +193,10 @@ public class FormService extends Stage {
     }
 
     public FormService(Stage parent, TokenSelected tokenSelected, String format) {
+        this(parent, tokenSelected, format, false);
+    }
+
+    public FormService(Stage parent, TokenSelected tokenSelected, String format, boolean software) {
         IconosVentana.aplicarAplicacion(this);
         setTitle(TITULO_VENTANA_PIN);
         initOwner(parent);
@@ -199,6 +206,7 @@ public class FormService extends Stage {
         tokenSelected.setErrorMessage(null);
         this.tokenSelected = tokenSelected;
         this.format = format;
+        this.software = software;
 
         VBox root = new VBox(10);
         root.setPrefWidth(430);
@@ -214,7 +222,7 @@ public class FormService extends Stage {
         root.getChildren().addAll(titulo, descripcion, new Separator());
 
         root.getChildren().add(crearEtiquetaSeccion("Token"));
-        if (tokenSelected.getSlot() == null) {
+        if (tokenSelected.getSlot() == null && tokenSelected.getSlots() != null) {
             ObservableList<DetalleToken> tokens = FXCollections.observableArrayList();
             for (Slot slot : tokenSelected.getSlots()) {
                 tokens.add(new DetalleToken(slot.detalleToken()));
@@ -230,15 +238,20 @@ public class FormService extends Stage {
                     });
             tokensChoiceBox.getSelectionModel().selectFirst();
             root.getChildren().add(tokensChoiceBox);
-        } else {
+        } else if (tokenSelected.getSlot() != null) {
             Label tokenDetalle = new Label(tokenSelected.getSlot().detalleToken().getLabel());
             tokenDetalle.setWrapText(true);
             tokenDetalle.setStyle("-fx-font-weight: bold; -fx-text-fill: #1f2933;");
             root.getChildren().add(tokenDetalle);
+        } else {
+            estadoToken = new Label("Detectando token...");
+            estadoToken.setWrapText(true);
+            estadoToken.setStyle("-fx-text-fill: #52616f;");
+            root.getChildren().add(estadoToken);
         }
 
         passwordField = new PasswordField();
-        passwordField.setPromptText("Su contraseña");
+        passwordField.setPromptText("Ingrese el PIN");
         if (tokenSelected.getPinInicial() != null) {
             passwordField.setText(tokenSelected.getPinInicial());
         }
@@ -265,11 +278,11 @@ public class FormService extends Stage {
                     return "";
                 }
 
-                if (infoCertificado.getInfoSujeto().getCargo().equals("")) {
-                    return infoCertificado.getInfoSujeto().getNombreComun();
-                } else {
-                    return infoCertificado.getInfoSujeto().getNombreComun() + " - " + infoCertificado.getInfoSujeto().getCargo();
-                }
+                String nombre = infoCertificado.getInfoSujeto().getNombreComun();
+                String alias = infoCertificado.getAlias();
+                String serie = infoCertificado.getX509certificado().getSerialNumber().toString();
+                String identificador = alias == null || alias.isEmpty() ? serie : alias;
+                return nombre + " · " + identificador;
             }
 
             @Override
@@ -291,7 +304,7 @@ public class FormService extends Stage {
         progressBar.maxWidthProperty().bind(root.widthProperty());
         root.getChildren().add(progressBar);
 
-        message = new Label("Ingrese el PIN para buscar certificados disponibles en el token.");
+        message = new Label("Detectando el token conectado...");
         message.setWrapText(true);
         message.setTextFill(Color.web("#5f6c7b"));
         root.getChildren().add(message);
@@ -340,6 +353,9 @@ public class FormService extends Stage {
                 ActivadorVentanaX11.activarPorTitulo(TITULO_VENTANA_PIN);
                 window.sizeToScene();
                 passwordField.requestFocus();
+                if (tokenSelected.getSlot() == null && tokenSelected.getSlots() == null) {
+                    iniciarBusquedaToken(true);
+                }
             });
 
             esperaRegistroWm.play();
@@ -350,7 +366,7 @@ public class FormService extends Stage {
                 t.consume();
             }
         });
-        if (tokenSelected.getPinInicial() != null) {
+        if (tokenSelected.getSlot() != null && tokenSelected.getPinInicial() != null) {
             try {
                 this.mostrarCertificados(true);
             } catch (RuntimeException ex) {
@@ -358,6 +374,92 @@ public class FormService extends Stage {
                 message.setTextFill(Color.RED);
             }
         }
+    }
+
+    private void iniciarBusquedaToken(boolean busquedaInicial) {
+        if (busquedaInicial) {
+            passwordField.setDisable(true);
+            button.setDisable(true);
+            message.setText("Detectando el token conectado...");
+            message.setTextFill(Color.web("#5f6c7b"));
+            if (estadoToken != null) {
+                estadoToken.setText("Detectando token...");
+                estadoToken.setStyle("-fx-text-fill: #52616f;");
+            }
+            progressBar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
+        }
+
+        Task<Slot> task = new Task<Slot>() {
+            @Override
+            protected Slot call() throws GeneralSecurityException {
+                GestorSlot gestorSlot = GestorSlot.getInstance();
+                gestorSlot.setConfigFirmador(getConfigFirmador());
+                Slot[] slots = gestorSlot.listarSlots(software);
+                if (slots.length > 1) {
+                    throw new GeneralSecurityException("Por favor conecte solo un token.");
+                }
+                return slots.length == 1 ? slots[0] : null;
+            }
+        };
+        task.setOnSucceeded(event -> {
+            Slot slot = task.getValue();
+            if (slot != null) {
+                tokenSelected.setSlot(slot);
+                progressBar.setProgress(0);
+                if (estadoToken != null) {
+                    estadoToken.setText("Token detectado: " + slot.detalleToken().getLabel());
+                    estadoToken.setStyle("-fx-text-fill: #1b6e3c; -fx-font-weight: bold;");
+                }
+                passwordField.setDisable(false);
+                button.setDisable(passwordField.getText().isEmpty());
+                message.setText("Ingrese el PIN para buscar certificados disponibles en el token.");
+                if (tokenSelected.getPinInicial() != null) {
+                    mostrarCertificados(true);
+                }
+            } else {
+                progressBar.setProgress(0);
+                if (estadoToken != null) {
+                    estadoToken.setText("No conectado");
+                    estadoToken.setStyle("-fx-text-fill: #8a5a00;");
+                }
+                message.setText("Conecte un token para habilitar el ingreso del PIN.");
+                programarBusquedaToken();
+            }
+        });
+        task.setOnFailed(event -> {
+            progressBar.setProgress(0);
+            String error = task.getException() == null ? null : task.getException().getMessage();
+            if ("No se encontró ningún token conectado.".equals(error)) {
+                message.setText("Conecte un token para continuar.");
+                message.setTextFill(Color.web("#5f6c7b"));
+                if (estadoToken != null) {
+                    estadoToken.setText("Esperando conexión...");
+                    estadoToken.setStyle("-fx-text-fill: #8a5a00;");
+                }
+            } else {
+                message.setText(error == null ? "No se pudo detectar el token." : error);
+                message.setTextFill(Color.RED);
+                if (estadoToken != null) {
+                    estadoToken.setText("No se puede continuar");
+                    estadoToken.setStyle("-fx-text-fill: #b42318; -fx-font-weight: bold;");
+                }
+            }
+            programarBusquedaToken();
+        });
+        new Thread(task).start();
+    }
+
+    private void programarBusquedaToken() {
+        if (!isShowing()) {
+            return;
+        }
+        esperaToken = new PauseTransition(Duration.seconds(1));
+        esperaToken.setOnFinished(event -> {
+            if (isShowing() && tokenSelected.getSlot() == null) {
+                iniciarBusquedaToken(false);
+            }
+        });
+        esperaToken.play();
     }
 
     private Label crearEtiquetaSeccion(String texto) {
@@ -615,6 +717,18 @@ public class FormService extends Stage {
         Task<ResultadoCertificados> task = new Task<ResultadoCertificados>() {
             @Override
             protected ResultadoCertificados call() throws GeneralSecurityException {
+                if (tokenSelected.getSlot() == null) {
+                    GestorSlot gestorSlot = GestorSlot.getInstance();
+                    gestorSlot.setConfigFirmador(getConfigFirmador());
+                    Slot[] slots = gestorSlot.listarSlots(software);
+                    if (slots.length != 1) {
+                        if (slots.length == 0) {
+                            throw new GeneralSecurityException("No se encontró ningún token conectado.");
+                        }
+                        throw new GeneralSecurityException("Por favor conecte solo un token.");
+                    }
+                    tokenSelected.setSlot(slots[0]);
+                }
                 IToken token = tokenSelected.getSlot().getToken();
                 token.iniciar(pin);
                 try {

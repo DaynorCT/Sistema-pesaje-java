@@ -24,14 +24,39 @@ public class FirmadorRest {
     @Path("/sign")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String sign(String body) {
+    public Response sign(String body) {
         FirmadorServicio servicio = new FirmadorServicio();
         ObjectMapper om = new ObjectMapper();
         try {
             FirmaModoSeguroDto objetoDto = om.readValue(body, FirmaModoSeguroDto.class);
-            return om.writeValueAsString(servicio.firmarModoSeguro(objetoDto));
+            IRespuestaDto respuesta = servicio.firmarModoSeguro(objetoDto);
+            String json = om.writeValueAsString(respuesta);
+            if (respuesta instanceof ErrorRespuestaDto) {
+                return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .type(MediaType.APPLICATION_JSON)
+                        .entity(json)
+                        .build();
+            }
+            return Response.ok(json).type(MediaType.APPLICATION_JSON).build();
         } catch (Exception e) {
-            return JettyHelper.generarRespuesta(e.getMessage());
+            return errorInternoSign(om, e.getMessage());
+        }
+    }
+
+    private Response errorInternoSign(ObjectMapper om, String error) {
+        ErrorRespuestaDto errorDto = new ErrorRespuestaDto();
+        errorDto.setMessage("No se pudo firmar el documento");
+        errorDto.setError(error);
+        try {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .type(MediaType.APPLICATION_JSON)
+                    .entity(om.writeValueAsString(errorDto))
+                    .build();
+        } catch (Exception ex) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .type(MediaType.APPLICATION_JSON)
+                    .entity(JettyHelper.generarRespuesta(error))
+                    .build();
         }
     }
 

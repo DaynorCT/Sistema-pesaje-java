@@ -936,7 +936,7 @@ public class FormAplicacion extends Application {
                 });
                 pane.setCenter(enlace);
                 label.setText(
-                        "No se encontro el controlador del token, por favor descargue e instale del siguiente link.");
+                        "No se encontró el controlador del token; por favor, descárguelo e instálelo desde el siguiente enlace.");
             }
             IconosVentana.aplicarModal(alert);
             alert.showAndWait();
@@ -1745,6 +1745,33 @@ public class FormAplicacion extends Application {
         return tokenSelected;
     }
 
+    public static TokenSelected serviceModoSeguro(String ci, JSONArray pdfArray, boolean software, String format) {
+        if (tokenSelected.isShown()) {
+            throw new JacobitusException("Ya se tiene una solicitud de firma pendiente.");
+        }
+        Platform.runLater(() -> {
+            tokenSelected.setSlot(null);
+            tokenSelected.setSlots(null);
+            tokenSelected.setCI(ci);
+            if ("jws".equals(format)) {
+                tokenSelected.setFiles(null);
+                tokenSelected.setFilesJson(pdfArray);
+            } else {
+                tokenSelected.setFiles(pdfArray);
+                tokenSelected.setFilesJson(null);
+            }
+            tokenSelected.setHashArray(null);
+            tokenSelected.setPinInicial(null);
+            FormService service = new FormService(stage, tokenSelected, format, software);
+            service.showAndWait();
+            synchronized (tokenSelected) {
+                tokenSelected.notify();
+            }
+        });
+        tokenSelected.showAndWait();
+        return tokenSelected;
+    }
+
     public static TokenSelected serviceJWS(Slot slot, String ci, JSONArray jsonArray) {
         if (tokenSelected.isShown()) {
             throw new JacobitusException("Ya se tiene una solicitud de firma pendiente.");
@@ -1794,6 +1821,29 @@ public class FormAplicacion extends Application {
         }
         Platform.runLater(() -> {
             tokenSelected.setSlot(slot);
+            tokenSelected.setCI(ci);
+            tokenSelected.setFiles(null);
+            tokenSelected.setFilesJson(null);
+            tokenSelected.setHashArray(hashArray);
+            tokenSelected.setDigest(digest);
+            tokenSelected.setPinInicial(pin);
+            FormService service = new FormService(stage, tokenSelected, "pades_hash");
+            service.showAndWait();
+            synchronized (tokenSelected) {
+                tokenSelected.notify();
+            }
+        });
+        tokenSelected.showAndWait();
+        return tokenSelected;
+    }
+
+    public static TokenSelected serviceHashModoSeguro(String ci, JSONArray hashArray, String digest, String pin) {
+        if (tokenSelected.isShown()) {
+            throw new JacobitusException("Ya se tiene una solicitud de firma pendiente.");
+        }
+        Platform.runLater(() -> {
+            tokenSelected.setSlot(null);
+            tokenSelected.setSlots(null);
             tokenSelected.setCI(ci);
             tokenSelected.setFiles(null);
             tokenSelected.setFilesJson(null);
