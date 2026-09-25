@@ -80,7 +80,7 @@ import javafx.util.Duration;
 import javafx.util.StringConverter;
 
 public class FormService extends Stage {
-    private static final String TITULO_VENTANA_PIN = "Pin del token";
+    private static final String TITULO_VENTANA_PIN = "Jacobitus · Autorización de firma";
 
     private final ObservableList<InfoCertificado> listaInfoCertificado;
     private final TokenSelected tokenSelected;
@@ -428,7 +428,7 @@ public class FormService extends Stage {
                     mostrarCertificados(true);
                 }
             } else {
-                progressBar.setProgress(0);
+                progressBar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
                 if (estadoToken != null) {
                     estadoToken.setText("No conectado");
                     estadoToken.setStyle("-fx-text-fill: #8a5a00;");
@@ -441,6 +441,7 @@ public class FormService extends Stage {
             progressBar.setProgress(0);
             String error = task.getException() == null ? null : task.getException().getMessage();
             if ("No se encontró ningún token conectado.".equals(error)) {
+                progressBar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
                 message.setText("Conecte un token para continuar.");
                 message.setTextFill(Color.web("#5f6c7b"));
                 if (estadoToken != null) {
