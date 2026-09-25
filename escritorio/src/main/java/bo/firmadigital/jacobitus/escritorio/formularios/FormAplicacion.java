@@ -152,6 +152,29 @@ public class FormAplicacion extends Application {
         return configValidador;
     }
 
+    private FormFirmante prepararFormFirmante(long slot, int tipo) {
+        while (true) {
+            FormContrasena contrasena = new FormContrasena(stage, tipo);
+            contrasena.showAndWait();
+            if (contrasena.getPass() == null) {
+                return null;
+            }
+
+            FormFirmante formFirmante = new FormFirmante(stage, slot, tipo, contrasena);
+            formFirmante.showAndWait();
+            if (!formFirmante.isErrorCertificados()) {
+                return formFirmante;
+            }
+
+            Alert alert = new Alert(AlertType.WARNING, formFirmante.getMensajeError(), ButtonType.OK);
+            alert.initOwner(stage);
+            alert.initModality(Modality.APPLICATION_MODAL);
+            alert.setTitle("Jacobitus");
+            IconosVentana.aplicarModal(alert);
+            alert.showAndWait();
+        }
+    }
+
     private boolean confirmarSalida() {
         Config config = Config.getInstance();
         if (!config.isConfirmarSalidaEnabled()) {
@@ -408,18 +431,9 @@ public class FormAplicacion extends Application {
                         directoryChooser.setTitle("Seleccione directorio de destino");
                         rutaDestino = directoryChooser.showDialog(stage);
                     }
-                    if (rutaDestino == null) {
-                        Alert alert = new Alert(AlertType.INFORMATION,
-                                "Por favor seleccione la ruta para el documento firmado.", ButtonType.OK);
-                        alert.initOwner(stage);
-                        alert.initModality(Modality.APPLICATION_MODAL);
-                        alert.setTitle("Jacobitus");
-                        IconosVentana.aplicarModal(alert);
-                        alert.showAndWait();
-                    } else {
-                        FormFirmante formFirmante = new FormFirmante(stage, itemSeleccionado.getSlot(), Constants.PDF);
-                        formFirmante.showAndWait();
-                        if (formFirmante.getLabel() != null) {
+                    if (rutaDestino != null) {
+                        FormFirmante formFirmante = prepararFormFirmante(itemSeleccionado.getSlot(), Constants.PDF);
+                        if (formFirmante != null && formFirmante.getLabel() != null) {
                             new Thread(firmarPdf(formFirmante.isBloquea(), itemSeleccionado.getSlot(), formFirmante.getLabel(),
                                     formFirmante.getPass())).start();
                         }
@@ -453,18 +467,9 @@ public class FormAplicacion extends Application {
                         directoryChooser.setTitle("Seleccione directorio de destino");
                         rutaDestino = directoryChooser.showDialog(stage);
                     }
-                    if (rutaDestino == null) {
-                        Alert alert = new Alert(AlertType.INFORMATION,
-                                "Por favor seleccione la ruta para el documento firmado.", ButtonType.OK);
-                        alert.initOwner(stage);
-                        alert.initModality(Modality.APPLICATION_MODAL);
-                        alert.setTitle("Jacobitus");
-                        IconosVentana.aplicarModal(alert);
-                        alert.showAndWait();
-                    } else {
-                        FormFirmante formFirmante = new FormFirmante(stage, itemSeleccionado.getSlot(), Constants.PKCS7);
-                        formFirmante.showAndWait();
-                        if (formFirmante.getLabel() != null) {
+                    if (rutaDestino != null) {
+                        FormFirmante formFirmante = prepararFormFirmante(itemSeleccionado.getSlot(), Constants.PKCS7);
+                        if (formFirmante != null && formFirmante.getLabel() != null) {
                             new Thread(firmarPKCS7(itemSeleccionado.getSlot(), formFirmante.getLabel(), formFirmante.getPass())).start();
                         }
                     }
@@ -493,18 +498,9 @@ public class FormAplicacion extends Application {
                     DirectoryChooser directoryChooser = new DirectoryChooser();
                     directoryChooser.setTitle("Seleccione directorio de destino");
                     rutaDestino = directoryChooser.showDialog(stage);
-                    if (rutaDestino == null) {
-                        Alert alert = new Alert(AlertType.INFORMATION,
-                                "Por favor seleccione la ruta para el documento firmado.", ButtonType.OK);
-                        alert.initOwner(stage);
-                        alert.initModality(Modality.APPLICATION_MODAL);
-                        alert.setTitle("Jacobitus");
-                        IconosVentana.aplicarModal(alert);
-                        alert.showAndWait();
-                    } else {
-                        FormFirmante formFirmante = new FormFirmante(stage, itemSeleccionado.getSlot(), Constants.DSIG);
-                        formFirmante.showAndWait();
-                        if (formFirmante.getLabel() != null) {
+                    if (rutaDestino != null) {
+                        FormFirmante formFirmante = prepararFormFirmante(itemSeleccionado.getSlot(), Constants.DSIG);
+                        if (formFirmante != null && formFirmante.getLabel() != null) {
                             new Thread(firmarXml(itemSeleccionado.getSlot(), formFirmante.getLabel(), formFirmante.getPass(),
                                     formFirmante.getNode(), formFirmante.getForzarEnveloped(), formFirmante.getUsarPrefijo()))
                                     .start();
@@ -535,18 +531,9 @@ public class FormAplicacion extends Application {
                     DirectoryChooser directoryChooser = new DirectoryChooser();
                     directoryChooser.setTitle("Seleccione directorio de destino");
                     rutaDestino = directoryChooser.showDialog(stage);
-                    if (rutaDestino == null) {
-                        Alert alert = new Alert(AlertType.INFORMATION,
-                                "Por favor seleccione la ruta para el documento firmado.", ButtonType.OK);
-                        alert.initOwner(stage);
-                        alert.initModality(Modality.APPLICATION_MODAL);
-                        alert.setTitle("Jacobitus");
-                        IconosVentana.aplicarModal(alert);
-                        alert.showAndWait();
-                    } else {
-                        FormFirmante formFirmante = new FormFirmante(stage, itemSeleccionado.getSlot(), Constants.JWS);
-                        formFirmante.showAndWait();
-                        if (formFirmante.getLabel() != null) {
+                    if (rutaDestino != null) {
+                        FormFirmante formFirmante = prepararFormFirmante(itemSeleccionado.getSlot(), Constants.JWS);
+                        if (formFirmante != null && formFirmante.getLabel() != null) {
                             new Thread(firmarJws(itemSeleccionado.getSlot(), formFirmante.getLabel(), formFirmante.getPass())).start();
                         }
                     }

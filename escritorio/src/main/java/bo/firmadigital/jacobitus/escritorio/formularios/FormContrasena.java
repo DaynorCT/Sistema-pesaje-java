@@ -3,6 +3,7 @@ package bo.firmadigital.jacobitus.escritorio.formularios;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -26,31 +27,27 @@ public class FormContrasena extends Stage {
     private TextField  nodeField;
 
     public FormContrasena(Stage parent, int tipo) {
-        setTitle("Pin del token");
+        setTitle("Jacobitus · Autorización de firma");
         IconosVentana.aplicarAplicacion(this);
         initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);
         BorderPane root = new BorderPane();
-        root.setPadding(new Insets(4));
-        VBox vBoxTop = new VBox();
-        vBoxTop.setPadding(new Insets(4));
-        vBoxTop.setSpacing(4);
-        Label label = new Label("Introduzca su pin:");
-        vBoxTop.getChildren().add(label);
-        root.setTop(vBoxTop);
+        root.setPadding(new Insets(14, 18, 12, 18));
         VBox vBox = new VBox();
-        vBox.setPadding(new Insets(4));
-        vBox.setSpacing(4);
+        vBox.setSpacing(8);
+        Label etiquetaPin = new Label("PIN del token");
+        etiquetaPin.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #52616f;");
+        vBox.getChildren().add(etiquetaPin);
         PasswordField passwordField = new PasswordField();
-        passwordField.setPromptText("Su contraseña");
+        passwordField.setPromptText("Ingrese el PIN");
+        passwordField.setMaxWidth(Double.MAX_VALUE);
         passwordField.addEventHandler(KeyEvent.KEY_PRESSED, ev -> {
-            if (ev.getCode() == KeyCode.ENTER) {
+            if (ev.getCode() == KeyCode.ENTER && !passwordField.getText().isEmpty()) {
                 pass = passwordField.getText();
                 close();
             }
         });
-        vBox.getChildren().add(passwordField);
-        vBox.getChildren().add(IndicadorTeclado.crearIndicadorBloqMayus(passwordField));
+        vBox.getChildren().addAll(passwordField, IndicadorTeclado.crearIndicadorBloqMayus(passwordField));
         vBox.getChildren().add(new Separator(Orientation.HORIZONTAL));
         switch (tipo) {
             case 0:
@@ -82,10 +79,12 @@ public class FormContrasena extends Stage {
                 });
                 break;
         }
-        vBox.getChildren().add(new Separator(Orientation.HORIZONTAL));
         root.setCenter(vBox);
 
         Button buttonAceptar = new Button("Aceptar");
+        buttonAceptar.setDisable(true);
+        passwordField.textProperty().addListener((observable, anterior, nuevo) ->
+                buttonAceptar.setDisable(nuevo == null || nuevo.isEmpty()));
         buttonAceptar.setOnAction(t -> {
             pass = passwordField.getText();
             close();
@@ -96,14 +95,14 @@ public class FormContrasena extends Stage {
             close();
         });
         HBox hBox = new HBox();
-        hBox.setPadding(new Insets(4));
-        hBox.setSpacing(4);
-        hBox.getChildren().addAll(buttonAceptar, buttonCancelar);
+        hBox.setSpacing(8);
+        hBox.setAlignment(Pos.CENTER_RIGHT);
+        hBox.getChildren().addAll(buttonCancelar, buttonAceptar);
         root.setBottom(hBox);
         Scene scene = new Scene(root);
         setScene(scene);
-        setMinWidth(300);
-        setWidth(300);
+        setMinWidth(360);
+        setWidth(360);
         setResizable(true);
     }
 
