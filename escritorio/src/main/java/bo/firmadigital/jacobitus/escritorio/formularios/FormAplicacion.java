@@ -2,6 +2,7 @@ package bo.firmadigital.jacobitus.escritorio.formularios;
 
 import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -11,12 +12,16 @@ import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.StandardCopyOption;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -24,6 +29,7 @@ import java.util.logging.Logger;
 import org.codehaus.jettison.json.JSONArray;
 
 import bo.firmadigital.jacobitus.comun.InfoCertificado;
+import bo.firmadigital.jacobitus.comun.CategoriaErrorFirma;
 import bo.firmadigital.jacobitus.comun.JacobitusException;
 import bo.firmadigital.jacobitus.escritorio.Informacion;
 import bo.firmadigital.jacobitus.escritorio.WebServer;
@@ -89,6 +95,7 @@ import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -98,6 +105,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.DirectoryChooser;
@@ -981,6 +989,8 @@ public class FormAplicacion extends Application {
 
     public Task<Boolean> firmarPdf(boolean bloquear, long slotID, String alias, String contrasenia) {
         progressBar.progressProperty().unbind();
+        int cantidadDocumentos = tbvArchivos.getItems().size();
+        List<IncidenciaFirmaPdf> incidencias = new ArrayList<>();
         Task<Boolean> task = new Task<Boolean>() {
             @Override
             protected Boolean call() throws Exception {
@@ -995,7 +1005,6 @@ public class FormAplicacion extends Application {
                     throw new JacobitusException("Certificado no emitido por la ECP.");
                 }
 
-                StringBuilder errores = new StringBuilder();
                 List<ValidadorExtendido> archivos = tbvArchivos.getItems();
                 if (archivos.isEmpty()) {
                     updateProgress(100, 100);
@@ -1020,23 +1029,33 @@ public class FormAplicacion extends Application {
                             Platform.runLater(() -> tbvArchivos.getItems().set(indice, archivoValidado));
                         } catch (Exception ex) {
                             updateProgress(i + 1, archivos.size());
-                            errores.append(archivos.get(i).getAbsolutePath()).append(": ")
-                                    .append(ex.getCause() != null ? ex.getCause().getMessage() : ex.getMessage()).append("\n");
+                            CategoriaErrorFirma categoria = obtenerCategoriaErrorFirma(ex);
+                            String mensajeUsuario = ex instanceof JacobitusException
+                                    && ((JacobitusException) ex).getCategoriaErrorFirma() != null
+                                            ? ex.getMessage() : categoria.getMensajeUsuario();
+                            String detalleTecnico = obtenerDetalleTecnico(ex);
+                            incidencias.add(new IncidenciaFirmaPdf(archivos.get(i).getAbsolutePath(), categoria,
+                                    mensajeUsuario, detalleTecnico));
                         }
                     }
                     updateProgress(100, 100);
                 }
-                if (errores.length() == 0) {
+                if (incidencias.isEmpty()) {
                     return true;
                 } else {
-                    throw new JacobitusException(errores.toString());
+                    throw new JacobitusException("La firma terminó con errores.");
                 }
             }
         };
         progressBar.progressProperty().bind(task.progressProperty());
         stage.getScene().setCursor(Cursor.WAIT);
         task.setOnFailed((WorkerStateEvent evt) -> {
-            Alert alert = new Alert(AlertType.WARNING, task.getException().getMessage(), ButtonType.OK);
+            String detalleErrores = task.getException() == null
+                    ? "No se pudieron obtener los detalles del error."
+                    : task.getException().getMessage();
+            Alert alert = incidencias.isEmpty()
+                    ? crearAlertaErroresFirma(detalleErrores)
+                    : crearAlertaErroresFirma(incidencias, cantidadDocumentos);
             alert.initOwner(stage);
             alert.initModality(Modality.APPLICATION_MODAL);
             alert.setTitle("Jacobitus");
@@ -1048,6 +1067,140 @@ public class FormAplicacion extends Application {
             stage.getScene().setCursor(Cursor.DEFAULT);
         });
         return task;
+    }
+
+    private Alert crearAlertaErroresFirma(String detalleErrores) {
+        Map<String, List<String>> erroresPorCausa = new LinkedHashMap<>();
+        Arrays.stream(detalleErrores.split("\\R"))
+                .filter(linea -> !linea.trim().isEmpty())
+                .forEach(linea -> {
+                    int separador = linea.indexOf(": ");
+                    String ruta = separador < 0 ? null : linea.substring(0, separador);
+                    String causa = separador < 0 ? linea : linea.substring(separador + 2);
+                    String archivo = ruta == null ? null : new File(ruta).getName();
+                    erroresPorCausa.computeIfAbsent(causa, key -> new LinkedList<>()).add(archivo);
+                });
+
+        StringBuilder textoAgrupado = new StringBuilder();
+        erroresPorCausa.forEach((causa, archivos) -> {
+            textoAgrupado.append(causa).append('\n');
+            archivos.forEach(archivo -> {
+                if (archivo != null && !archivo.isEmpty()) {
+                    textoAgrupado.append("  • ").append(archivo).append('\n');
+                }
+            });
+            textoAgrupado.append('\n');
+        });
+
+        Alert alert = new Alert(AlertType.WARNING, null, ButtonType.OK);
+        alert.setHeaderText("La firma terminó con errores");
+        Label resumen = new Label("Se detectaron " + erroresPorCausa.values().stream().mapToInt(List::size).sum()
+                + " incidencias. Los archivos se agrupan por causa.");
+        resumen.setWrapText(true);
+
+        TextArea detalles = new TextArea(textoAgrupado.toString().trim());
+        detalles.setEditable(false);
+        detalles.setWrapText(true);
+        detalles.setMinSize(120, 80);
+        detalles.setPrefSize(480, 190);
+        detalles.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        VBox contenido = new VBox(8, resumen, new Label("Archivos y causas"), detalles);
+        VBox.setVgrow(detalles, Priority.ALWAYS);
+        alert.getDialogPane().setContent(contenido);
+        alert.getDialogPane().setPrefSize(540, 330);
+        alert.getDialogPane().setMinSize(400, 230);
+        alert.setResizable(true);
+        return alert;
+    }
+
+    private CategoriaErrorFirma obtenerCategoriaErrorFirma(Exception ex) {
+        if (ex instanceof JacobitusException) {
+            CategoriaErrorFirma categoria = ((JacobitusException) ex).getCategoriaErrorFirma();
+            if (categoria != null) {
+                return categoria;
+            }
+        }
+        if (ex instanceof FileNotFoundException || ex instanceof AccessDeniedException) {
+            return CategoriaErrorFirma.ACCESO_ARCHIVO;
+        }
+        return CategoriaErrorFirma.OTRO;
+    }
+
+    private String obtenerDetalleTecnico(Exception ex) {
+        String detalle = null;
+        Throwable causa = ex.getCause();
+        while (causa != null) {
+            if (causa.getMessage() != null) {
+                detalle = causa.getMessage();
+            }
+            causa = causa.getCause();
+        }
+        if (detalle != null) {
+            return detalle;
+        }
+        if (ex instanceof JacobitusException
+                && ((JacobitusException) ex).getCategoriaErrorFirma() != null) {
+            return null;
+        }
+        return ex.getMessage();
+    }
+
+    private Alert crearAlertaErroresFirma(List<IncidenciaFirmaPdf> incidencias, int cantidadDocumentos) {
+        Map<String, List<IncidenciaFirmaPdf>> grupos = new LinkedHashMap<>();
+        for (IncidenciaFirmaPdf incidencia : incidencias) {
+            String clave = incidencia.categoria == CategoriaErrorFirma.OTRO
+                    ? incidencia.categoria.name() + ":" + incidencia.detalleTecnico
+                    : incidencia.categoria.name();
+            grupos.computeIfAbsent(clave, key -> new LinkedList<>()).add(incidencia);
+        }
+
+        StringBuilder texto = new StringBuilder();
+        for (List<IncidenciaFirmaPdf> grupo : grupos.values()) {
+            IncidenciaFirmaPdf primera = grupo.get(0);
+            texto.append(primera.mensajeUsuario).append('\n');
+            for (IncidenciaFirmaPdf incidencia : grupo) {
+                texto.append("  • ").append(new File(incidencia.ruta).getName()).append('\n');
+            }
+            grupo.stream().map(incidencia -> incidencia.detalleTecnico)
+                    .filter(detalle -> detalle != null && !detalle.isBlank()).distinct()
+                    .forEach(detalle -> texto.append("  Detalle técnico: ").append(detalle).append('\n'));
+            texto.append('\n');
+        }
+
+        Alert alert = new Alert(AlertType.WARNING, null, ButtonType.OK);
+        alert.setHeaderText("Resultado de la firma");
+        int cantidadFirmados = cantidadDocumentos - incidencias.size();
+        VBox resumen = new VBox(4,
+                new Label("Firmados correctamente: " + cantidadFirmados),
+                new Label("Fallidos: " + incidencias.size()));
+        TextArea detalles = new TextArea(texto.toString().trim());
+        detalles.setEditable(false);
+        detalles.setWrapText(true);
+        detalles.setMinSize(120, 80);
+        detalles.setPrefSize(480, 190);
+        detalles.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        VBox contenido = new VBox(8, resumen, new Label("Archivos que no se pudieron firmar"), detalles);
+        VBox.setVgrow(detalles, Priority.ALWAYS);
+        alert.getDialogPane().setContent(contenido);
+        alert.getDialogPane().setPrefSize(540, 330);
+        alert.getDialogPane().setMinSize(400, 230);
+        alert.setResizable(true);
+        return alert;
+    }
+
+    private static class IncidenciaFirmaPdf {
+        private final String ruta;
+        private final CategoriaErrorFirma categoria;
+        private final String mensajeUsuario;
+        private final String detalleTecnico;
+
+        private IncidenciaFirmaPdf(String ruta, CategoriaErrorFirma categoria, String mensajeUsuario,
+                String detalleTecnico) {
+            this.ruta = ruta;
+            this.categoria = categoria;
+            this.mensajeUsuario = mensajeUsuario;
+            this.detalleTecnico = detalleTecnico;
+        }
     }
 
     public Task<List<ValidadorExtendido>> validarPKCS7(List<File> archivos) {
