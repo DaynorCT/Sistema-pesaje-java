@@ -8,7 +8,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
-import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.Signature;
 import java.security.cert.X509Certificate;
@@ -44,6 +43,7 @@ import com.nimbusds.jose.crypto.RSASSASigner;
 
 import bo.firmadigital.jacobitus.comun.JacobitusException;
 import bo.firmadigital.jacobitus.comun.CategoriaErrorFirma;
+import bo.firmadigital.jacobitus.escritorio.comun.ClasificadorErroresFirma;
 import bo.firmadigital.jacobitus.escritorio.comun.Config;
 import bo.firmadigital.jacobitus.escritorio.comun.TokenSelected;
 import bo.firmadigital.jacobitus.escritorio.formularios.FormAplicacion;
@@ -592,26 +592,6 @@ public class FirmadorServicio {
     }
 
     private String procesarExcepcion(Throwable error) {
-        for (Throwable causa = error; causa != null; causa = causa.getCause()) {
-            if (causa instanceof JacobitusException) {
-                CategoriaErrorFirma categoria = ((JacobitusException) causa).getCategoriaErrorFirma();
-                if (categoria != null && categoria != CategoriaErrorFirma.OTRO) {
-                    return categoria.getMensajeUsuario();
-                }
-            }
-            if (causa instanceof java.security.cert.CertificateException) {
-                return CategoriaErrorFirma.CERTIFICADO_NO_VALIDO.getMensajeUsuario();
-            }
-            if (causa instanceof InvalidKeyException) {
-                return CategoriaErrorFirma.CLAVE_PRIVADA.getMensajeUsuario();
-            }
-            if (causa instanceof IOException || causa instanceof SecurityException) {
-                return CategoriaErrorFirma.ACCESO_ARCHIVO.getMensajeUsuario();
-            }
-            if (causa instanceof IllegalArgumentException) {
-                return CategoriaErrorFirma.DATOS_NO_VALIDOS.getMensajeUsuario();
-            }
-        }
-        return CategoriaErrorFirma.OTRO.getMensajeUsuario();
+        return ClasificadorErroresFirma.clasificar(error).getMensajeUsuario();
     }
 }

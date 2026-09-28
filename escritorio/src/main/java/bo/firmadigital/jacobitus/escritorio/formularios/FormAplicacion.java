@@ -2,7 +2,6 @@ package bo.firmadigital.jacobitus.escritorio.formularios;
 
 import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -12,17 +11,14 @@ import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
-import java.nio.file.AccessDeniedException;
 import java.nio.file.StandardCopyOption;
 import java.security.GeneralSecurityException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -1050,18 +1046,17 @@ public class FormAplicacion extends Application {
         return task;
     }
 
-    private Alert crearAlertaErrorGeneral(Throwable error, int cantidadFirmados, int cantidadDocumentos) {
-        CategoriaErrorFirma categoria = obtenerCategoriaErrorFirma(error);
+    private Alert crearAlertaErrorGeneral(ResultadoErroresFirma resultado) {
         Alert alert = new Alert(AlertType.WARNING, null, ButtonType.OK);
         alert.setHeaderText("No se pudo completar la firma");
-        if (cantidadFirmados > 0) {
+        if (resultado.getCantidadFirmados() > 0) {
             VBox contenido = new VBox(8,
-                    new Label(categoria.getMensajeUsuario()),
-                    new Label("Firmados correctamente antes del error: " + cantidadFirmados + " de "
-                            + cantidadDocumentos + " archivos."));
+                    new Label(resultado.getMensajeUsuario()),
+                    new Label("Firmados correctamente antes del error: " + resultado.getCantidadFirmados() + " de "
+                            + resultado.getCantidadDocumentos() + " archivos."));
             alert.getDialogPane().setContent(contenido);
         } else {
-            alert.setContentText(categoria.getMensajeUsuario());
+            alert.setContentText(resultado.getMensajeUsuario());
         }
         return alert;
     }
@@ -1075,30 +1070,8 @@ public class FormAplicacion extends Application {
         return new InfoCertificado(alias, certificado);
     }
 
-    private CategoriaErrorFirma obtenerCategoriaErrorFirma(Throwable error) {
-        for (Throwable causa = error; causa != null; causa = causa.getCause()) {
-            if (causa instanceof JacobitusException) {
-                CategoriaErrorFirma categoria = ((JacobitusException) causa).getCategoriaErrorFirma();
-                if (categoria != null && categoria != CategoriaErrorFirma.OTRO) {
-                    return categoria;
-                }
-            }
-            if (causa instanceof java.security.InvalidKeyException) {
-                return CategoriaErrorFirma.CLAVE_PRIVADA;
-            }
-            if (causa instanceof FileNotFoundException || causa instanceof AccessDeniedException
-                    || causa instanceof IOException || causa instanceof SecurityException) {
-                return CategoriaErrorFirma.ACCESO_ARCHIVO;
-            }
-            if (causa instanceof java.security.cert.CertificateException) {
-                return CategoriaErrorFirma.CERTIFICADO_NO_VALIDO;
-            }
-        }
-        return CategoriaErrorFirma.OTRO;
-    }
-
     private IncidenciaFirmaArchivo registrarIncidenciaFirma(String ruta, Exception error) {
-        CategoriaErrorFirma categoria = obtenerCategoriaErrorFirma(error);
+        CategoriaErrorFirma categoria = ResultadoErroresFirma.clasificar(error);
         Logger.getLogger(FormAplicacion.class.getName()).log(Level.WARNING,
                 "No se pudo firmar el archivo " + ruta + " (" + categoria.name() + ").", error);
         return new IncidenciaFirmaArchivo(ruta, categoria);
@@ -1134,13 +1107,15 @@ public class FormAplicacion extends Application {
             int cantidadDocumentos, AtomicInteger cantidadFirmados) {
         task.setOnFailed(evt -> {
             Throwable error = task.getException();
+            ResultadoErroresFirma resultado = ResultadoErroresFirma.crear(error, incidencias,
+                    cantidadDocumentos, cantidadFirmados.get());
             Alert alert;
-            if (incidencias.isEmpty()) {
+            if (resultado.getTipo() == ResultadoErroresFirma.Tipo.GENERAL) {
                 Logger.getLogger(FormAplicacion.class.getName()).log(Level.WARNING,
                         "No se pudo iniciar o completar el proceso de firma.", error);
-                alert = crearAlertaErrorGeneral(error, cantidadFirmados.get(), cantidadDocumentos);
+                alert = crearAlertaErrorGeneral(resultado);
             } else {
-                alert = crearAlertaErroresFirma(incidencias, cantidadDocumentos, cantidadFirmados.get());
+                alert = crearAlertaErroresFirma(resultado);
             }
             alert.initOwner(stage);
             alert.initModality(Modality.APPLICATION_MODAL);
@@ -1152,18 +1127,12 @@ public class FormAplicacion extends Application {
         task.setOnSucceeded(evt -> stage.getScene().setCursor(Cursor.DEFAULT));
     }
 
-    private Alert crearAlertaErroresFirma(List<IncidenciaFirmaArchivo> incidencias, int cantidadDocumentos,
-            int cantidadFirmados) {
-        Map<CategoriaErrorFirma, List<IncidenciaFirmaArchivo>> grupos = new LinkedHashMap<>();
-        for (IncidenciaFirmaArchivo incidencia : incidencias) {
-            grupos.computeIfAbsent(incidencia.categoria, key -> new LinkedList<>()).add(incidencia);
-        }
-
+    private Alert crearAlertaErroresFirma(ResultadoErroresFirma resultado) {
         StringBuilder texto = new StringBuilder();
-        for (Map.Entry<CategoriaErrorFirma, List<IncidenciaFirmaArchivo>> grupo : grupos.entrySet()) {
-            texto.append(grupo.getKey().getMensajeUsuario()).append('\n');
-            for (IncidenciaFirmaArchivo incidencia : grupo.getValue()) {
-                texto.append("  • ").append(new File(incidencia.ruta).getName()).append('\n');
+        for (ResultadoErroresFirma.Grupo grupo : resultado.getGrupos()) {
+            texto.append(grupo.getMensajeUsuario()).append('\n');
+            for (String nombreArchivo : grupo.getNombresArchivos()) {
+                texto.append("  • ").append(nombreArchivo).append('\n');
             }
             texto.append('\n');
         }
@@ -1171,8 +1140,9 @@ public class FormAplicacion extends Application {
         Alert alert = new Alert(AlertType.WARNING, null, ButtonType.OK);
         alert.setHeaderText("Resultado de la firma");
         VBox resumen = new VBox(4,
-                new Label("Firmados correctamente: " + cantidadFirmados + " de " + cantidadDocumentos),
-                new Label("Fallidos: " + incidencias.size()));
+                new Label("Firmados correctamente: " + resultado.getCantidadFirmados() + " de "
+                        + resultado.getCantidadDocumentos()),
+                new Label("Fallidos: " + resultado.getCantidadFallidos()));
         TextArea detalles = new TextArea(texto.toString().trim());
         detalles.setEditable(false);
         detalles.setWrapText(true);
@@ -1186,16 +1156,6 @@ public class FormAplicacion extends Application {
         alert.getDialogPane().setMinSize(400, 230);
         alert.setResizable(true);
         return alert;
-    }
-
-    private static class IncidenciaFirmaArchivo {
-        private final String ruta;
-        private final CategoriaErrorFirma categoria;
-
-        private IncidenciaFirmaArchivo(String ruta, CategoriaErrorFirma categoria) {
-            this.ruta = ruta;
-            this.categoria = categoria;
-        }
     }
 
     private static class CertificadoNoEcpException extends JacobitusException {

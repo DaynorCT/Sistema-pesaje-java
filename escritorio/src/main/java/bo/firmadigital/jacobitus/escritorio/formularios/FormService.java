@@ -2,14 +2,12 @@ package bo.firmadigital.jacobitus.escritorio.formularios;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyStoreException;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.Signature;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
@@ -41,6 +39,7 @@ import org.codehaus.jettison.json.JSONObject;
 import bo.firmadigital.jacobitus.comun.InfoCertificado;
 import bo.firmadigital.jacobitus.comun.CategoriaErrorFirma;
 import bo.firmadigital.jacobitus.comun.JacobitusException;
+import bo.firmadigital.jacobitus.escritorio.comun.ClasificadorErroresFirma;
 import bo.firmadigital.jacobitus.escritorio.comun.Config;
 import bo.firmadigital.jacobitus.escritorio.comun.ECA;
 import bo.firmadigital.jacobitus.escritorio.comun.TokenSelected;
@@ -448,7 +447,7 @@ public class FormService extends Stage {
                 Logger.getLogger(FormService.class.getName()).log(Level.WARNING,
                         "No se pudo detectar o consultar el token.", error);
             }
-            if (obtenerCategoriaError(error) == CategoriaErrorFirma.TOKEN_NO_CONECTADO) {
+            if (ClasificadorErroresFirma.debeEsperarReconexionToken(error)) {
                 progressBar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
                 message.setText(CategoriaErrorFirma.TOKEN_NO_CONECTADO.getMensajeUsuario());
                 message.setTextFill(Color.web("#5f6c7b"));
@@ -889,24 +888,7 @@ public class FormService extends Stage {
     }
 
     private CategoriaErrorFirma obtenerCategoriaError(Throwable error) {
-        for (Throwable causa = error; causa != null; causa = causa.getCause()) {
-            if (causa instanceof JacobitusException) {
-                CategoriaErrorFirma categoria = ((JacobitusException) causa).getCategoriaErrorFirma();
-                if (categoria != null && categoria != CategoriaErrorFirma.OTRO) {
-                    return categoria;
-                }
-            }
-            if (causa instanceof java.security.InvalidKeyException) {
-                return CategoriaErrorFirma.CLAVE_PRIVADA;
-            }
-            if (causa instanceof CertificateException) {
-                return CategoriaErrorFirma.CERTIFICADO_NO_VALIDO;
-            }
-            if (causa instanceof IOException || causa instanceof SecurityException) {
-                return CategoriaErrorFirma.ACCESO_ARCHIVO;
-            }
-        }
-        return CategoriaErrorFirma.OTRO;
+        return ClasificadorErroresFirma.clasificar(error);
     }
 
     private class CustomException extends RuntimeException {
