@@ -38,27 +38,27 @@ public class FormCambiarContrasena extends Stage {
 
     public FormCambiarContrasena(Stage parent, long slot) {
         stage = parent;
-        setTitle("Pin del token");
+        setTitle("PIN del token");
         IconosVentana.aplicarAplicacion(this);
         initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);
         VBox root = new VBox();
         root.setPadding(new Insets(10));
         root.setSpacing(8);
-        Label oldLabel = new Label("Introduzca pin actual:");
+        Label oldLabel = new Label("Introduzca PIN actual:");
         root.getChildren().add(oldLabel);
         PasswordField oldPasswordField = new PasswordField();
-        oldPasswordField.setPromptText("Pin actual");
+        oldPasswordField.setPromptText("PIN actual");
         root.getChildren().add(oldPasswordField);
-        Label label = new Label("Introduzca nuevo pin:");
+        Label label = new Label("Introduzca nuevo PIN:");
         root.getChildren().add(label);
         PasswordField passwordField = new PasswordField();
-        passwordField.setPromptText("Nuevo pin");
+        passwordField.setPromptText("Nuevo PIN");
         root.getChildren().add(passwordField);
-        Label label2 = new Label("Repita nuevo pin:");
+        Label label2 = new Label("Repita nuevo PIN:");
         root.getChildren().add(label2);
         PasswordField passwordField2 = new PasswordField();
-        passwordField2.setPromptText("Repita nuevo pin");
+        passwordField2.setPromptText("Repita nuevo PIN");
         root.getChildren().add(passwordField2);
         root.getChildren().add(IndicadorTeclado.crearIndicadorBloqMayus(
                 oldPasswordField, passwordField, passwordField2));

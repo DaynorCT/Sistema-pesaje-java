@@ -311,7 +311,7 @@ public class FormAplicacion extends Application {
         MenuBar menuBar = new MenuBar();
 
         Menu archivoMenu = new Menu("Archivo");
-        MenuItem actualizarItem = new MenuItem("Actualizar Tokens");
+        MenuItem actualizarItem = new MenuItem("Actualizar tokens");
         actualizarItem.setOnAction((ActionEvent e) -> {
             new Thread(listarTokens()).start();
         });
@@ -332,7 +332,7 @@ public class FormAplicacion extends Application {
         MenuItem abrirOtroItem = new MenuItem("Abrir otros formatos");
         abrirOtroItem.setOnAction((ActionEvent e) -> {
             FileChooser fileChooser = new FileChooser();
-            fileChooser.setTitle("Abrir Otro");
+            fileChooser.setTitle("Abrir otro");
             FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("Archivos P7S (*.p7s)", "*.p7s");
             fileChooser.getExtensionFilters().add(extFilter);
             extFilter = new FileChooser.ExtensionFilter("Archivos XML (*.xml)", "*.xml");
@@ -361,7 +361,7 @@ public class FormAplicacion extends Application {
                 new Thread(validar(archivosSeleccionados)).start();
             }
         });
-        MenuItem limpiarItem = new MenuItem("Limpiar Lista");
+        MenuItem limpiarItem = new MenuItem("Limpiar lista");
         limpiarItem.setOnAction((ActionEvent e) -> {
             tbvArchivos.getItems().clear();
         });
@@ -424,7 +424,7 @@ public class FormAplicacion extends Application {
             } else {
                 CK_TOKEN_INFO itemSeleccionado = tbvDispositivos.getSelectionModel().getSelectedItem();
                 if (itemSeleccionado == null) {
-                    Alert alert = new Alert(AlertType.INFORMATION, "Por favor seleccione un Token.", ButtonType.OK);
+                    Alert alert = new Alert(AlertType.INFORMATION, "Por favor, seleccione un token.", ButtonType.OK);
                     alert.initOwner(stage);
                     alert.initModality(Modality.APPLICATION_MODAL);
                     alert.setTitle("Jacobitus");
@@ -460,7 +460,7 @@ public class FormAplicacion extends Application {
             } else {
                 CK_TOKEN_INFO itemSeleccionado = tbvDispositivos.getSelectionModel().getSelectedItem();
                 if (itemSeleccionado == null) {
-                    Alert alert = new Alert(AlertType.INFORMATION, "Por favor seleccione un Token.", ButtonType.OK);
+                    Alert alert = new Alert(AlertType.INFORMATION, "Por favor, seleccione un token.", ButtonType.OK);
                     alert.initOwner(stage);
                     alert.initModality(Modality.APPLICATION_MODAL);
                     alert.setTitle("Jacobitus");
@@ -495,7 +495,7 @@ public class FormAplicacion extends Application {
             } else {
                 CK_TOKEN_INFO itemSeleccionado = tbvDispositivos.getSelectionModel().getSelectedItem();
                 if (itemSeleccionado == null) {
-                    Alert alert = new Alert(AlertType.INFORMATION, "Por favor seleccione un Token.", ButtonType.OK);
+                    Alert alert = new Alert(AlertType.INFORMATION, "Por favor, seleccione un token.", ButtonType.OK);
                     alert.initOwner(stage);
                     alert.initModality(Modality.APPLICATION_MODAL);
                     alert.setTitle("Jacobitus");
@@ -528,7 +528,7 @@ public class FormAplicacion extends Application {
             } else {
                 CK_TOKEN_INFO itemSeleccionado = tbvDispositivos.getSelectionModel().getSelectedItem();
                 if (itemSeleccionado == null) {
-                    Alert alert = new Alert(AlertType.INFORMATION, "Por favor seleccione un Token.", ButtonType.OK);
+                    Alert alert = new Alert(AlertType.INFORMATION, "Por favor, seleccione un token.", ButtonType.OK);
                     alert.initOwner(stage);
                     alert.initModality(Modality.APPLICATION_MODAL);
                     alert.setTitle("Jacobitus");
@@ -649,7 +649,7 @@ public class FormAplicacion extends Application {
             FormTokenInfo formTokenInfo = new FormTokenInfo(stage, tokenInfoSeleccionado.getSlot());
             formTokenInfo.showAndWait();
         });
-        MenuItem cambiarPinItem = new MenuItem("Cambiar pin");
+        MenuItem cambiarPinItem = new MenuItem("Cambiar PIN");
         cambiarPinItem.setOnAction((ActionEvent e) -> {
             FormCambiarContrasena formCambiarContrasena = new FormCambiarContrasena(stage, tokenInfoSeleccionado.getSlot());
             formCambiarContrasena.showAndWait();

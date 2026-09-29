@@ -20,7 +20,7 @@ public class FormContrasenaMac extends Stage {
     private String pass;
 
     public FormContrasenaMac(Stage parent) {
-        setTitle("Seguridad MacOS");
+        setTitle("Seguridad macOS");
         IconosVentana.aplicarAplicacion(this);
         initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);

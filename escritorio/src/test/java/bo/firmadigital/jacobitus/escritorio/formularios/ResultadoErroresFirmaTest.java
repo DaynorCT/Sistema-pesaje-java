@@ -123,7 +123,7 @@ public class ResultadoErroresFirmaTest {
         JacobitusException tokenIngles = new JacobitusException(CategoriaErrorFirma.TOKEN_NO_CONECTADO,
                 "Connect a token", null);
         JacobitusException tokenEspanol = new JacobitusException(CategoriaErrorFirma.TOKEN_NO_CONECTADO,
-                "Conecte un token", null);
+                CategoriaErrorFirma.TOKEN_NO_CONECTADO.getMensajeUsuario(), null);
 
         assertTrue(ClasificadorErroresFirma.debeEsperarReconexionToken(tokenIngles));
         assertTrue(ClasificadorErroresFirma.debeEsperarReconexionToken(tokenEspanol));

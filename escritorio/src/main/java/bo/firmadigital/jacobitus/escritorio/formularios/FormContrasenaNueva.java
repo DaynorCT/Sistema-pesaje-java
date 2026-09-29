@@ -25,19 +25,19 @@ public class FormContrasenaNueva extends Stage {
     
     public FormContrasenaNueva(Stage parent) {
         stage = parent;
-        setTitle("Pin del token");
+        setTitle("PIN del token");
         IconosVentana.aplicarAplicacion(this);
         initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);
         VBox root = new VBox();
         root.setPadding(new Insets(10));
         root.setSpacing(8);
-        Label label = new Label("Introduzca nuevo pin:");
+        Label label = new Label("Introduzca nuevo PIN:");
         root.getChildren().add(label);
         PasswordField passwordField = new PasswordField();
         passwordField.setPromptText("Su contraseña");
         root.getChildren().add(passwordField);
-        Label label2 = new Label("Repita pin:");
+        Label label2 = new Label("Repita PIN:");
         root.getChildren().add(label2);
         PasswordField passwordField2 = new PasswordField();
         passwordField2.setPromptText("Repita su contraseña");
