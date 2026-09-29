@@ -1007,6 +1007,8 @@ public class FormAplicacion extends Application {
                     updateProgress(100, 100);
                 } else {
                     for (int i = 0; i < archivos.size(); i++) {
+                        java.nio.file.Path archivoTemporal = null;
+                        File archivoFirmado = null;
                         try {
                             IFirmador firmador = FirmadorPdf.getInstance(slotID, alias, contrasenia, getConfigFirmador());
                             String nomArchivo = new File(archivos.get(i).getAbsolutePath()).getName();
@@ -1015,17 +1017,34 @@ public class FormAplicacion extends Application {
                             } else {
                                 nomArchivo = nomArchivo.replace(".pdf", ".firmado.pdf");
                             }
-                            File archivoFirmado = new File(rutaDestino, nomArchivo);
+                            archivoFirmado = new File(rutaDestino, nomArchivo);
+                            archivoTemporal = Files.createTempFile(rutaDestino.toPath(), ".jacobitus-firma-", ".tmp");
                             try (InputStream is = new FileInputStream(archivos.get(i).getAbsolutePath());
-                                    OutputStream os = new FileOutputStream(archivoFirmado)) {
+                                    OutputStream os = Files.newOutputStream(archivoTemporal)) {
                                 firmador.firmar(is, os, bloquear, false);
                             }
+                            Files.move(archivoTemporal, archivoFirmado.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                            archivoTemporal = null;
                             updateProgress(i + 1, archivos.size());
                             final int indice = i;
                             ValidadorExtendido archivoValidado = new ValidadorExtendidoPdf(archivoFirmado, getConfigValidador());
                             Platform.runLater(() -> tbvArchivos.getItems().set(indice, archivoValidado));
                             cantidadFirmados.incrementAndGet();
                         } catch (Exception ex) {
+                            if (archivoTemporal != null) {
+                                try {
+                                    Files.deleteIfExists(archivoTemporal);
+                                } catch (IOException cleanupException) {
+                                    ex.addSuppressed(cleanupException);
+                                }
+                            }
+                            if (archivoFirmado != null && archivoFirmado.isFile() && archivoFirmado.length() == 0) {
+                                try {
+                                    Files.deleteIfExists(archivoFirmado.toPath());
+                                } catch (IOException cleanupException) {
+                                    ex.addSuppressed(cleanupException);
+                                }
+                            }
                             updateProgress(i + 1, archivos.size());
                             incidencias.add(registrarIncidenciaFirma(archivos.get(i).getAbsolutePath(), ex));
                         }
