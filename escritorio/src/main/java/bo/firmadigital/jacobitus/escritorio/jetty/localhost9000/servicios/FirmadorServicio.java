@@ -425,7 +425,13 @@ public class FirmadorServicio {
                 respuesta.setMensaje("Datos requeridos slot, pin, alias y pdfs.");
                 return respuesta;
             }
-            IToken token = gestorSlot.obtenerSlot(slot).getToken();
+            Slot slotFirma = gestorSlot.obtenerSlot(slot);
+            if (slotFirma == null || slotFirma.getToken() == null) {
+                respuesta.setFinalizado(false);
+                respuesta.setMensaje("El slot " + slot + " no se encuentra disponible.");
+                return respuesta;
+            }
+            IToken token = slotFirma.getToken();
             token.iniciar(pin);
             FirmaLotePdfRespuestaDto datos = new FirmaLotePdfRespuestaDto();
             try {
@@ -456,8 +462,9 @@ public class FirmadorServicio {
                         "No se pudo completar una firma PDF del lote.", ex);
                 respuesta.setFinalizado(false);
                 respuesta.setMensaje(procesarExcepcion(ex));
+            } finally {
+                token.salir();
             }
-            token.salir();
         } catch (IOException | GeneralSecurityException ex) {
             String mensaje = this.procesarExcepcion(ex);
             respuesta.setFinalizado(false);
@@ -497,30 +504,32 @@ public class FirmadorServicio {
                 respuesta.setMensaje("Datos requeridos slot, pin, alias y hash.");
                 return respuesta;
             }
-            IToken token = gestorSlot.obtenerSlot(slot).getToken();
+            Slot slotFirma = gestorSlot.obtenerSlot(slot);
+            if (slotFirma == null || slotFirma.getToken() == null) {
+                respuesta.setFinalizado(false);
+                respuesta.setMensaje("El slot " + slot + " no se encuentra disponible.");
+                return respuesta;
+            }
+            IToken token = slotFirma.getToken();
             token.iniciar(pin);
-            Slot oSlot = gestorSlot.obtenerSlot(objetoDto.getSlot());
-            if (oSlot != null) {
+            try {
                 FirmaHashRespuestaDto datos = new FirmaHashRespuestaDto();
                 Signature signature = Signature.getInstance("SHA256withRSA");
                 PrivateKey pk = token.obtenerClavePrivada(alias);
                 if (pk == null) {
-                    token.salir();
                     throw new JacobitusException(CategoriaErrorFirma.CLAVE_PRIVADA,
                             CategoriaErrorFirma.CLAVE_PRIVADA.getMensajeUsuario(), null);
                 }
                 signature.initSign(pk);
                 signature.update(Base64.getDecoder().decode(hash));
                 byte[] signed = signature.sign();
-                token.salir();
                 datos.setFirma(Base64.getEncoder().encodeToString(signed));
                 respuesta.setDatos(datos);
                 respuesta.setFinalizado(true);
                 respuesta.setMensaje("Firma realizada correctamente.");
-            } else {
-                respuesta.setFinalizado(false);
-                respuesta.setMensaje("El slot " + slot + " no se encuentra disponible.");
-            } 
+            } finally {
+                token.salir();
+            }
         } catch (GeneralSecurityException ex) {
             respuesta.setFinalizado(false);
             respuesta.setMensaje(procesarExcepcion(ex));

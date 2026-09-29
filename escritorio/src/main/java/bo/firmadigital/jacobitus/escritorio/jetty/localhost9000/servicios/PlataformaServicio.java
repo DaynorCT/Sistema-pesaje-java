@@ -120,26 +120,29 @@ public class PlataformaServicio {
             if (slot != null) {
                 IToken token = slot.getToken();
                 token.iniciar(objetoDto.getPin());
-                BigInteger max = new BigInteger("1000000000000");
-                BigInteger id = (new BigInteger(max.bitLength(), new SecureRandom())).mod(max);
-                token.generarClaves(id.toString(), objetoDto.getPin(), Integer.parseInt(objetoDto.getSlot().toString()));
-                TokenDataRespuestaDto datos = new TokenDataRespuestaDto();
-                respuesta.setDatos(datos);
-                TokenDataDto data_token = new TokenDataDto();
-                datos.setData_token(data_token);
-                data_token.setCertificates(0);
-                List<ITokenCertificateDto> data = new ArrayList<ITokenCertificateDto>();
-                data_token.setData(data);
-                TokenPrivateCertificateDto pk = new TokenPrivateCertificateDto();
-                data.add(pk);
-                pk.setTipo("PRIMARY_KEY");
-                pk.setTipo_desc("Clave Privada");
-                pk.setAlias(id.toString());
-                pk.setTiene_certificado(false);
-                data_token.setPrivate_keys(1);
-                respuesta.setFinalizado(true);
-                respuesta.setMensaje("Se genero el par de claves correctamente.");
-                token.salir();
+                try {
+                    BigInteger max = new BigInteger("1000000000000");
+                    BigInteger id = (new BigInteger(max.bitLength(), new SecureRandom())).mod(max);
+                    token.generarClaves(id.toString(), objetoDto.getPin(), Integer.parseInt(objetoDto.getSlot().toString()));
+                    TokenDataRespuestaDto datos = new TokenDataRespuestaDto();
+                    respuesta.setDatos(datos);
+                    TokenDataDto data_token = new TokenDataDto();
+                    datos.setData_token(data_token);
+                    data_token.setCertificates(0);
+                    List<ITokenCertificateDto> data = new ArrayList<ITokenCertificateDto>();
+                    data_token.setData(data);
+                    TokenPrivateCertificateDto pk = new TokenPrivateCertificateDto();
+                    data.add(pk);
+                    pk.setTipo("PRIMARY_KEY");
+                    pk.setTipo_desc("Clave Privada");
+                    pk.setAlias(id.toString());
+                    pk.setTiene_certificado(false);
+                    data_token.setPrivate_keys(1);
+                    respuesta.setFinalizado(true);
+                    respuesta.setMensaje("Se genero el par de claves correctamente.");
+                } finally {
+                    token.salir();
+                }
             } else {
                 respuesta.setFinalizado(false);
                 respuesta.setMensaje("El slot " + objetoDto.getSlot() + " no se encuentra disponible.");
@@ -178,8 +181,9 @@ public class PlataformaServicio {
                 } catch (GeneralSecurityException ex) {
                     respuesta.setFinalizado(false);
                     respuesta.setMensaje(ex.getMessage());
+                } finally {
+                    token.salir();
                 }
-                token.salir();
             } else {
                 respuesta.setFinalizado(false);
                 respuesta.setMensaje("El slot " + objetoDto.getSlot() + " no se encuentra disponible.");
@@ -209,8 +213,9 @@ public class PlataformaServicio {
                 } catch (UnsupportedEncodingException | GeneralSecurityException ex) {
                     respuesta.setFinalizado(false);
                     respuesta.setMensaje(ex.getMessage());
+                } finally {
+                    token.salir();
                 }
-                token.salir();
             } else {
                 respuesta.setFinalizado(false);
                 respuesta.setMensaje("El slot " + objetoDto.getSlot() + " no se encuentra disponible.");
@@ -316,36 +321,38 @@ public class PlataformaServicio {
             if (slot != null) {
                 IToken token = slot.getToken();
                 token.iniciar(objetoDto.getPin());
-                List<TokenSolicitudDetalleDto> data = objetoDto.getData();
-                List<TokenSolicitudRespuestaDto> datos = new ArrayList<TokenSolicitudRespuestaDto>();
-                for (int i = 0; i < data.size(); i++) {
-                    TokenSolicitudRespuestaDto element = new TokenSolicitudRespuestaDto();
-                    element.setId(data.get(i).getId());
-                    PrivateKey pk = token.obtenerClavePrivada(objetoDto.getAlias());
-                    if (pk == null) {
-                        token.salir();
-                        throw new KeyStoreException("No se encontró la clave con alias: " + objetoDto.getAlias());
-                    }
-                    JWSSigner jwsSigner = new RSASSASigner(pk);
-                    JWSHeader.Builder builder = new JWSHeader.Builder(JWSAlgorithm.RS256);
-                    if (data.get(i).getUrl() == null) {
-                        builder.x509CertURL(new URI("https://agencia.firmadigital.bo/services_ar/certificado?serial_number=" + token.obtenerCertificado(objetoDto.getAlias()).getSerialNumber()));
-                    } else {
-                        if (data.get(i).getUrl().contains("?")) {
-                            builder.x509CertURL(new URI(data.get(i).getUrl()));
-                        } else {
-                            builder.x509CertURL(new URI(data.get(i).getUrl() + "?serial_number=" + token.obtenerCertificado(objetoDto.getAlias()).getSerialNumber()));
+                try {
+                    List<TokenSolicitudDetalleDto> data = objetoDto.getData();
+                    List<TokenSolicitudRespuestaDto> datos = new ArrayList<TokenSolicitudRespuestaDto>();
+                    for (int i = 0; i < data.size(); i++) {
+                        TokenSolicitudRespuestaDto element = new TokenSolicitudRespuestaDto();
+                        element.setId(data.get(i).getId());
+                        PrivateKey pk = token.obtenerClavePrivada(objetoDto.getAlias());
+                        if (pk == null) {
+                            throw new KeyStoreException("No se encontró la clave con alias: " + objetoDto.getAlias());
                         }
+                        JWSSigner jwsSigner = new RSASSASigner(pk);
+                        JWSHeader.Builder builder = new JWSHeader.Builder(JWSAlgorithm.RS256);
+                        if (data.get(i).getUrl() == null) {
+                            builder.x509CertURL(new URI("https://agencia.firmadigital.bo/services_ar/certificado?serial_number=" + token.obtenerCertificado(objetoDto.getAlias()).getSerialNumber()));
+                        } else {
+                            if (data.get(i).getUrl().contains("?")) {
+                                builder.x509CertURL(new URI(data.get(i).getUrl()));
+                            } else {
+                                builder.x509CertURL(new URI(data.get(i).getUrl() + "?serial_number=" + token.obtenerCertificado(objetoDto.getAlias()).getSerialNumber()));
+                            }
+                        }
+                        JWSObject jwsObject = new JWSObject(builder.build(),new Payload(data.get(i).getPayload()));
+                        jwsObject.sign(jwsSigner);
+                        element.setJws(jwsObject.serialize());
+                        datos.add(element);
                     }
-                    JWSObject jwsObject = new JWSObject(builder.build(),new Payload(data.get(i).getPayload()));
-                    jwsObject.sign(jwsSigner);
-                    element.setJws(jwsObject.serialize());
-                    datos.add(element);
+                    respuesta.setDatos(datos);
+                    respuesta.setFinalizado(true);
+                    respuesta.setMensaje("Se firmaron las solicitudes correctamente.");
+                } finally {
+                    token.salir();
                 }
-                token.salir();
-                respuesta.setDatos(datos);
-                respuesta.setFinalizado(true);
-                respuesta.setMensaje("Se firmaron las solicitudes correctamente.");
             } else {
                 respuesta.setFinalizado(false);
                 respuesta.setMensaje("El slot " + objetoDto.getSlot() + " no se encuentra disponible.");

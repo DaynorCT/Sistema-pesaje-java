@@ -92,28 +92,30 @@ public class FirmadorServicio {
         } else {
             try {
                 if (slots != null) {
-                    if (slots.length == 1) {
-                        slots[0].getToken().salir();
-                    }
+                    Slot[] sesionAnterior = slots;
                     slots = null;
+                    if (sesionAnterior.length == 1) {
+                        sesionAnterior[0].getToken().salir();
+                    }
                 }
                 GestorSlot gestorSlot = GestorSlot.getInstance();
                 gestorSlot.setConfigFirmador(this.getConfigFirmador());
-                slots = gestorSlot.listarSlots();
-                if (slots.length == 1) {
-                    slots[0].getToken().iniciar(pin);
+                Slot[] slotsDisponibles = gestorSlot.listarSlots();
+                if (slotsDisponibles.length == 1) {
+                    slotsDisponibles[0].getToken().iniciar(pin);
+                    slots = slotsDisponibles;
                     respuesta.setFinalizado(true);
                     respuesta.setMensaje("Autenticacion correcta");
                 } else {
                     respuesta.setFinalizado(false);
-                    if (slots.length > 1) {
+                    if (slotsDisponibles.length > 1) {
                         respuesta.setMensaje("Se encontró más de un token conectado.");
                     } else {
                         respuesta.setMensaje("No se encontró ningún token conectado.");
                     }
-                    slots = null;
                 }
             } catch (RuntimeException | GeneralSecurityException ex) {
+                slots = null;
                 respuesta.setFinalizado(false);
                 respuesta.setMensaje(ex.getMessage());
             }
@@ -244,8 +246,9 @@ public class FirmadorServicio {
         } else {
             try {
                 if (slots.length == 1) {
-                    slots[0].getToken().salir();
+                    Slot[] sesionFinalizada = slots;
                     slots = null;
+                    sesionFinalizada[0].getToken().salir();
                     respuesta.setFinalizado(true);
                     respuesta.setMensaje("Cerrado sesión correctamente");
                 } else {
@@ -277,10 +280,11 @@ public class FirmadorServicio {
 
     public String reset() {
         if (slots != null) {
-            if (slots.length == 1) {
-                slots[0].getToken().salir();
-            }
+            Slot[] sesionActual = slots;
             slots = null;
+            if (sesionActual.length == 1) {
+                sesionActual[0].getToken().salir();
+            }
         }
         return "Ok";
     }
