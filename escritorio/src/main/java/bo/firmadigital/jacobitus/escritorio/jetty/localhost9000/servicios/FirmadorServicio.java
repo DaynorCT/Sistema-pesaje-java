@@ -356,6 +356,9 @@ public class FirmadorServicio {
                 throw new JacobitusException(CategoriaErrorFirma.CERTIFICADO_NO_ECP,
                         CategoriaErrorFirma.CERTIFICADO_NO_ECP.getMensajeUsuario(), null);
             }
+            X500Name x500Name = new JcaX509CertificateHolder(cert).getSubject();
+            String nombreComun = IETFUtils
+                    .valueToString(x500Name.getRDNs(new ASN1ObjectIdentifier("2.5.4.3"))[0].getFirst().getValue());
             String pemCert = Base64.getEncoder().encodeToString(cert.getEncoded());
             sesionAbierta = false;
             token.salir();
@@ -379,10 +382,7 @@ public class FirmadorServicio {
             String fechaFirma = dateFormat.format(new Timestamp(calendar.getTime().getTime()));
             FirmaJsonRespuestaDto datos = new FirmaJsonRespuestaDto();
             datos.setJson_firmado(Base64.getEncoder().encodeToString(resultado.getBytes()));
-            X500Name x500Name = (new JcaX509CertificateHolder(token.obtenerCertificado(alias)))
-                    .getSubject();
-            datos.setCn(IETFUtils
-                    .valueToString(x500Name.getRDNs(new ASN1ObjectIdentifier("2.5.4.3"))[0].getFirst().getValue()));
+            datos.setCn(nombreComun);
             datos.setFecha_firma(fechaFirma);
             respuesta.setFinalizado(true);
             respuesta.setMensaje("Se firmó la solicitud correctamente.");
