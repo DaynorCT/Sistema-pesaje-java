@@ -46,6 +46,7 @@ import bo.firmadigital.jacobitus.escritorio.extendidos.ValidadorExtendidoXml;
 import bo.firmadigital.jacobitus.escritorio.utilidades.ActualizacionesHelper;
 import bo.firmadigital.jacobitus.escritorio.utilidades.CertUtil;
 import bo.firmadigital.jacobitus.escritorio.utilidades.Conversor;
+import bo.firmadigital.jacobitus.escritorio.utilidades.MenuContextualHelper;
 import bo.firmadigital.jacobitus.escritorio.utilidades.PlataformaHelper;
 import bo.firmadigital.jacobitus.escritorio.utilidades.TableViewHelper;
 import bo.firmadigital.jacobitus.escritorio.utilidades.UrlFileName;
@@ -794,6 +795,8 @@ public class FormAplicacion extends Application {
         root.setBottom(footer);
 
         Scene scene = new Scene(root, 640, 480);
+        MenuContextualHelper.cerrarAlHacerClicFuera(tokenContextMenu, scene);
+        MenuContextualHelper.cerrarAlHacerClicFuera(contextMenu, scene);
         scene.getStylesheets().add(this.getClass().getClassLoader().getResource("jacobitus.css").toExternalForm());
         stage.setScene(scene);
         boolean mostrarVentanaInicio = !iniciarEnSegundoPlano || !usarBarraTareas;

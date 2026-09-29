@@ -20,6 +20,7 @@ import bo.firmadigital.jacobitus.comun.JacobitusException;
 import bo.firmadigital.jacobitus.escritorio.componentes.CertInformation;
 import bo.firmadigital.jacobitus.escritorio.comun.Config;
 import bo.firmadigital.jacobitus.escritorio.comun.Constants;
+import bo.firmadigital.jacobitus.escritorio.utilidades.MenuContextualHelper;
 import bo.firmadigital.jacobitus.escritorio.utilidades.TableViewHelper;
 import bo.firmadigital.jacobitus.firmador.base.ConfiguracionFirmador;
 import bo.firmadigital.jacobitus.token.GestorSlot;
@@ -189,6 +190,7 @@ public class FormTokenInfo extends Stage {
         root.setBottom(buttonClave);
         Scene scene = new Scene(root, 560, 260);
         setScene(scene);
+        MenuContextualHelper.cerrarAlHacerClicFuera(contextMenu, scene);
 
         setOnShown((WindowEvent t) -> javafx.application.Platform.runLater(() -> {
             FormContrasena contrasena = new FormContrasena(FormTokenInfo.this, Constants.INFO);
