@@ -9,6 +9,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 
 import org.codehaus.jackson.map.ObjectMapper;
@@ -22,6 +23,7 @@ import bo.firmadigital.jacobitus.escritorio.comun.TokenSelected;
 import bo.firmadigital.jacobitus.escritorio.formularios.FormAplicacion;
 import bo.firmadigital.jacobitus.escritorio.formularios.FormService;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.ErrorRespuestaDto;
+import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.FirmaHashCancelacionRespuestaDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.FirmaHashItemDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.FirmaHashItemRespuestaDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.FirmaHashModoSeguroDto;
@@ -89,11 +91,15 @@ public class FirmadorServicio {
                 respuesta.setMessage("Se firmó correctamente");
                 respuesta.setFiles(lista);
                 return respuesta;
-            } else {
+            } else if (dt.getErrorMessage() != null) {
                 ErrorRespuestaDto error = new ErrorRespuestaDto();
                 error.setMessage("No se pudo firmar el documento");
-                error.setError("El usuario canceló el proceso antes de completar la firma.");
+                error.setError(dt.getErrorMessage());
                 return error;
+            } else {
+                respuesta.setMessage("Se canceló la firma del documento");
+                respuesta.setFiles(Collections.emptyList());
+                return respuesta;
             }
         } catch (JSONException | RuntimeException ex) {
             ErrorRespuestaDto error = new ErrorRespuestaDto();
@@ -163,9 +169,10 @@ public class FirmadorServicio {
                 errorDto.setError(dt.getErrorMessage());
                 return errorDto;
             } else {
-                errorDto.setMessage("Se canceló la firma del documento");
-                errorDto.setError("El usuario canceló el proceso antes de completar la firma.");
-                return errorDto;
+                FirmaHashCancelacionRespuestaDto cancelacion = new FirmaHashCancelacionRespuestaDto();
+                cancelacion.setMessage("Se canceló la firma del documento");
+                cancelacion.setFiles(Collections.emptyList());
+                return cancelacion;
             }
         } catch (JSONException | RuntimeException ex) {
             String detalle = ex.getMessage();

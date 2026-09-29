@@ -299,45 +299,77 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "files": {
-                      "$ref": "#/components/schemas/FirmaArregloHashModoSeguroFirmadoDto",
-                      "x-stoplight": {
-                        "id": "pf9bqtpqftdnb"
-                      }
-                    },
-                    "certificate": {
-                      "type": "string",
-                      "x-stoplight": {
-                        "id": "b8ft0tnpara54"
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "files": {
+                          "$ref": "#/components/schemas/FirmaArregloHashModoSeguroFirmadoDto",
+                          "x-stoplight": {
+                            "id": "pf9bqtpqftdnb"
+                          }
+                        },
+                        "certificate": {
+                          "type": "string",
+                          "x-stoplight": {
+                            "id": "b8ft0tnpara54"
+                          },
+                          "description": "Certificado público del usuario que realizó la firma."
+                        },
+                        "certificateChain": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Cadena de certificados públicos del usuario que realizó la firma.",
+                          "x-stoplight": {
+                            "id": "1dq6ozh10sdwx"
+                          }
+                        },
+                        "encryptionAlgorithm": {
+                          "type": "string",
+                          "x-stoplight": {
+                            "id": "r19txb32nc84b"
+                          },
+                          "description": "Tipo de encriptación utilizado para la firma."
+                        }
                       },
-                      "description": "Certificado público del usuario que realizó la firma."
+                      "required": [
+                        "files",
+                        "certificate",
+                        "certificateChain",
+                        "encryptionAlgorithm"
+                      ]
                     },
-                    "certificateChain": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
+                    {
+                      "type": "object",
+                      "properties": {
+                        "message": {
+                          "type": "string"
+                        },
+                        "error": {
+                          "type": "null"
+                        },
+                        "files": {
+                          "$ref": "#/components/schemas/FirmaArregloHashModoSeguroFirmadoDto"
+                        }
                       },
-                      "description": "Cadena de certificados públicos del usuario que realizó la firma.",
-                      "x-stoplight": {
-                        "id": "1dq6ozh10sdwx"
-                      }
-                    },
-                    "encryptionAlgorithm": {
-                      "type": "string",
-                      "x-stoplight": {
-                        "id": "r19txb32nc84b"
-                      },
-                      "description": "Tipo de encriptación utilizado para la firma."
+                      "required": [
+                        "message",
+                        "error",
+                        "files"
+                      ]
                     }
-                  },
-                  "required": [
-                    "files",
-                    "certificate",
-                    "certificateChain",
-                    "encryptionAlgorithm"
                   ]
+                },
+                "examples": {
+                  "Cancelación del usuario": {
+                    "value": {
+                      "message": "Se canceló la firma del documento",
+                      "error": null,
+                      "files": []
+                    }
+                  }
                 }
               }
             }
@@ -374,12 +406,6 @@
                     "value": {
                       "message": "No se pudo firmar el documento",
                       "error": "El CI del token no corresponde con el CI de la persona para la que se solicitó la firma."
-                    }
-                  },
-                  "Cancelación del usuario": {
-                    "value": {
-                      "message": "Se canceló la firma del documento",
-                      "error": "El usuario canceló el proceso antes de completar la firma."
                     }
                   },
                   "Proceso de firma en progreso": {
