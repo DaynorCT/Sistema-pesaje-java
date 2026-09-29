@@ -20,6 +20,7 @@ import bo.firmadigital.jacobitus.comun.JacobitusException;
 import bo.firmadigital.jacobitus.escritorio.componentes.CertInformation;
 import bo.firmadigital.jacobitus.escritorio.comun.Config;
 import bo.firmadigital.jacobitus.escritorio.comun.Constants;
+import bo.firmadigital.jacobitus.escritorio.utilidades.MenuContextualHelper;
 import bo.firmadigital.jacobitus.escritorio.utilidades.TableViewHelper;
 import bo.firmadigital.jacobitus.firmador.base.ConfiguracionFirmador;
 import bo.firmadigital.jacobitus.token.GestorSlot;
@@ -189,6 +190,7 @@ public class FormTokenInfo extends Stage {
         root.setBottom(buttonClave);
         Scene scene = new Scene(root, 560, 260);
         setScene(scene);
+        MenuContextualHelper.cerrarAlHacerClicFuera(contextMenu, scene);
 
         setOnShown((WindowEvent t) -> javafx.application.Platform.runLater(() -> {
             FormContrasena contrasena = new FormContrasena(FormTokenInfo.this, Constants.INFO);
@@ -294,11 +296,14 @@ public class FormTokenInfo extends Stage {
                     }
                     IToken token = oSlot.getToken();
                     token.iniciar(pass);
-                    BigInteger max = new BigInteger("1000000000000");
-                    BigInteger id = new BigInteger(max.bitLength(), new SecureRandom()).mod(max);
-                    token.generarClaves(id.toString(), pass, (int)slot);
-                    token.salir();
-                    return true;
+                    try {
+                        BigInteger max = new BigInteger("1000000000000");
+                        BigInteger id = new BigInteger(max.bitLength(), new SecureRandom()).mod(max);
+                        token.generarClaves(id.toString(), pass, (int)slot);
+                        return true;
+                    } finally {
+                        token.salir();
+                    }
                 } catch (GeneralSecurityException | IOException ex) {
                     throw new JacobitusException(ex.getMessage());
                 }
@@ -342,11 +347,9 @@ public class FormTokenInfo extends Stage {
                     token.iniciar(pass);
                     try {
                         token.cargarCertificado(pem, label);
-                    } catch (GeneralSecurityException ex) {
+                    } finally {
                         token.salir();
-                        throw new JacobitusException(ex.getMessage());
                     }
-                    token.salir();
                     return true;
                 } catch (IOException | GeneralSecurityException ex) {
                     throw new JacobitusException(ex.getMessage());
@@ -390,11 +393,9 @@ public class FormTokenInfo extends Stage {
                             os.write(pem.getBytes());
                             os.flush();
                         }
-                    } catch (GeneralSecurityException ex) {
+                    } finally {
                         token.salir();
-                        throw new JacobitusException(ex.getMessage());
                     }
-                    token.salir();
                     return true;
                 } catch (IOException | GeneralSecurityException ex) {
                     throw new JacobitusException(ex.getMessage());
@@ -441,11 +442,9 @@ public class FormTokenInfo extends Stage {
                         try (PemWriter pemWriter = new PemWriter(new OutputStreamWriter(new FileOutputStream(file)))) {
                             pemWriter.writeObject(new PemObject("RSA PRIVATE KEY", pk.getEncoded()));
                         }
-                    } catch (GeneralSecurityException ex) {
+                    } finally {
                         token.salir();
-                        throw new JacobitusException(ex.getMessage());
                     }
-                    token.salir();
                     return true;
                 } catch (IOException | GeneralSecurityException ex) {
                     throw new JacobitusException(ex.getMessage());
@@ -485,9 +484,12 @@ public class FormTokenInfo extends Stage {
                     }
                     IToken token = oSlot.getToken();
                     token.iniciar(pass);
-                    token.eliminarClaves(label);
-                    token.salir();
-                    return true;
+                    try {
+                        token.eliminarClaves(label);
+                        return true;
+                    } finally {
+                        token.salir();
+                    }
                 } catch (GeneralSecurityException | IOException ex) {
                     throw new JacobitusException(ex.getMessage());
                 }

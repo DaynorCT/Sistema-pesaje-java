@@ -32,7 +32,7 @@ public class Conversor {
             return out;
         } catch (IOException | XWPFConverterException ex) {
             // throw new JacobitusException(ex.getMessage());
-            throw new JacobitusException("El documento no pudo ser convertido a pdf.");
+            throw new JacobitusException("El documento no pudo ser convertido a PDF.");
         }
     }
 
@@ -47,7 +47,7 @@ public class Conversor {
             return out;
         } catch(Exception ex) {
             // throw new JacobitusException(ex.getMessage());
-            throw new JacobitusException("El documento no pudo ser convertido a pdf.");
+            throw new JacobitusException("El documento no pudo ser convertido a PDF.");
         }
     }
 }

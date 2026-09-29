@@ -18,9 +18,9 @@ import javafx.collections.FXCollections;
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
+import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
@@ -28,14 +28,18 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
+import javafx.geometry.Pos;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
-@SuppressWarnings("rawtypes")
 public class FormFirmante extends Stage {
     private final ProgressBar progressBar;
-    private final TableView table;
+    private final TableView<InfoCertificado> table;
+    private final Button buttonFirmar;
     private final long slot;
     private final int tipo;
     private String label;
@@ -44,6 +48,9 @@ public class FormFirmante extends Stage {
     private boolean forzarEnveloped;
     private boolean usarPrefijo;
     private String node;
+    private FormContrasena contrasenaInicial;
+    private boolean errorCertificados;
+    private String mensajeError;
 
     private ConfiguracionFirmador getConfigFirmador() {
         Config config = Config.getInstance();
@@ -55,26 +62,32 @@ public class FormFirmante extends Stage {
         return configFirmador;
     }
 
-    @SuppressWarnings("unchecked")
     public FormFirmante(Stage parent, long slot, int tipo) {
         this.slot = slot;
         this.tipo = tipo;
         this.label = null;
-        setTitle("Seleccione el certificado a utilizar para la firma");
+        setTitle("Jacobitus · Autorización de firma");
         IconosVentana.aplicarAplicacion(this);
         initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);
         BorderPane root = new BorderPane();
         progressBar = new ProgressBar();
         progressBar.prefWidthProperty().bind(root.widthProperty());
-        root.setTop(progressBar);
-        table = new TableView();
-        TableColumn tokenCol = new TableColumn("Alias");
-        tokenCol.setCellValueFactory(new PropertyValueFactory("alias"));
-        TableColumn nombreCol = new TableColumn("Titular");
-        nombreCol.setCellValueFactory(new PropertyValueFactory("nombreComunSujeto"));
-        TableColumn descCol = new TableColumn("Descripción");
-        descCol.setCellValueFactory(new PropertyValueFactory("descripcionSujeto"));
+        progressBar.setVisible(false);
+        progressBar.setManaged(false);
+        Label instruccion = new Label("Seleccione un certificado y presione «Firmar documento».");
+        instruccion.setStyle("-fx-text-fill: #3d4852;");
+        VBox encabezado = new VBox(6, progressBar, instruccion);
+        encabezado.setPadding(new javafx.geometry.Insets(8, 8, 6, 8));
+        root.setTop(encabezado);
+        table = new TableView<>();
+        table.setPlaceholder(new Label("Los certificados aparecerán después de validar el PIN."));
+        TableColumn<InfoCertificado, String> tokenCol = new TableColumn<>("Alias");
+        tokenCol.setCellValueFactory(new PropertyValueFactory<>("alias"));
+        TableColumn<InfoCertificado, String> nombreCol = new TableColumn<>("Titular");
+        nombreCol.setCellValueFactory(new PropertyValueFactory<>("nombreComunSujeto"));
+        TableColumn<InfoCertificado, String> descCol = new TableColumn<>("Descripción");
+        descCol.setCellValueFactory(new PropertyValueFactory<>("descripcionSujeto"));
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         table.getColumns().setAll(tokenCol, nombreCol, descCol);
         table.setRowFactory(tv -> {
@@ -95,30 +108,66 @@ public class FormFirmante extends Stage {
             };
         });
         root.setCenter(table);
-        Scene scene = new Scene(root, 560, 260);
+
+        buttonFirmar = new Button("Firmar documento");
+        buttonFirmar.setDisable(true);
+        buttonFirmar.setMinWidth(125);
+        Button buttonCancelar = new Button("Cancelar");
+        buttonCancelar.setOnAction(event -> close());
+        Region espacio = new Region();
+        HBox.setHgrow(espacio, javafx.scene.layout.Priority.ALWAYS);
+        HBox acciones = new HBox(8, espacio, buttonCancelar, buttonFirmar);
+        acciones.setAlignment(Pos.CENTER_RIGHT);
+        acciones.setPadding(new javafx.geometry.Insets(8, 18, 12, 18));
+        root.setBottom(acciones);
+        Scene scene = new Scene(root, 560, 300);
         setScene(scene);
+        setMinWidth(560);
+        setMinHeight(300);
+        setResizable(true);
+        setOpacity(0);
 
         table.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
             if (newSelection == null) {
+                buttonFirmar.setDisable(true);
                 return;
             }
-            label = ((InfoCertificado)newSelection).getAlias();
-            close();
+            buttonFirmar.setDisable(false);
+        });
+        buttonFirmar.setOnAction(event -> {
+            InfoCertificado seleccionado = (InfoCertificado) table.getSelectionModel().getSelectedItem();
+            if (seleccionado != null) {
+                label = seleccionado.getAlias();
+                close();
+            }
         });
 
         setOnShown((WindowEvent t) -> javafx.application.Platform.runLater(() -> {
-            FormContrasena contrasena = new FormContrasena(FormFirmante.this, tipo);
-            contrasena.showAndWait();
-            if (contrasena.getPass() == null) {
-                close();
+            if (contrasenaInicial == null) {
+                FormContrasena contrasena = new FormContrasena(FormFirmante.this, tipo);
+                contrasena.showAndWait();
+                if (contrasena.getPass() == null) {
+                    close();
+                } else {
+                    cargarContrasena(contrasena);
+                }
             } else {
-                pass = contrasena.getPass();
-                forzarEnveloped = contrasena.getForzarEnveloped();
-                usarPrefijo = contrasena.getUsarPrefijo();
-                node = contrasena.getNode();
-                new Thread(listarCertificados(pass)).start();
+                cargarContrasena(contrasenaInicial);
             }
         }));
+    }
+
+    public FormFirmante(Stage parent, long slot, int tipo, FormContrasena contrasena) {
+        this(parent, slot, tipo);
+        this.contrasenaInicial = contrasena;
+    }
+
+    private void cargarContrasena(FormContrasena contrasena) {
+        pass = contrasena.getPass();
+        forzarEnveloped = contrasena.getForzarEnveloped();
+        usarPrefijo = contrasena.getUsarPrefijo();
+        node = contrasena.getNode();
+        new Thread(listarCertificados(pass)).start();
     }
 
     public String getLabel() {
@@ -145,8 +194,19 @@ public class FormFirmante extends Stage {
         return node;
     }
 
+    public boolean isErrorCertificados() {
+        return errorCertificados;
+    }
+
+    public String getMensajeError() {
+        return mensajeError;
+    }
+
     public Task<List<InfoCertificado>> listarCertificados(String pass) {
         progressBar.progressProperty().unbind();
+        progressBar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
+        progressBar.setVisible(true);
+        progressBar.setManaged(true);
         Task<List<InfoCertificado>> task = new Task<List<InfoCertificado>>() {
             @SuppressWarnings("unchecked")
             @Override
@@ -199,32 +259,34 @@ public class FormFirmante extends Stage {
                 }
             }
         };
-        progressBar.progressProperty().bind(task.progressProperty());
         task.setOnSucceeded((WorkerStateEvent evt) -> {
+            progressBar.progressProperty().unbind();
+            progressBar.setProgress(0);
+            progressBar.setVisible(false);
+            progressBar.setManaged(false);
             table.setItems(FXCollections.observableList(task.getValue()));
             TableViewHelper.ajustarColumnas(table);
+            table.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
+            if (table.getItems().size() == 1) {
+                table.getSelectionModel().selectFirst();
+            }
+            setOpacity(1);
+            if (table.getItems().size() == 1) {
+                javafx.application.Platform.runLater(table::requestFocus);
+            }
         });
         task.setOnFailed((WorkerStateEvent evt) -> {
-            String err = task.getException().getMessage();
-            Alert alert = new Alert(AlertType.WARNING, err);
-            alert.initOwner(this);
-            alert.initModality(Modality.APPLICATION_MODAL);
-            IconosVentana.aplicarModal(alert);
-            alert.showAndWait();
-
+            progressBar.progressProperty().unbind();
+            progressBar.setProgress(0);
+            progressBar.setVisible(false);
+            progressBar.setManaged(false);
+            String err = task.getException() == null
+                    ? "No se pudieron obtener los certificados."
+                    : task.getException().getMessage();
             this.pass = null;
-
-            FormContrasena contrasena = new FormContrasena(FormFirmante.this, tipo);
-            contrasena.showAndWait();
-            if (contrasena.getPass() == null) {
-                close();
-            } else {
-                this.pass = contrasena.getPass();
-                this.forzarEnveloped = contrasena.getForzarEnveloped();
-                this.usarPrefijo = contrasena.getUsarPrefijo();
-                this.node = contrasena.getNode();
-                new Thread(listarCertificados(this.pass)).start();
-            }
+            this.errorCertificados = true;
+            this.mensajeError = err;
+            close();
         });
         return task;
     }
