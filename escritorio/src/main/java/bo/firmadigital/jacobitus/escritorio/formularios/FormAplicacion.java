@@ -1094,9 +1094,23 @@ public class FormAplicacion extends Application {
 
     private IncidenciaFirmaArchivo registrarIncidenciaFirma(String ruta, Exception error) {
         CategoriaErrorFirma categoria = ResultadoErroresFirma.clasificar(error);
+        String codigoDiagnostico = obtenerCodigoDiagnostico(error);
+        String detalleCodigo = codigoDiagnostico == null ? "" : ", " + codigoDiagnostico;
         Logger.getLogger(FormAplicacion.class.getName()).log(Level.WARNING,
-                "No se pudo firmar el archivo " + ruta + " (" + categoria.name() + ").", error);
-        return new IncidenciaFirmaArchivo(ruta, categoria);
+                "No se pudo firmar el archivo " + ruta + " (" + categoria.name() + detalleCodigo + ").", error);
+        return new IncidenciaFirmaArchivo(ruta, categoria, codigoDiagnostico);
+    }
+
+    private String obtenerCodigoDiagnostico(Throwable error) {
+        for (Throwable causa = error; causa != null; causa = causa.getCause()) {
+            if (causa instanceof JacobitusException) {
+                String codigo = ((JacobitusException) causa).getCodigoDiagnostico();
+                if (codigo != null) {
+                    return codigo;
+                }
+            }
+        }
+        return null;
     }
 
     private IToken iniciarTokenFirma(long slotID, String contrasenia) throws GeneralSecurityException {

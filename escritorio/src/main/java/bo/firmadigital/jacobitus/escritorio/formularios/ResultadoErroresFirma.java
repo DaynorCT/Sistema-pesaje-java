@@ -19,10 +19,12 @@ final class ResultadoErroresFirma {
 
     static final class Grupo {
         private final CategoriaErrorFirma categoria;
+        private final String codigoDiagnostico;
         private final List<String> nombresArchivos;
 
-        private Grupo(CategoriaErrorFirma categoria, List<String> nombresArchivos) {
+        private Grupo(CategoriaErrorFirma categoria, String codigoDiagnostico, List<String> nombresArchivos) {
             this.categoria = categoria;
+            this.codigoDiagnostico = codigoDiagnostico;
             this.nombresArchivos = Collections.unmodifiableList(new ArrayList<>(nombresArchivos));
         }
 
@@ -31,7 +33,27 @@ final class ResultadoErroresFirma {
         }
 
         String getMensajeUsuario() {
+            if (codigoDiagnostico != null) {
+                return mensajePorCodigo(codigoDiagnostico, categoria);
+            }
             return categoria.getMensajeUsuario();
+        }
+
+        private String mensajePorCodigo(String codigo, CategoriaErrorFirma categoria) {
+            switch (codigo) {
+                case "PDF-101":
+                    return "El PDF parece dañado o incompleto.";
+                case "PDF-102":
+                    return "El archivo no parece ser un PDF completo.";
+                case "PDF-103":
+                    return "El contenido del PDF está incompleto o dañado.";
+                case "PDF-104":
+                    return "La estructura de este PDF impide firmarlo.";
+                case "PDF-105":
+                    return "No se identificó una causa específica para el error al firmar el PDF.";
+                default:
+                    return categoria.getMensajeUsuario();
+            }
         }
 
         List<String> getNombresArchivos() {
@@ -56,7 +78,7 @@ final class ResultadoErroresFirma {
 
     static ResultadoErroresFirma crear(Throwable error, List<IncidenciaFirmaArchivo> incidencias,
             int cantidadDocumentos, int cantidadFirmados) {
-        Map<CategoriaErrorFirma, List<String>> archivosPorCategoria = new LinkedHashMap<>();
+        Map<CategoriaErrorFirma, Map<String, List<String>>> archivosPorCategoriaYCodigo = new LinkedHashMap<>();
         if (incidencias != null) {
             for (IncidenciaFirmaArchivo incidencia : incidencias) {
                 if (incidencia == null) {
@@ -65,19 +87,25 @@ final class ResultadoErroresFirma {
                 CategoriaErrorFirma categoria = incidencia.categoria == null
                         ? CategoriaErrorFirma.OTRO : incidencia.categoria;
                 String nombreArchivo = new File(incidencia.ruta).getName();
-                archivosPorCategoria.computeIfAbsent(categoria, key -> new ArrayList<>()).add(nombreArchivo);
+                String codigo = incidencia.codigoDiagnostico == null ? "" : incidencia.codigoDiagnostico;
+                archivosPorCategoriaYCodigo.computeIfAbsent(categoria, key -> new LinkedHashMap<>())
+                        .computeIfAbsent(codigo, key -> new ArrayList<>()).add(nombreArchivo);
             }
         }
 
-        if (archivosPorCategoria.isEmpty()) {
+        if (archivosPorCategoriaYCodigo.isEmpty()) {
             CategoriaErrorFirma categoria = clasificar(error);
             return new ResultadoErroresFirma(Tipo.GENERAL, categoria, cantidadDocumentos, cantidadFirmados,
                     Collections.emptyList());
         }
 
         List<Grupo> grupos = new ArrayList<>();
-        for (Map.Entry<CategoriaErrorFirma, List<String>> entrada : archivosPorCategoria.entrySet()) {
-            grupos.add(new Grupo(entrada.getKey(), entrada.getValue()));
+        for (Map.Entry<CategoriaErrorFirma, Map<String, List<String>>> entrada : archivosPorCategoriaYCodigo
+                .entrySet()) {
+            for (Map.Entry<String, List<String>> grupoPorCodigo : entrada.getValue().entrySet()) {
+                String codigo = grupoPorCodigo.getKey().isEmpty() ? null : grupoPorCodigo.getKey();
+                grupos.add(new Grupo(entrada.getKey(), codigo, grupoPorCodigo.getValue()));
+            }
         }
         return new ResultadoErroresFirma(Tipo.ARCHIVOS, null, cantidadDocumentos, cantidadFirmados, grupos);
     }
