@@ -6,12 +6,17 @@ import java.util.logging.Logger;
 import org.codehaus.jettison.json.JSONObject;
 
 import bo.firmadigital.jacobitus.escritorio.formularios.FormAplicacion;
+import bo.firmadigital.jacobitus.escritorio.utilidades.AutoInicioHelper;
 
 public class Main {
     public static void main(String[] args) {
+        boolean iniciarEnSegundoPlano = args.length == 1
+                && AutoInicioHelper.ARGUMENTO_SEGUNDO_PLANO.equals(args[0]);
         Request req = new Request();
         if (req.estado()) {
-            if (args.length == 1) {
+            if (iniciarEnSegundoPlano) {
+                return;
+            } else if (args.length == 1) {
                 req.show(args[0]);
             } else {
                 req.show();
@@ -19,7 +24,9 @@ public class Main {
         } else {
             try {
                 WebServer.iniciar();
-                if (args.length == 1) {
+                if (iniciarEnSegundoPlano) {
+                    FormAplicacion.run(true, true, true);
+                } else if (args.length == 1) {
                     String[] parts = args[0].split("\\?");
                     if (parts.length == 2) {
                         JSONObject body = Request.splitQuery(parts[1]);

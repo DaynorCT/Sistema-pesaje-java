@@ -1,4 +1,6 @@
 import org.gradle.internal.os.OperatingSystem
+import org.gradle.api.tasks.options.Option
+import org.gradle.api.tasks.Internal
 
 plugins {
     id 'java'
@@ -8,14 +10,110 @@ plugins {
 }
 
 group = 'bo.firmadigital.jacobitus.escritorio'
-version = '2.0.1'
+version = '2.1.0'
 mainClassName = 'bo.firmadigital.jacobitus.escritorio.Main'
 
 def appName = 'Jacobitus Escritorio'
-def appDescription = 'Solución completa para la administración de tu dispositivo criptográfico y firma digital'
+def appDescription = 'Aplicaci\u00f3n de escritorio para firma digital.'
 def jarName = "jacobitus-escritorio"
 def vendorName = 'AGETIC'
 def maintainer = 'desarrollo@firmadigital.bo'
+def appBaseVersion = version.toString()
+def packageRelease = '1'
+def buildTimestamp = System.currentTimeMillis().toString()
+ext.buildAppProfile = null
+
+def appProfile = { profile ->
+    def suffix = (profile ?: '').trim().toLowerCase().replaceAll(/[^a-z0-9._-]/, '-')
+    if (suffix == 'prod') {
+        suffix = ''
+    }
+    suffix
+}
+
+def artifactVersion = { profile ->
+    def suffix = appProfile(profile)
+    suffix ? "${appBaseVersion}-${suffix}" : appBaseVersion
+}
+
+def appRuntimeProperties = { profile ->
+    [
+            "-Djacobitus.version=${appBaseVersion}",
+            "-Djacobitus.profile=${appProfile(profile)}",
+            "-Djacobitus.compilacion=${buildTimestamp}"
+    ]
+}
+
+class BuildAppTask extends DefaultTask {
+    @Internal
+    String profile
+
+    @Option(option = 'app-profile', description = 'Perfil de distribucion del instalador. Ej: prod, dev, test, demo')
+    void setProfile(String profile) {
+        this.profile = profile
+        project.ext.buildAppProfile = profile
+    }
+}
+
+class PackageAppTask extends Exec {
+    @Internal
+    String profile
+
+    @Option(option = 'app-profile', description = 'Perfil de distribucion del instalador. Ej: prod, dev, test, demo')
+    void setProfile(String profile) {
+        this.profile = profile
+        project.ext.buildAppProfile = profile
+    }
+}
+
+class PackageRpmTask extends DefaultTask {
+    @Internal
+    String profile
+
+    @Option(option = 'app-profile', description = 'Perfil de distribucion del instalador. Ej: prod, dev, test, demo')
+    void setProfile(String profile) {
+        this.profile = profile
+        project.ext.buildAppProfile = profile
+    }
+}
+
+class PackageArchTask extends DefaultTask {
+    @Internal
+    String profile
+
+    @Option(option = 'app-profile', description = 'Perfil de distribucion del instalador. Ej: prod, dev, test, demo')
+    void setProfile(String profile) {
+        this.profile = profile
+        project.ext.buildAppProfile = profile
+    }
+}
+
+def distSnapshot = {
+    def distDir = file("${projectDir}/dist")
+    distDir.exists() ? distDir.listFiles().collect { it.name } as Set : [] as Set
+}
+
+def renameProfileArtifacts = { before, buildStartedAt, displayVersion ->
+    if (displayVersion == appBaseVersion) {
+        return
+    }
+
+    def distDir = file("${projectDir}/dist")
+    if (!distDir.exists()) {
+        return
+    }
+
+    distDir.listFiles()
+            .findAll { (!before.contains(it.name) || it.lastModified() >= buildStartedAt) && it.name.contains(appBaseVersion) }
+            .each { artifact ->
+                def renamedArtifact = file("${artifact.parent}/${artifact.name.replace(appBaseVersion, displayVersion)}")
+                delete renamedArtifact
+                if (!artifact.renameTo(renamedArtifact)) {
+                    throw new GradleException("No se pudo renombrar ${artifact.name} a ${renamedArtifact.name}")
+                }
+                logger.lifecycle("Artefacto generado: ${renamedArtifact.name}")
+            }
+}
 
 def os = OperatingSystem.current()
 def arch = System.getProperty("os.arch").toLowerCase()
@@ -43,7 +141,6 @@ dependencies {
     implementation 'org.glassfish.jersey.inject:jersey-hk2:2.43'
 
     implementation 'org.bouncycastle:bcpkix-jdk18on:1.78'
-    implementation 'com.itextpdf:sign:7.2.6'
     implementation 'com.nimbusds:nimbus-jose-jwt:9.1.2'
     implementation 'org.codehaus.jettison:jettison:1.5.1'
     implementation 'org.codehaus.jackson:jackson-mapper-asl:1.9.13'
@@ -100,6 +197,42 @@ tasks.withType(JavaExec).configureEach {
     jvmArgs += '-Dfile.encoding=UTF-8'
 }
 
+def generatedResourcesDir = layout.buildDirectory.dir('generated/resources/main')
+
+tasks.register('generateAppInfo') {
+    inputs.property 'appDescription', appDescription
+    outputs.dir generatedResourcesDir
+    doLast {
+        def outputDir = generatedResourcesDir.get().asFile
+        outputDir.mkdirs()
+        def propertiesFile = new File(outputDir, 'jacobitus.properties')
+        propertiesFile.setText("descripcion=${appDescription}\n", 'UTF-8')
+    }
+}
+
+sourceSets {
+    main {
+        resources.srcDir generatedResourcesDir
+    }
+}
+
+tasks.named('processResources') {
+    dependsOn tasks.named('generateAppInfo')
+}
+
+tasks.named('run', JavaExec) {
+    doFirst {
+        def runProfile = project.findProperty('profile') ?: 'dev'
+        setJvmArgs((getJvmArgs() ?: [])
+                .findAll { arg ->
+                            !arg.startsWith('-Djacobitus.version=') &&
+                            !arg.startsWith('-Djacobitus.profile=') &&
+                            !arg.startsWith('-Djacobitus.compilacion=')
+                }
+                + appRuntimeProperties(runProfile))
+    }
+}
+
 tasks.register('importCA', Copy) {
     from 'ca'
     into 'build/libs/ca'
@@ -143,17 +276,20 @@ def jpackageCmd = [
     '--verbose',
     '--input', 'build/libs',
     '--main-class', mainClassName,
-    '--main-jar', "${jarName}-${version.replace('-1', '')}.jar",
+    '--main-jar', "${jarName}-${appBaseVersion}.jar",
     '--vendor', vendorName,
     '--dest', 'dist',
     '--name', appName,
-    '--app-version', version.replace('-1', ''),
+    '--app-version', appBaseVersion,
     '--description', appDescription,
     '--file-associations', 'FAjws.properties',
     '--file-associations', 'FAp7s.properties',
     '--file-associations', 'FApdf.properties',
     '--java-options', '-Dfile.encoding=UTF-8',
-    '--license-file', 'license.txt'
+    '--java-options', "-Djacobitus.version=${appBaseVersion}",
+    '--java-options', '-Djacobitus.profile=',
+    '--java-options', "-Djacobitus.compilacion=${buildTimestamp}",
+    '--license-file', os.isWindows() ? 'license.rtf' : 'license.txt'
 ]
 
 tasks.register('copyAllDependencies') {
@@ -185,7 +321,7 @@ tasks.register('copyAllDependencies') {
     }
 }
 
-tasks.register('packageApp', Exec) {
+tasks.register('packageApp', PackageAppTask) {
 
     group = 'distribution'
 
@@ -249,10 +385,30 @@ tasks.register('packageApp', Exec) {
     tasks.findByName('addDrivers').mustRunAfter('clean', ':jacobitus-libreria:buildNative')
     tasks.findByName('importChangePin').mustRunAfter('clean', ':jacobitus-libreria:buildNative')
 
-    commandLine(jpackageCmd + osArgs)
+    def distBefore = [] as Set
+    def distBuildStartedAt = 0L
+
+    doFirst {
+        def profile = appProfile(project.ext.buildAppProfile)
+        distBefore = distSnapshot()
+        distBuildStartedAt = System.currentTimeMillis() - 2000
+        commandLine(jpackageCmd.collect {
+            it == '-Djacobitus.profile=' ? "-Djacobitus.profile=${profile}" : it
+        } + osArgs)
+    }
+
+    doLast {
+        renameProfileArtifacts(distBefore, distBuildStartedAt, artifactVersion(project.ext.buildAppProfile))
+    }
 }
 
-tasks.register('packageRpm') {
+tasks.register('buildApp', BuildAppTask) {
+    group = 'distribution'
+    dependsOn packageApp
+    doLast {}
+}
+
+tasks.register('packageRpm', PackageRpmTask) {
 
     group = 'distribution'
 
@@ -303,14 +459,16 @@ tasks.register('packageRpm') {
                     '--verbose',
                     '--input', 'build/libs',
                     '--main-class', mainClassName,
-                    '--main-jar', "${jarName}-${version.replace('-1', '')}.jar",
+                    '--main-jar', "${jarName}-${appBaseVersion}.jar",
                     '--vendor', vendorName,
                     '--dest', tempAppImageDir.absolutePath,
                     '--name', appName,
-                    '--app-version', version.replace('-1', ''),
+                    '--app-version', appBaseVersion,
                     '--description', appDescription,
                     '--java-options', '-Dfile.encoding=UTF-8',
-
+                    '--java-options', appRuntimeProperties(project.ext.buildAppProfile)[0],
+                    '--java-options', appRuntimeProperties(project.ext.buildAppProfile)[1],
+                    '--java-options', appRuntimeProperties(project.ext.buildAppProfile)[2],
                     '--type', 'app-image',
                     '--icon', './iconos/icon.png',
             ])
@@ -371,8 +529,8 @@ tasks.register('packageRpm') {
         def specContent = specTemplate.text
                 .replace('@SUMMARY@', appName)
                 .replace('@NAME@', jarName)
-                .replace('@VERSION@', version)
-                .replace('@RELEASE@', '1')
+                .replace('@VERSION@', appBaseVersion)
+                .replace('@RELEASE@', packageRelease)
                 .replace('@LICENSE@', 'LPG-Bolivia')
                 .replace('@VENDOR@', vendorName)
                 .replace('@PREFIX@', '/opt')
@@ -406,16 +564,19 @@ tasks.register('packageRpm') {
 
         def rpmOutput = rpmFiles.first()
 
+        def artifactVersionWithProfile = artifactVersion(project.ext.buildAppProfile)
+
         copy {
             from rpmOutput
             into "${projectDir}/dist"
+            rename { it.replace(appBaseVersion, artifactVersionWithProfile) }
         }
 
-        logger.lifecycle("RPM generado: ${rpmOutput.name}")
+        logger.lifecycle("RPM generado: ${rpmOutput.name.replace(appBaseVersion, artifactVersionWithProfile)}")
     }
 }
 
-tasks.register('packageArch') {
+tasks.register('packageArch', PackageArchTask) {
     group = 'distribution'
 
     def appCategory = 'Utility'
@@ -458,13 +619,16 @@ tasks.register('packageArch') {
                     '--verbose',
                     '--input', 'build/libs',
                     '--main-class', mainClassName,
-                    '--main-jar', "${jarName}-${version.replace('-1', '')}.jar",
+                    '--main-jar', "${jarName}-${appBaseVersion}.jar",
                     '--vendor', vendorName,
                     '--dest', tempAppImageDir.absolutePath,
                     '--name', appName,
-                    '--app-version', version.replace('-1', ''),
+                    '--app-version', appBaseVersion,
                     '--description', appDescription,
                     '--java-options', '-Dfile.encoding=UTF-8',
+                    '--java-options', appRuntimeProperties(project.ext.buildAppProfile)[0],
+                    '--java-options', appRuntimeProperties(project.ext.buildAppProfile)[1],
+                    '--java-options', appRuntimeProperties(project.ext.buildAppProfile)[2],
                     '--type', 'app-image',
                     '--icon', './iconos/icon.png',
             ])
@@ -549,8 +713,8 @@ tasks.register('packageArch') {
         
         def pkgbuildContent = pkgbuildTemplate.text
                 .replace('@PKGNAME@', jarName.toLowerCase())
-                .replace('@PKGVER@', version.replace('-1', ''))
-                .replace('@PKGREL@', '1')
+                .replace('@PKGVER@', appBaseVersion)
+                .replace('@PKGREL@', packageRelease)
                 .replace('@PKGDESC@', appDescription)
                 .replace('@ARCH@', 'x86_64')
                 .replace('@URL@', 'https://firmadigital.bo/herramientas/jacobitus-escritorio')
@@ -580,11 +744,14 @@ tasks.register('packageArch') {
 
         def pkgOutput = pkgFiles.first()
 
+        def artifactVersionWithProfile = artifactVersion(project.ext.buildAppProfile)
+
         copy {
             from pkgOutput
             into "${projectDir}/dist"
+            rename { it.replace(appBaseVersion, artifactVersionWithProfile) }
         }
 
-        logger.lifecycle("Paquete Arch compilado con éxito: ${pkgOutput.name} en dist/")
+        logger.lifecycle("Paquete Arch compilado con éxito: ${pkgOutput.name.replace(appBaseVersion, artifactVersionWithProfile)} en dist/")
     }
 }

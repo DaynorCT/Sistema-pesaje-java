@@ -2,6 +2,7 @@ package bo.firmadigital.jacobitus.escritorio.formularios;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
+import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -19,7 +20,8 @@ public class FormContrasenaMac extends Stage {
     private String pass;
 
     public FormContrasenaMac(Stage parent) {
-        setTitle("Seguridad MacOS");
+        setTitle("Seguridad macOS");
+        IconosVentana.aplicarAplicacion(this);
         initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);
         BorderPane root = new BorderPane();
@@ -39,6 +41,7 @@ public class FormContrasenaMac extends Stage {
             }
         });
         vBox.getChildren().add(passwordField);
+        vBox.getChildren().add(IndicadorTeclado.crearIndicadorBloqMayus(passwordField));
         vBox.getChildren().add(new Separator(Orientation.HORIZONTAL));
         root.setCenter(vBox);
         Button buttonAceptar = new Button("Aceptar");
@@ -55,8 +58,11 @@ public class FormContrasenaMac extends Stage {
         hBox.setSpacing(4);
         hBox.getChildren().addAll(buttonAceptar, buttonCancelar);
         root.setBottom(hBox);
-        Scene scene = new Scene(root, 300, 145);
+        Scene scene = new Scene(root);
         setScene(scene);
+        setMinWidth(300);
+        setResizable(false);
+        setOnShown(event -> Platform.runLater(this::sizeToScene));
     }
 
     public String getPass() {

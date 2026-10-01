@@ -37,7 +37,7 @@ public class Config {
                 token = null;
             }
         } catch (IOException ex) {
-            throw new JacobitusException("No se pudo obtener las opciones.");
+            throw new JacobitusException("No se pudieron obtener las opciones.");
         }
     }
 
@@ -137,6 +137,19 @@ public class Config {
         }
     }
 
+    public boolean isAutoStartEnabled() {
+        String autoStart = options.getProperty("autoStart");
+        return autoStart != null && autoStart.equals("true");
+    }
+
+    public void setAutoStartEnabled(boolean autoStart) {
+        if (autoStart) {
+            options.setProperty("autoStart", "true");
+        } else {
+            options.setProperty("autoStart", "false");
+        }
+    }
+
     public File getToken() {
         token = new File(user, "softoken.p12");
         if (!token.exists()) {
@@ -171,112 +184,6 @@ public class Config {
             options.remove("driver");
         } else {
             options.setProperty("driver", file.getPath());
-        }
-    }
-
-    public boolean isHsmEnabled() {
-        String hsm = options.getProperty("hsm");
-        return hsm != null && hsm.equals("true");
-    }
-
-    public void setHsmEnabled(boolean hsm) {
-        if (hsm) {
-            options.setProperty("hsm", "true");
-        } else {
-            options.setProperty("hsm", "false");
-        }
-    }
-
-    public String getHsmCloud() {
-        if (options.containsKey("hsmCloud")) {
-            return options.getProperty("hsmCloud");
-        } else {
-            return "https://firmadigital.bo/cloud_hsm/services/api/v1/hsm";
-        }
-    }
-
-    public void setHsmCloud(String url) {
-        if (url == null) {
-            options.remove("hsmCloud");
-        } else {
-            options.setProperty("hsmCloud", url);
-        }
-    }
-
-    public String getHsmJWT() {
-        if (options.containsKey("hsmJWT")) {
-            return options.getProperty("hsmJWT");
-        } else {
-            return null;
-        }
-    }
-
-    public void setHsmJWT(String jwt) {
-        if (jwt == null || jwt.trim().equals("")) {
-            options.remove("hsmJWT");
-        } else {
-            options.setProperty("hsmJWT", jwt);
-        }
-    }
-
-    public boolean isTSEnabled() {
-        String ts = options.getProperty("ts");
-        return ts != null && ts.equals("true");
-    }
-
-    public void setTSEnabled(boolean ts) {
-        if (ts) {
-            options.setProperty("ts", "true");
-        } else {
-            options.setProperty("ts", "false");
-        }
-    }
-
-    public String getTS() {
-        if (options.containsKey("TS")) {
-            return options.getProperty("TS");
-        } else {
-            return "https://firmadigital.bo/sellado_tiempo/timestamp/api/v1/sellado";
-        }
-    }
-
-    public void setTS(String url) {
-        if (url == null || url.trim().equals("")) {
-            options.remove("TS");
-        } else {
-            options.setProperty("TS", url);
-        }
-    }
-
-    public String getTSJWT() {
-        if (options.containsKey("TSJWT")) {
-            return options.getProperty("TSJWT");
-        } else {
-            return "";
-        }
-    }
-
-    public void setTSJWT(String user) {
-        if (user == null || user.trim().equals("")) {
-            options.remove("TSJWT");
-        } else {
-            options.setProperty("TSJWT", user);
-        }
-    }
-
-    public String getHsmType() {
-        if (options.containsKey("hsmType")) {
-            return options.getProperty("hsmType");
-        } else {
-            return "HSM";
-        }
-    }
-
-    public void setHsmType(String type) {
-        if (type == null) {
-            options.remove("hsmType");
-        } else {
-            options.setProperty("hsmType", type);
         }
     }
 

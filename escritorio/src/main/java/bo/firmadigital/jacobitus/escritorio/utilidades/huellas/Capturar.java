@@ -31,7 +31,7 @@ public class Capturar {
     public static void capturar(Fingerprint fingerprint) {
         DPFPReadersCollection readers = DPFPGlobal.getReadersFactory().getReaders();
         if (readers.size() != 1) {
-            throw new JacobitusException("No se econtró el lector de huellas.");
+            throw new JacobitusException("No se encontró el lector de huellas.");
         }
         DPFPCapture capture = DPFPGlobal.getCaptureFactory().createCapture();
         capture.setReaderSerialNumber(readers.get(0).getSerialNumber());

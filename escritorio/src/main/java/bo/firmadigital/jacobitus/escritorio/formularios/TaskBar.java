@@ -187,7 +187,7 @@ public class TaskBar {
             }
         } catch (Exception ex) {
             Logger.getLogger(FormAplicacion.class.getName()).log(Level.WARNING,
-                    "No se pudo preparar alias para Ayatana AppIndicator", ex);
+                    "No se pudo preparar el alias para Ayatana AppIndicator", ex);
         }
     }
 
@@ -268,7 +268,7 @@ public class TaskBar {
             return "No se puede iniciar el icono en bandeja porque Dorkbox SystemTray no soporta ChromeOS.";
         }
         return "Se detectó el entorno " + entorno
-                + ". No se pudo crear el icono en bandeja. Verifique que libayatana-appindicator3/libappindicator3 esté instalado o que el panel tenga habilitada el área de notificación.";
+                + ". No se pudo crear el icono en la bandeja. Verifique que libayatana-appindicator3/libappindicator3 esté instalado o que el panel tenga habilitada el área de notificación.";
     }
 
     public static String diagnosticoActivacionUnix() {
