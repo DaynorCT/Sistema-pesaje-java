@@ -7,6 +7,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import bo.firmadigital.jacobitus.escritorio.comun.Config;
+import bo.firmadigital.jacobitus.escritorio.utilidades.AutoInicioHelper;
 import bo.firmadigital.jacobitus.firmador.base.ConfiguracionFirmador;
 import bo.firmadigital.jacobitus.token.Slot;
 import bo.firmadigital.jacobitus.token.TokenPKCS12;
@@ -38,12 +39,6 @@ public class FormConfiguracion extends Stage {
     private TextField textFieldPort;
     private TextField textFieldToken;
     private final Button buttonControlador;
-    // private final CheckBox checkBoxHsm;
-    // private TextField textFieldHsmCloud;
-    // private TextField textFieldHsmJWT;
-    // private final CheckBox checkBoxTS;
-    // private TextField textFieldTS;
-    // private TextField textFieldTSJWT;
 
     private ConfiguracionFirmador getConfigFirmador() {
         Config config = Config.getInstance();
@@ -52,18 +47,12 @@ public class FormConfiguracion extends Stage {
         configFirmador.setSoftoken(config.getToken());
         configFirmador.setDirectorioControladores(config.getDirectorioControladores());
         configFirmador.setDispositivosCompatibles(config.getDispositivosCompatibles());
-        configFirmador.setSelloTiempoHabilitado(config.isTSEnabled());
-        configFirmador.setApiSelloTiempo(config.getTS());
-        configFirmador.setJwtSelloTiempo(config.getTSJWT());
-        configFirmador.setHsmHabilitado(config.isHsmEnabled());
-        configFirmador.setTipoHsm(config.getHsmType());
-        configFirmador.setApiHsm(config.getHsmCloud());
-        configFirmador.setJwtHsm(config.getHsmJWT());
         return configFirmador;
     }
 
     public FormConfiguracion(Stage parent) {
         setTitle("Opciones de configuración");
+        IconosVentana.aplicarConfiguracion(this);
         initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);
         config = Config.getInstance();
@@ -96,7 +85,7 @@ public class FormConfiguracion extends Stage {
         vbox1.getChildren().add(labelPort);
         textFieldPort = new TextField("3128");
         vbox1.getChildren().add(textFieldPort);
-        Button buttonGuardar = new Button("Guardar Proxy");
+        Button buttonGuardar = new Button("Guardar proxy");
         buttonGuardar.setOnAction(t -> {
             config.setProxyEnabled(checkBox.isSelected());
             config.setProxyIP(textFieldIP.getText());
@@ -126,13 +115,9 @@ public class FormConfiguracion extends Stage {
                         alert.initOwner(parent);
                         alert.initModality(Modality.APPLICATION_MODAL);
                         alert.setTitle("Jacobitus");
+                        IconosVentana.aplicarModal(alert);
                         alert.showAndWait();
                     }
-                    // checkBoxEvent = true;
-                    // if (newValue && checkBoxPort3.isSelected()) {
-                    //     checkBoxEvent = false;
-                    //     checkBoxPort3.setSelected(false);
-                    // }
                 });
         checkBoxPort3.selectedProperty()
                 .addListener((ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) -> {
@@ -144,13 +129,9 @@ public class FormConfiguracion extends Stage {
                         alert.initOwner(parent);
                         alert.initModality(Modality.APPLICATION_MODAL);
                         alert.setTitle("Jacobitus");
+                        IconosVentana.aplicarModal(alert);
                         alert.showAndWait();
                     }
-                    // checkBoxEvent = true;
-                    // if (newValue && checkBoxPort2.isSelected()) {
-                    //     checkBoxEvent = false;
-                    //     checkBoxPort2.setSelected(false);
-                    // }
                 });
         vbox1.getChildren().add(checkBoxPort3);
         vbox1.getChildren().add(new Separator(Orientation.HORIZONTAL));
@@ -173,6 +154,7 @@ public class FormConfiguracion extends Stage {
                         alert.initModality(Modality.APPLICATION_MODAL);
                         alert.setTitle("Jacobitus");
                         alert.setHeaderText(null);
+                        IconosVentana.aplicarModal(alert);
                         alert.showAndWait();
                         checkBoxTrayIconEvent[0] = false;
                         checkBoxTrayIcon.setSelected(false);
@@ -181,6 +163,14 @@ public class FormConfiguracion extends Stage {
                     }
                     config.setTrayIconEnabled(newValue);
                     config.save();
+                    if (AutoInicioHelper.estaActivado()) {
+                        try {
+                            AutoInicioHelper.activar();
+                        } catch (RuntimeException ex) {
+                            Logger.getLogger(FormAplicacion.class.getName()).log(Level.WARNING,
+                                    "No se pudo actualizar el inicio automático", ex);
+                        }
+                    }
                     if (newValue && SistemaOperativoHelper.esUnix()) {
                         Alert alert = new Alert(Alert.AlertType.WARNING,
                                 TaskBar.diagnosticoActivacionUnix(), ButtonType.OK);
@@ -188,6 +178,7 @@ public class FormConfiguracion extends Stage {
                         alert.initModality(Modality.APPLICATION_MODAL);
                         alert.setTitle("Jacobitus");
                         alert.setHeaderText(null);
+                        IconosVentana.aplicarModal(alert);
                         alert.showAndWait();
                     }
                     Alert alert = new Alert(Alert.AlertType.WARNING,
@@ -196,8 +187,65 @@ public class FormConfiguracion extends Stage {
                     alert.initModality(Modality.APPLICATION_MODAL);
                     alert.setTitle("Jacobitus");
                     alert.setHeaderText(null);
+                    IconosVentana.aplicarModal(alert);
                     alert.showAndWait();
                 });
+
+        CheckBox checkBoxAutoInicio = new CheckBox("Iniciar automáticamente");
+        final boolean[] checkBoxAutoInicioEvent = { true };
+        checkBoxAutoInicio.setDisable(!AutoInicioHelper.estaSoportado());
+        boolean autoInicioActivado = AutoInicioHelper.estaActivado();
+        checkBoxAutoInicio.setSelected(autoInicioActivado);
+        config.setAutoStartEnabled(autoInicioActivado);
+        config.save();
+        checkBoxAutoInicio.selectedProperty()
+                .addListener((ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) -> {
+                    if (!checkBoxAutoInicioEvent[0]) {
+                        return;
+                    }
+                    try {
+                        if (newValue) {
+                            AutoInicioHelper.activar();
+                        } else {
+                            AutoInicioHelper.desactivar();
+                        }
+                        boolean estadoReal = AutoInicioHelper.estaActivado();
+                        config.setAutoStartEnabled(estadoReal);
+                        config.save();
+                        if (estadoReal != newValue) {
+                            Alert alert = new Alert(Alert.AlertType.WARNING,
+                                    "El sistema operativo no permitió cambiar el inicio automático.\n"
+                                            + "Revise la configuración de aplicaciones de inicio del sistema.",
+                                    ButtonType.OK);
+                            alert.initOwner(parent);
+                            alert.initModality(Modality.APPLICATION_MODAL);
+                            alert.setTitle("Jacobitus");
+                            alert.setHeaderText(null);
+                            IconosVentana.aplicarModal(alert);
+                            alert.showAndWait();
+                            checkBoxAutoInicioEvent[0] = false;
+                            checkBoxAutoInicio.setSelected(estadoReal);
+                            checkBoxAutoInicioEvent[0] = true;
+                        }
+                    } catch (RuntimeException ex) {
+                        Logger.getLogger(FormAplicacion.class.getName()).log(Level.WARNING,
+                                "No se pudo configurar el inicio automático", ex);
+                        Alert alert = new Alert(Alert.AlertType.WARNING,
+                                "No se pudo cambiar el inicio automático.\n"
+                                        + "Revise la configuración de aplicaciones de inicio de Windows.",
+                                ButtonType.OK);
+                        alert.initOwner(parent);
+                        alert.initModality(Modality.APPLICATION_MODAL);
+                        alert.setTitle("Jacobitus");
+                        alert.setHeaderText(null);
+                        IconosVentana.aplicarModal(alert);
+                        alert.showAndWait();
+                        checkBoxAutoInicioEvent[0] = false;
+                        checkBoxAutoInicio.setSelected(oldValue);
+                        checkBoxAutoInicioEvent[0] = true;
+                    }
+                });
+        vbox1.getChildren().add(checkBoxAutoInicio);
         vbox1.getChildren().add(checkBoxTrayIcon);
 
         CheckBox checkBoxConfirmarSalida = new CheckBox("Confirmar antes de salir");
@@ -236,7 +284,7 @@ public class FormConfiguracion extends Stage {
             buttonControlador.setDisable(true);
             if (config.getDriver() == null) {
                 FileChooser fileChooser = new FileChooser();
-                fileChooser.setTitle("Abrir Controlador");
+                fileChooser.setTitle("Abrir controlador");
                 if (SistemaOperativoHelper.esWindows()) {
                     FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("Controlador (*.dll)",
                             "*.dll");
@@ -268,45 +316,6 @@ public class FormConfiguracion extends Stage {
         });
         vbox2.getChildren().add(new Separator(Orientation.HORIZONTAL));
 
-        // Configuracion HSM
-        // vbox2.setPadding(new Insets(10));
-        // vbox2.setSpacing(8);
-        // vbox2.setMinWidth(210);
-        // Label titleHsm = new Label("Opciones HSM");
-        // titleHsm.setStyle("-fx-font-weight: bold");
-        // vbox2.getChildren().add(titleHsm);
-        // checkBoxHsm = new CheckBox("Utilizar HSM");
-        // checkBoxHsm.selectedProperty().addListener((ObservableValue<? extends
-        // Boolean> observable, Boolean oldValue, Boolean newValue) -> {
-        // textFieldHsmCloud.setDisable(!newValue);
-        // textFieldHsmJWT.setDisable(!newValue);
-        // if (newValue == false && config.isHsmEnabled() == false) {
-        // textFieldHsmCloud.setText(config.getHsmCloud());
-        // textFieldHsmJWT.setText(config.getHsmJWT());
-        // }
-        // });
-        // vbox2.getChildren().add(checkBoxHsm);
-        // Label labelHsmUrl = new Label("URL:");
-        // vbox2.getChildren().add(labelHsmUrl);
-        // textFieldHsmCloud = new TextField();
-        // textFieldHsmCloud.setText(config.getHsmCloud());
-        // vbox2.getChildren().add(textFieldHsmCloud);
-        // Label labelHsmJWT = new Label("Json Web Token:");
-        // vbox2.getChildren().add(labelHsmJWT);
-        // textFieldHsmJWT = new TextField();
-        // textFieldHsmJWT.setText(config.getHsmJWT());
-        // vbox2.getChildren().add(textFieldHsmJWT);
-        // Button buttonGuardarHsm = new Button("Guardar HSM");
-        // vbox2.getChildren().add(buttonGuardarHsm);
-        // buttonGuardarHsm.addEventHandler(MouseEvent.MOUSE_CLICKED, (MouseEvent t) ->
-        // {
-        // config.setHsmEnabled(checkBoxHsm.isSelected());
-        // config.setHsmCloud(textFieldHsmCloud.getText());
-        // config.setHsmJWT(textFieldHsmJWT.getText());
-        // config.save();
-        // close();
-        // });
-
         // Configuracion de softoken
         Label titleT = new Label("Softoken");
         titleT.setStyle("-fx-font-weight: bold");
@@ -316,7 +325,7 @@ public class FormConfiguracion extends Stage {
         textFieldToken = new TextField();
         textFieldToken.setDisable(true);
         vbox2.getChildren().add(textFieldToken);
-        Button buttonCrear = new Button("Crear Token");
+        Button buttonCrear = new Button("Crear token");
         Button btnAbrirUbicacion = new Button("Abrir ubicación");
         buttonCrear.setOnAction(t -> {
             FormContrasenaNueva contrasena = new FormContrasenaNueva(parent);
@@ -334,6 +343,7 @@ public class FormConfiguracion extends Stage {
                     alert.initOwner(parent);
                     alert.initModality(Modality.APPLICATION_MODAL);
                     alert.setTitle("Jacobitus");
+                    IconosVentana.aplicarModal(alert);
                     alert.showAndWait();
                 }
             }
@@ -358,52 +368,6 @@ public class FormConfiguracion extends Stage {
 
         root.getChildren().add(vbox2);
 
-        // Separator separator2 = new Separator(Orientation.VERTICAL);
-        // root.getChildren().add(separator2);
-
-        // VBox vbox3 = new VBox();
-
-        // Configuracion de sellado de tiempo
-        // vbox3.setPadding(new Insets(10));
-        // vbox3.setSpacing(8);
-        // vbox3.setMinWidth(210);
-        // Label titleTS = new Label("Opciones Sellado de Tiempo");
-        // titleTS.setStyle("-fx-font-weight: bold");
-        // vbox3.getChildren().add(titleTS);
-        // checkBoxTS = new CheckBox("Utilizar Sellado");
-        // checkBoxTS.selectedProperty().addListener((ObservableValue<? extends Boolean>
-        // observable, Boolean oldValue, Boolean newValue) -> {
-        // textFieldTS.setDisable(!newValue);
-        // textFieldTSJWT.setDisable(!newValue);
-        // if (newValue == false && config.isTSEnabled() == false) {
-        // textFieldTS.setText(config.getTS());
-        // textFieldTSJWT.setText(config.getTSJWT());
-        // }
-        // });
-        // vbox3.getChildren().add(checkBoxTS);
-        // Label labelTSUrl = new Label("URL:");
-        // vbox3.getChildren().add(labelTSUrl);
-        // textFieldTS = new TextField();
-        // textFieldTS.setText(config.getTS());
-        // vbox3.getChildren().add(textFieldTS);
-        // Label labelTSJWT = new Label("Json Web Token:");
-        // vbox3.getChildren().add(labelTSJWT);
-        // textFieldTSJWT = new TextField();
-        // textFieldTSJWT.setText(config.getTSJWT());
-        // vbox3.getChildren().add(textFieldTSJWT);
-        // Button buttonGuardarTS = new Button("Guardar Sellado");
-        // vbox2.getChildren().add(buttonGuardarTS);
-        // buttonGuardarTS.addEventHandler(MouseEvent.MOUSE_CLICKED, (MouseEvent t) -> {
-        // config.setTSEnabled(checkBoxTS.isSelected());
-        // config.setTS(textFieldTS.getText());
-        // config.setTSJWT(textFieldTSJWT.getText());
-        // config.save();
-        // close();
-        // });
-        // vbox3.getChildren().add(buttonGuardarTS);
-
-        // root.getChildren().add(vbox3);
-
         // Establecer valores configurados
         checkBox.setSelected(true);
         checkBox.setSelected(config.isProxyEnabled());
@@ -418,10 +382,6 @@ public class FormConfiguracion extends Stage {
             buttonCrear.setDisable(true);
             btnAbrirUbicacion.setDisable(false);
         }
-        // checkBoxHsm.setSelected(true);
-        // checkBoxHsm.setSelected(config.isHsmEnabled());
-        // checkBoxTS.setSelected(true);
-        // checkBoxTS.setSelected(config.isTSEnabled());
 
         Scene scene = new Scene(root);
         setScene(scene);

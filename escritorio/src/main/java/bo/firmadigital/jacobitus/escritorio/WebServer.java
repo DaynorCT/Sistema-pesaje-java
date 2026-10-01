@@ -2,20 +2,28 @@ package bo.firmadigital.jacobitus.escritorio;
 
 import static org.eclipse.jetty.servlet.ServletContextHandler.NO_SESSIONS;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
+import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
+import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.server.handler.HandlerList;
+import org.eclipse.jetty.server.handler.ResourceHandler;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -38,12 +46,13 @@ public class WebServer {
         filterHolder.setInitParameter(CrossOriginFilter.ACCESS_CONTROL_ALLOW_ORIGIN_HEADER, "*");
         filterHolder.setInitParameter(CrossOriginFilter.ALLOWED_HEADERS_PARAM,
                 "Content-Type,Authorization,X-Requested-With,Content-Length,Accept,Origin");
-        filterHolder.setInitParameter(CrossOriginFilter.ALLOWED_METHODS_PARAM, "GET,PUT,POST,DELETE");
+        filterHolder.setInitParameter(CrossOriginFilter.ALLOWED_METHODS_PARAM, "GET,PUT,POST,DELETE,OPTIONS");
         filterHolder.setInitParameter(CrossOriginFilter.ALLOW_CREDENTIALS_PARAM, "true");
 
         // Sitio web
+        String webResourceBase = jettyServer.getClass().getClassLoader().getResource("web").toExternalForm();
         ServletHolder staticResource = new ServletHolder("default", DefaultServlet.class);
-        staticResource.setInitParameter("resourceBase", jettyServer.getClass().getClassLoader().getResource("web").toExternalForm());
+        staticResource.setInitParameter("resourceBase", webResourceBase);
         staticResource.setInitParameter("dirAllowed", "false");
 
         // https://localhost:9000
@@ -60,16 +69,34 @@ public class WebServer {
         Config config = Config.getInstance();
 
         // https://localhost:4637
+        ResourceHandler resourceHandler4637 = new ResourceHandler() {
+            @Override
+            public void handle(String target, Request baseRequest, HttpServletRequest request,
+                    HttpServletResponse response) throws IOException, ServletException {
+                agregarCabecerasCors(request, response);
+                if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    baseRequest.setHandled(true);
+                    return;
+                }
+                super.handle(target, baseRequest, request, response);
+            }
+        };
+        resourceHandler4637.setResourceBase(webResourceBase);
+        resourceHandler4637.setDirAllowed(false);
+        ContextHandler staticContextHandler4637 = new ContextHandler("/");
+        staticContextHandler4637.setVirtualHosts(new String[]{"@localhost4637"});
+        staticContextHandler4637.setHandler(resourceHandler4637);
+
         ServletContextHandler servletContextHandler4637 = new ServletContextHandler(NO_SESSIONS);
         servletContextHandler4637.setContextPath("/");
         servletContextHandler4637.setVirtualHosts(new String[]{"@localhost4637"});
         servletContextHandler4637.addFilter(filterHolder, "/*", null);
-        servletContextHandler4637.addServlet(staticResource, "/");
         if (config.isSecondaryPortEnabled()) {
-            ServletHolder servletHolder4637 = servletContextHandler4637.addServlet(ServletContainer.class, "/sign");
+            ServletHolder servletHolder4637 = servletContextHandler4637.addServlet(ServletContainer.class, "/*");
             servletHolder4637.setInitOrder(1);
-            servletHolder4637.setInitParameter("jersey.config.server.provider.classnames",
-                    "bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.FirmadorRest");
+            servletHolder4637.setInitParameter("jersey.config.server.provider.packages",
+                    "bo.firmadigital.jacobitus.escritorio.jetty.localhost4637");
         }
 
         // https://localhost:3200
@@ -85,7 +112,7 @@ public class WebServer {
         }
 
         HandlerList handlers = new HandlerList();
-        handlers.setHandlers(new Handler[] { servletContextHandler9000, servletContextHandler4637, servletContextHandler3200 });
+        handlers.setHandlers(new Handler[] { servletContextHandler9000, staticContextHandler4637, servletContextHandler4637, servletContextHandler3200 });
         jettyServer.setHandler(handlers);
 
         try {
@@ -165,5 +192,16 @@ public class WebServer {
         }
  
         jettyServer.setConnectors(connectors.toArray(new Connector[0]));
+    }
+
+    private static void agregarCabecerasCors(HttpServletRequest request, HttpServletResponse response) {
+        String origin = request.getHeader("Origin");
+        response.setHeader("Access-Control-Allow-Origin", origin != null ? origin : "*");
+        response.setHeader("Access-Control-Allow-Headers",
+                "Content-Type,Authorization,X-Requested-With,Content-Length,Accept,Origin");
+        response.setHeader("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+        response.setHeader("Access-Control-Allow-Credentials", "true");
+        response.setHeader("Access-Control-Allow-Private-Network", "true");
+        response.setHeader("Vary", "Origin");
     }
 }
