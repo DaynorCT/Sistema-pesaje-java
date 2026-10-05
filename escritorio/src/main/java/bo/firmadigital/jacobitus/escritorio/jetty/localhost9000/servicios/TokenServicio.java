@@ -177,8 +177,9 @@ public class TokenServicio {
                 } catch (GeneralSecurityException ex) {
                     respuesta.setFinalizado(false);
                     respuesta.setMensaje(ex.getMessage());
+                } finally {
+                    token.salir();
                 }
-                token.salir();
             } else {
                 respuesta.setFinalizado(false);
                 respuesta.setMensaje("El slot " + objetoDto.getSlot() + " no se encuentra disponible.");

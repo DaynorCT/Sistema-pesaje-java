@@ -85,7 +85,7 @@ public class FormConfiguracion extends Stage {
         vbox1.getChildren().add(labelPort);
         textFieldPort = new TextField("3128");
         vbox1.getChildren().add(textFieldPort);
-        Button buttonGuardar = new Button("Guardar Proxy");
+        Button buttonGuardar = new Button("Guardar proxy");
         buttonGuardar.setOnAction(t -> {
             config.setProxyEnabled(checkBox.isSelected());
             config.setProxyIP(textFieldIP.getText());
@@ -168,7 +168,7 @@ public class FormConfiguracion extends Stage {
                             AutoInicioHelper.activar();
                         } catch (RuntimeException ex) {
                             Logger.getLogger(FormAplicacion.class.getName()).log(Level.WARNING,
-                                    "No se pudo actualizar el inicio automatico", ex);
+                                    "No se pudo actualizar el inicio automático", ex);
                         }
                     }
                     if (newValue && SistemaOperativoHelper.esUnix()) {
@@ -229,7 +229,7 @@ public class FormConfiguracion extends Stage {
                         }
                     } catch (RuntimeException ex) {
                         Logger.getLogger(FormAplicacion.class.getName()).log(Level.WARNING,
-                                "No se pudo configurar el inicio automatico", ex);
+                                "No se pudo configurar el inicio automático", ex);
                         Alert alert = new Alert(Alert.AlertType.WARNING,
                                 "No se pudo cambiar el inicio automático.\n"
                                         + "Revise la configuración de aplicaciones de inicio de Windows.",
@@ -284,7 +284,7 @@ public class FormConfiguracion extends Stage {
             buttonControlador.setDisable(true);
             if (config.getDriver() == null) {
                 FileChooser fileChooser = new FileChooser();
-                fileChooser.setTitle("Abrir Controlador");
+                fileChooser.setTitle("Abrir controlador");
                 if (SistemaOperativoHelper.esWindows()) {
                     FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("Controlador (*.dll)",
                             "*.dll");
@@ -325,7 +325,7 @@ public class FormConfiguracion extends Stage {
         textFieldToken = new TextField();
         textFieldToken.setDisable(true);
         vbox2.getChildren().add(textFieldToken);
-        Button buttonCrear = new Button("Crear Token");
+        Button buttonCrear = new Button("Crear token");
         Button btnAbrirUbicacion = new Button("Abrir ubicación");
         buttonCrear.setOnAction(t -> {
             FormContrasenaNueva contrasena = new FormContrasenaNueva(parent);

@@ -6,6 +6,7 @@ import javafx.event.EventHandler;
 import javafx.scene.control.Alert;
 import javafx.scene.control.DialogEvent;
 import javafx.scene.image.Image;
+import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
@@ -31,6 +32,7 @@ public final class IconosVentana {
             }
             Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
             aplicarAplicacion(stage);
+            aplicarEstilos(stage.getScene());
         });
     }
 
@@ -38,7 +40,27 @@ public final class IconosVentana {
         Image icono = cargar(recurso);
         if (icono != null) {
             stage.getIcons().setAll(icono);
-            stage.addEventHandler(WindowEvent.WINDOW_SHOWING, event -> stage.getIcons().setAll(icono));
+            stage.addEventHandler(WindowEvent.WINDOW_SHOWING, event -> {
+                stage.getIcons().setAll(icono);
+                aplicarEstilos(stage.getScene());
+            });
+        } else {
+            stage.addEventHandler(WindowEvent.WINDOW_SHOWING, event -> aplicarEstilos(stage.getScene()));
+        }
+    }
+
+    private static void aplicarEstilos(Scene scene) {
+        if (scene == null) {
+            return;
+        }
+        String hojaEstilos = IconosVentana.class.getClassLoader()
+                .getResource("jacobitus.css").toExternalForm();
+        if (!scene.getStylesheets().contains(hojaEstilos)) {
+            scene.getStylesheets().add(hojaEstilos);
+        }
+        if (!System.getProperty("jacobitus.profile", "").trim().isEmpty()
+                && !scene.getRoot().getStyleClass().contains("prerelease-theme")) {
+            scene.getRoot().getStyleClass().add("prerelease-theme");
         }
     }
 

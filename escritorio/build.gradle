@@ -200,12 +200,13 @@ tasks.withType(JavaExec).configureEach {
 def generatedResourcesDir = layout.buildDirectory.dir('generated/resources/main')
 
 tasks.register('generateAppInfo') {
+    inputs.property 'appDescription', appDescription
     outputs.dir generatedResourcesDir
     doLast {
         def outputDir = generatedResourcesDir.get().asFile
         outputDir.mkdirs()
         def propertiesFile = new File(outputDir, 'jacobitus.properties')
-        propertiesFile.text = "descripcion=${appDescription}\n"
+        propertiesFile.setText("descripcion=${appDescription}\n", 'UTF-8')
     }
 }
 

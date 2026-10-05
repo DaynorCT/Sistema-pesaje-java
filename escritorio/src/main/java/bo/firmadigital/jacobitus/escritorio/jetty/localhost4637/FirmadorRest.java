@@ -11,28 +11,123 @@ import org.codehaus.jackson.map.DeserializationConfig;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 
-import bo.firmadigital.jacobitus.escritorio.jetty.JettyHelper;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.ErrorRespuestaDto;
+import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.FirmaHashCancelacionRespuestaDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.FirmaHashModoSeguroDto;
+import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.FirmaHashModoSeguroRespuestaDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.FirmaModoSeguroDto;
+import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.FirmaModoSeguroRespuestaDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.comun.IRespuestaDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.servicios.FirmadorServicio;
 
 @Path("/")
 public class FirmadorRest {
+    private static final String ERROR_GENERICO = "No se pudo completar la solicitud de firma.";
+    private static final String ERROR_RESPUESTA_FALLIDA_JSON =
+            "{\"message\":\"" + ERROR_GENERICO + "\",\"error\":\"" + ERROR_GENERICO + "\"}";
+
     @POST
     @Path("/sign")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String sign(String body) {
+    public Response sign(String body) {
         FirmadorServicio servicio = new FirmadorServicio();
         ObjectMapper om = new ObjectMapper();
         try {
             FirmaModoSeguroDto objetoDto = om.readValue(body, FirmaModoSeguroDto.class);
-            return om.writeValueAsString(servicio.firmarModoSeguro(objetoDto));
+            IRespuestaDto respuesta = servicio.firmarModoSeguro(objetoDto);
+            return respuestaServicio(om, respuesta, FirmaModoSeguroRespuestaDto.class);
         } catch (Exception e) {
-            return JettyHelper.generarRespuesta(e.getMessage());
+            return errorInterno(om, "No se pudo firmar el documento", obtenerDetalleError(e));
         }
+    }
+
+    Response respuestaServicio(ObjectMapper om, IRespuestaDto respuesta, Class<?> tipoRespuestaExitosa) throws Exception {
+        if (respuesta == null) {
+            return errorInterno(om, null, null);
+        }
+        boolean respuestaEsperada = tipoRespuestaExitosa.isInstance(respuesta)
+                || (tipoRespuestaExitosa == FirmaHashModoSeguroRespuestaDto.class
+                        && respuesta instanceof FirmaHashCancelacionRespuestaDto);
+        if (!(respuesta instanceof ErrorRespuestaDto) && !respuestaEsperada) {
+            return errorInterno(om, null, null);
+        }
+
+        if (respuesta instanceof ErrorRespuestaDto) {
+            ErrorRespuestaDto errorDto = (ErrorRespuestaDto) respuesta;
+            if (errorDto.getError() == null) {
+                return errorInterno(om, errorDto.getMessage(), null);
+            }
+            return respuestaError(om, errorDto);
+        }
+
+        String error = obtenerError(respuesta);
+        if (error != null) {
+            ErrorRespuestaDto errorDto = new ErrorRespuestaDto();
+            errorDto.setMessage(obtenerMensaje(respuesta));
+            errorDto.setError(error);
+            return respuestaError(om, errorDto);
+        }
+
+        String json = om.writeValueAsString(respuesta);
+        return Response.ok(json).type(MediaType.APPLICATION_JSON).build();
+    }
+
+    private String obtenerError(IRespuestaDto respuesta) {
+        if (respuesta instanceof ErrorRespuestaDto) {
+            return ((ErrorRespuestaDto) respuesta).getError();
+        }
+        if (respuesta instanceof FirmaModoSeguroRespuestaDto) {
+            return ((FirmaModoSeguroRespuestaDto) respuesta).getError();
+        }
+        if (respuesta instanceof FirmaHashCancelacionRespuestaDto) {
+            return ((FirmaHashCancelacionRespuestaDto) respuesta).getError();
+        }
+        return null;
+    }
+
+    private String obtenerMensaje(IRespuestaDto respuesta) {
+        if (respuesta instanceof FirmaModoSeguroRespuestaDto) {
+            return ((FirmaModoSeguroRespuestaDto) respuesta).getMessage();
+        }
+        if (respuesta instanceof FirmaHashCancelacionRespuestaDto) {
+            return ((FirmaHashCancelacionRespuestaDto) respuesta).getMessage();
+        }
+        return null;
+    }
+
+    private Response errorInterno(ObjectMapper om, String message, String error) {
+        ErrorRespuestaDto errorDto = new ErrorRespuestaDto();
+        errorDto.setMessage(message);
+        errorDto.setError(error);
+        return respuestaError(om, errorDto);
+    }
+
+    private Response respuestaError(ObjectMapper om, ErrorRespuestaDto errorDto) {
+        if (errorDto.getMessage() == null) {
+            errorDto.setMessage(ERROR_GENERICO);
+        }
+        if (errorDto.getError() == null) {
+            errorDto.setError(ERROR_GENERICO);
+        }
+        try {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .type(MediaType.APPLICATION_JSON)
+                    .entity(om.writeValueAsString(errorDto))
+                    .build();
+        } catch (Exception ex) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .type(MediaType.APPLICATION_JSON)
+                    .entity(ERROR_RESPUESTA_FALLIDA_JSON)
+                    .build();
+        }
+    }
+
+    private String obtenerDetalleError(Throwable error) {
+        if (error == null) {
+            return null;
+        }
+        return error.getMessage();
     }
 
     @POST
@@ -46,11 +141,7 @@ public class FirmadorRest {
         try {
             FirmaHashModoSeguroDto objetoDto = om.readValue(body, FirmaHashModoSeguroDto.class);
             IRespuestaDto respuesta = servicio.firmarHashModoSeguro(objetoDto);
-            String json = om.writeValueAsString(respuesta);
-            if (respuesta instanceof ErrorRespuestaDto) {
-                return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(json).build();
-            }
-            return Response.ok(json).build();
+            return respuestaServicio(om, respuesta, FirmaHashModoSeguroRespuestaDto.class);
         } catch (Exception e) {
             StringBuilder ruta = new StringBuilder();
             for (Throwable causa = e; causa != null; causa = causa.getCause()) {
@@ -68,20 +159,9 @@ public class FirmadorRest {
                 }
             }
             if (ruta.length() > 0) {
-                return errorInternoSignHash(om, "El campo '" + ruta + "' tiene un valor con formato incorrecto.");
+                return errorInterno(om, "Error en la petición", "El campo '" + ruta + "' tiene un valor con formato incorrecto.");
             }
-            return errorInternoSignHash(om, e.getMessage());
-        }
-    }
-
-    private Response errorInternoSignHash(ObjectMapper om, String error) {
-        ErrorRespuestaDto errorDto = new ErrorRespuestaDto();
-        errorDto.setMessage("Error en la petición");
-        errorDto.setError(error);
-        try {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(om.writeValueAsString(errorDto)).build();
-        } catch (Exception ex) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(JettyHelper.generarRespuesta(error)).build();
+            return errorInterno(om, "Error en la petición", obtenerDetalleError(e));
         }
     }
 }

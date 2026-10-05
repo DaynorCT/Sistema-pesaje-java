@@ -2,7 +2,6 @@ package bo.firmadigital.jacobitus.escritorio.formularios;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyStoreException;
 import java.security.MessageDigest;
@@ -16,6 +15,8 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
@@ -36,7 +37,9 @@ import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 
 import bo.firmadigital.jacobitus.comun.InfoCertificado;
+import bo.firmadigital.jacobitus.comun.CategoriaErrorFirma;
 import bo.firmadigital.jacobitus.comun.JacobitusException;
+import bo.firmadigital.jacobitus.escritorio.comun.ClasificadorErroresFirma;
 import bo.firmadigital.jacobitus.escritorio.comun.Config;
 import bo.firmadigital.jacobitus.escritorio.comun.ECA;
 import bo.firmadigital.jacobitus.escritorio.comun.TokenSelected;
@@ -80,14 +83,17 @@ import javafx.util.Duration;
 import javafx.util.StringConverter;
 
 public class FormService extends Stage {
-    private static final String TITULO_VENTANA_PIN = "Pin del token";
+    private static final String TITULO_VENTANA_PIN = "Jacobitus · Autorización de firma";
 
     private final ObservableList<InfoCertificado> listaInfoCertificado;
     private final TokenSelected tokenSelected;
     private final String format;
+    private final boolean software;
     private final PasswordField passwordField;
     private final Button button;
     private final ChoiceBox<InfoCertificado> cbInfoCertificado;
+    private final Label etiquetaCertificado;
+    private Label estadoToken;
     private final Label estado;
     private final ProgressBar progressBar;
     private final Button buttonFirmar;
@@ -96,6 +102,7 @@ public class FormService extends Stage {
     private boolean firmaEnCurso = false;
     private boolean cancelacionFirmaSolicitada = false;
     private Task<Boolean> tareaFirma;
+    private PauseTransition esperaToken;
 
     private ConfiguracionFirmador getConfigFirmador() {
         Config config = Config.getInstance();
@@ -190,6 +197,10 @@ public class FormService extends Stage {
     }
 
     public FormService(Stage parent, TokenSelected tokenSelected, String format) {
+        this(parent, tokenSelected, format, false);
+    }
+
+    public FormService(Stage parent, TokenSelected tokenSelected, String format, boolean software) {
         IconosVentana.aplicarAplicacion(this);
         setTitle(TITULO_VENTANA_PIN);
         initOwner(parent);
@@ -199,6 +210,7 @@ public class FormService extends Stage {
         tokenSelected.setErrorMessage(null);
         this.tokenSelected = tokenSelected;
         this.format = format;
+        this.software = software;
 
         VBox root = new VBox(10);
         root.setPrefWidth(430);
@@ -214,7 +226,7 @@ public class FormService extends Stage {
         root.getChildren().addAll(titulo, descripcion, new Separator());
 
         root.getChildren().add(crearEtiquetaSeccion("Token"));
-        if (tokenSelected.getSlot() == null) {
+        if (tokenSelected.getSlot() == null && tokenSelected.getSlots() != null) {
             ObservableList<DetalleToken> tokens = FXCollections.observableArrayList();
             for (Slot slot : tokenSelected.getSlots()) {
                 tokens.add(new DetalleToken(slot.detalleToken()));
@@ -230,25 +242,36 @@ public class FormService extends Stage {
                     });
             tokensChoiceBox.getSelectionModel().selectFirst();
             root.getChildren().add(tokensChoiceBox);
-        } else {
+        } else if (tokenSelected.getSlot() != null) {
             Label tokenDetalle = new Label(tokenSelected.getSlot().detalleToken().getLabel());
             tokenDetalle.setWrapText(true);
             tokenDetalle.setStyle("-fx-font-weight: bold; -fx-text-fill: #1f2933;");
             root.getChildren().add(tokenDetalle);
+        } else {
+            estadoToken = new Label("Detectando token...");
+            estadoToken.setWrapText(true);
+            estadoToken.setStyle("-fx-text-fill: #52616f;");
+            root.getChildren().add(estadoToken);
         }
 
         passwordField = new PasswordField();
-        passwordField.setPromptText("Su contraseña");
+        passwordField.setPromptText("Ingrese el PIN");
         if (tokenSelected.getPinInicial() != null) {
             passwordField.setText(tokenSelected.getPinInicial());
         }
         button = new Button("Buscar certificados");
         button.setMinWidth(145);
+        button.setDisable(passwordField.getText().isEmpty());
+        passwordField.textProperty().addListener((observable, anterior, nuevo) ->
+                button.setDisable(nuevo == null || nuevo.isEmpty()));
         HBox pinBox = new HBox(8, passwordField, button);
         pinBox.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(passwordField, Priority.ALWAYS);
         passwordField.setMaxWidth(Double.MAX_VALUE);
         root.getChildren().addAll(crearEtiquetaSeccion("PIN del token"), pinBox);
+
+        Label avisoBloqMayus = IndicadorTeclado.crearIndicadorBloqMayus(passwordField);
+        root.getChildren().add(avisoBloqMayus);
 
         listaInfoCertificado = FXCollections.observableArrayList();
         cbInfoCertificado = new ChoiceBox<InfoCertificado>(listaInfoCertificado);
@@ -259,11 +282,11 @@ public class FormService extends Stage {
                     return "";
                 }
 
-                if (infoCertificado.getInfoSujeto().getCargo().equals("")) {
-                    return infoCertificado.getInfoSujeto().getNombreComun();
-                } else {
-                    return infoCertificado.getInfoSujeto().getNombreComun() + " - " + infoCertificado.getInfoSujeto().getCargo();
-                }
+                String nombre = infoCertificado.getInfoSujeto().getNombreComun();
+                String alias = infoCertificado.getAlias();
+                String serie = infoCertificado.getX509certificado().getSerialNumber().toString();
+                String identificador = alias == null || alias.isEmpty() ? serie : alias;
+                return nombre + " · " + identificador;
             }
 
             @Override
@@ -274,7 +297,12 @@ public class FormService extends Stage {
         cbInfoCertificado.maxWidthProperty().bind(root.widthProperty());
         cbInfoCertificado.setPrefHeight(32);
         cbInfoCertificado.setDisable(true);
-        root.getChildren().addAll(crearEtiquetaSeccion("Certificado"), cbInfoCertificado);
+        etiquetaCertificado = crearEtiquetaSeccion("Certificado");
+        etiquetaCertificado.setVisible(false);
+        etiquetaCertificado.setManaged(false);
+        cbInfoCertificado.setVisible(false);
+        cbInfoCertificado.setManaged(false);
+        root.getChildren().addAll(etiquetaCertificado, cbInfoCertificado);
 
         estado = new Label("Documentos: 0 de " + totalDocumentos());
         estado.setStyle("-fx-text-fill: #3d4852;");
@@ -285,10 +313,14 @@ public class FormService extends Stage {
         progressBar.maxWidthProperty().bind(root.widthProperty());
         root.getChildren().add(progressBar);
 
-        message = new Label("Ingrese el PIN para buscar certificados disponibles en el token.");
+        message = new Label("Detectando el token conectado...");
         message.setWrapText(true);
         message.setTextFill(Color.web("#5f6c7b"));
         root.getChildren().add(message);
+
+        Region espacioVertical = new Region();
+        VBox.setVgrow(espacioVertical, Priority.ALWAYS);
+        root.getChildren().add(espacioVertical);
 
         Region espacio = new Region();
         HBox.setHgrow(espacio, Priority.ALWAYS);
@@ -310,11 +342,14 @@ public class FormService extends Stage {
         Scene scene = new Scene(root);
         setScene(scene);
         setMinWidth(430);
-        setResizable(false);
+        setMinHeight(360);
+        setResizable(true);
 
         passwordField.addEventHandler(KeyEvent.KEY_PRESSED, ev -> {
             if (ev.getCode() == KeyCode.ENTER) {
-                this.mostrarCertificados(false);
+                if (!passwordField.getText().isEmpty()) {
+                    this.mostrarCertificados(false);
+                }
             }
         });
         button.setOnAction(t -> {
@@ -332,6 +367,9 @@ public class FormService extends Stage {
                 ActivadorVentanaX11.activarPorTitulo(TITULO_VENTANA_PIN);
                 window.sizeToScene();
                 passwordField.requestFocus();
+                if (tokenSelected.getSlot() == null && tokenSelected.getSlots() == null) {
+                    iniciarBusquedaToken(true);
+                }
             });
 
             esperaRegistroWm.play();
@@ -342,7 +380,7 @@ public class FormService extends Stage {
                 t.consume();
             }
         });
-        if (tokenSelected.getPinInicial() != null) {
+        if (tokenSelected.getSlot() != null && tokenSelected.getPinInicial() != null) {
             try {
                 this.mostrarCertificados(true);
             } catch (RuntimeException ex) {
@@ -350,6 +388,98 @@ public class FormService extends Stage {
                 message.setTextFill(Color.RED);
             }
         }
+    }
+
+    private void iniciarBusquedaToken(boolean busquedaInicial) {
+        if (busquedaInicial) {
+            passwordField.setDisable(true);
+            button.setDisable(true);
+            message.setText("Detectando el token conectado...");
+            message.setTextFill(Color.web("#5f6c7b"));
+            if (estadoToken != null) {
+                estadoToken.setText("Detectando token...");
+                estadoToken.setStyle("-fx-text-fill: #52616f;");
+            }
+            progressBar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
+        }
+
+        Task<Slot> task = new Task<Slot>() {
+            @Override
+            protected Slot call() throws GeneralSecurityException {
+                GestorSlot gestorSlot = GestorSlot.getInstance();
+                gestorSlot.setConfigFirmador(getConfigFirmador());
+                Slot[] slots = gestorSlot.listarSlots(software);
+                if (slots.length > 1) {
+                    throw new JacobitusException(CategoriaErrorFirma.TOKEN_MULTIPLES,
+                            CategoriaErrorFirma.TOKEN_MULTIPLES.getMensajeUsuario(), null);
+                }
+                return slots.length == 1 ? slots[0] : null;
+            }
+        };
+        task.setOnSucceeded(event -> {
+            Slot slot = task.getValue();
+            if (slot != null) {
+                tokenSelected.setSlot(slot);
+                progressBar.setProgress(0);
+                if (estadoToken != null) {
+                    estadoToken.setText("Token detectado: " + slot.detalleToken().getLabel());
+                    estadoToken.setStyle("-fx-text-fill: #1b6e3c; -fx-font-weight: bold;");
+                }
+                passwordField.setDisable(false);
+                button.setDisable(passwordField.getText().isEmpty());
+                message.setText("Ingrese el PIN para buscar certificados disponibles en el token.");
+                if (tokenSelected.getPinInicial() != null) {
+                    mostrarCertificados(true);
+                }
+            } else {
+                progressBar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
+                if (estadoToken != null) {
+                    estadoToken.setText("No conectado");
+                    estadoToken.setStyle("-fx-text-fill: #8a5a00;");
+                }
+                message.setText("Conecte un token para habilitar el ingreso del PIN.");
+                programarBusquedaToken();
+            }
+        });
+        task.setOnFailed(event -> {
+            Throwable error = task.getException();
+            if (error != null) {
+                Logger.getLogger(FormService.class.getName()).log(Level.WARNING,
+                        "No se pudo detectar o consultar el token.", error);
+            }
+            if (ClasificadorErroresFirma.debeEsperarReconexionToken(error)) {
+                progressBar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
+                message.setText(CategoriaErrorFirma.TOKEN_NO_CONECTADO.getMensajeUsuario());
+                message.setTextFill(Color.web("#5f6c7b"));
+                if (estadoToken != null) {
+                    estadoToken.setText("Esperando conexión...");
+                    estadoToken.setStyle("-fx-text-fill: #8a5a00;");
+                }
+            } else {
+                progressBar.setProgress(0);
+                message.setText(obtenerMensajeErrorToken(error));
+                message.setTextFill(Color.RED);
+                if (estadoToken != null) {
+                    estadoToken.setText("No se puede continuar");
+                    estadoToken.setStyle("-fx-text-fill: #b42318; -fx-font-weight: bold;");
+                }
+            }
+            programarBusquedaToken();
+        });
+        new Thread(task).start();
+    }
+
+    private void programarBusquedaToken() {
+        if (!isShowing()) {
+            return;
+        }
+        esperaToken = new PauseTransition(Duration.seconds(1));
+        esperaToken.setOnFinished(event -> {
+            if (isShowing() && tokenSelected.getSlot() == null) {
+                iniciarBusquedaToken(false);
+            }
+        });
+        esperaToken.play();
     }
 
     private Label crearEtiquetaSeccion(String texto) {
@@ -440,7 +570,7 @@ public class FormService extends Stage {
                                     });
                                     updateProgress(a, filesPdf.length() + filesJson.length());
                                 } catch (RuntimeException ex) {
-                                    throw new CustomException(ex.getMessage());
+                                    throw new CustomException(obtenerMensajeUsuarioFirma(ex));
                                 }
                             }
                             tokenSelected.setFiles(arr);
@@ -465,7 +595,7 @@ public class FormService extends Stage {
                                     });
                                     updateProgress(a, filesPdf.length() + filesJson.length());
                                 } catch (RuntimeException ex) {
-                                    throw new CustomException(ex.getMessage());
+                                    throw new CustomException(obtenerMensajeUsuarioFirma(ex));
                                 }
                             }
                             tokenSelected.setFilesJson(arrJson);
@@ -518,7 +648,7 @@ public class FormService extends Stage {
                                             try {
                                                 out.write(firmarHash(token, tokenSelected.getAlias(), file, digestName));
                                             } catch (GeneralSecurityException ex) {
-                                                throw new CustomException(ex.getMessage());
+                                                throw new CustomException(obtenerMensajeUsuarioFirma(ex));
                                             }
                                             break;
                                         default:
@@ -543,7 +673,7 @@ public class FormService extends Stage {
                                 } catch (IllegalArgumentException ex) {
                                     throw new CustomException("Uno o más parámetros tienen problemas.");
                                 } catch (RuntimeException ex) {
-                                    throw new CustomException(ex.getMessage());
+                                    throw new CustomException(obtenerMensajeUsuarioFirma(ex));
                                 }
                             }
                             tokenSelected.setFiles(filesFirmados);
@@ -564,13 +694,19 @@ public class FormService extends Stage {
             resetearProgreso();
             tokenSelected.setAlias(null);
             tokenSelected.setPin(null);
-            tokenSelected.setErrorMessage(task.getException().getMessage());
+            Throwable error = task.getException();
+            String mensajeError = obtenerMensajeUsuarioFirma(error);
+            if (error != null) {
+                Logger.getLogger(FormService.class.getName()).log(Level.WARNING,
+                        "No se pudo completar la firma solicitada.", error);
+            }
+            tokenSelected.setErrorMessage(mensajeError);
             passwordField.setDisable(false);
-            button.setDisable(false);
+            button.setDisable(passwordField.getText().isEmpty());
             buttonFirmar.setDisable(false);
             cbInfoCertificado.setDisable(false);
             buttonCancelar.setDisable(false);
-            Alert alert = new Alert(AlertType.WARNING, task.getException().getMessage(), ButtonType.OK);
+            Alert alert = new Alert(AlertType.WARNING, mensajeError, ButtonType.OK);
             alert.initOwner(this);
             alert.initModality(Modality.APPLICATION_MODAL);
             alert.setTitle("Jacobitus");
@@ -607,6 +743,18 @@ public class FormService extends Stage {
         Task<ResultadoCertificados> task = new Task<ResultadoCertificados>() {
             @Override
             protected ResultadoCertificados call() throws GeneralSecurityException {
+                if (tokenSelected.getSlot() == null) {
+                    GestorSlot gestorSlot = GestorSlot.getInstance();
+                    gestorSlot.setConfigFirmador(getConfigFirmador());
+                    Slot[] slots = gestorSlot.listarSlots(software);
+                    if (slots.length != 1) {
+                        if (slots.length == 0) {
+                            throw new GeneralSecurityException("No se encontró ningún token conectado.");
+                        }
+                        throw new GeneralSecurityException("Por favor conecte solo un token.");
+                    }
+                    tokenSelected.setSlot(slots[0]);
+                }
                 IToken token = tokenSelected.getSlot().getToken();
                 token.iniciar(pin);
                 try {
@@ -646,58 +794,43 @@ public class FormService extends Stage {
             listaInfoCertificado.addAll(resultado.certificados);
             if (!listaInfoCertificado.isEmpty()) {
                 cbInfoCertificado.getSelectionModel().selectFirst();
-                message.setText("Seleccione el certificado y confirme la firma.");
+                boolean unicoCertificado = listaInfoCertificado.size() == 1;
+                etiquetaCertificado.setVisible(!unicoCertificado);
+                etiquetaCertificado.setManaged(!unicoCertificado);
+                cbInfoCertificado.setVisible(!unicoCertificado);
+                cbInfoCertificado.setManaged(!unicoCertificado);
+                sizeToScene();
+                message.setText(unicoCertificado
+                        ? "Certificado seleccionado automáticamente. Confirme la firma."
+                        : "Seleccione el certificado y confirme la firma.");
                 message.setTextFill(Color.web("#5f6c7b"));
                 buttonFirmar.requestFocus();
-                if (autoFirmarSiUnico && listaInfoCertificado.size() == 1) {
+                if (autoFirmarSiUnico && unicoCertificado) {
                     PauseTransition delay = new PauseTransition(Duration.millis(1000));
                     delay.setOnFinished(e -> this.aplicarFirma());
                     delay.play();
                 } else {
                     buttonFirmar.setDisable(false);
-                    cbInfoCertificado.setDisable(false);
+                    cbInfoCertificado.setDisable(unicoCertificado);
                 }
             } else {
                 message.setText(resultado.mensaje == null ? "" : resultado.mensaje);
                 message.setTextFill(Color.RED);
                 passwordField.setDisable(false);
-                button.setDisable(false);
+                    button.setDisable(passwordField.getText().isEmpty());
             }
         });
         task.setOnFailed((WorkerStateEvent evt) -> {
             resetearProgreso();
-            try {
-                Throwable ex = task.getException();
-                String mensaje = ex.getMessage();
-                if (ex.getCause() instanceof IOException) {
-                    if (ex.getCause().getMessage() != null && ex.getCause().getMessage().equals("PKCS12 key store mac invalid - wrong password or corrupted file.")) {
-                        mensaje = "El PIN es incorrecto. Inténtelo nuevamente.";
-                    }
-                }
-                if (ex instanceof java.security.cert.CertificateExpiredException) {
-                    mensaje = "El certificado se encuentra expirado.";
-                }
-                if (ex instanceof java.security.cert.CertificateNotYetValidException) {
-                    mensaje = "El certificado aún no está vigente.";
-                }
-                if (ex.getCause() instanceof java.security.UnrecoverableKeyException) {
-                    if (ex.getCause().getCause() instanceof javax.security.auth.login.FailedLoginException) {
-                        mensaje = "Por favor verifique el PIN.";
-                    }
-                }
-                if (ex.getCause() instanceof javax.security.auth.login.LoginException) {
-                    if (ex.getCause().getCause() != null && ex.getCause().getCause().getMessage() != null && ex.getCause().getCause().getMessage().equals("CKR_PIN_LOCKED")) {
-                        mensaje = "El token criptográfico se encuentra bloqueado por demasiados intentos fallidos al ingresar el PIN.";
-                    }
-                }
-                message.setText(mensaje);
-                message.setTextFill(Color.RED);
-            } catch (Exception ex1) {
-                message.setText(ex1.getMessage());
-                message.setTextFill(Color.RED);
+            Throwable error = task.getException();
+            if (error != null) {
+                Logger.getLogger(FormService.class.getName()).log(Level.WARNING,
+                        "No se pudieron consultar los certificados del token.", error);
             }
+            message.setText(obtenerMensajeErrorToken(error));
+            message.setTextFill(Color.RED);
             passwordField.setDisable(false);
-            button.setDisable(false);
+            button.setDisable(passwordField.getText().isEmpty());
         });
         new Thread(task).start();
     }
@@ -732,6 +865,30 @@ public class FormService extends Stage {
     private void resetearProgreso() {
         progressBar.progressProperty().unbind();
         progressBar.setProgress(0);
+    }
+
+    private String obtenerMensajeUsuarioFirma(Throwable error) {
+        if (error instanceof CustomException && error.getMessage() != null) {
+            return error.getMessage();
+        }
+        CategoriaErrorFirma categoria = obtenerCategoriaError(error);
+        return categoria.getMensajeUsuario();
+    }
+
+    private String obtenerMensajeErrorToken(Throwable error) {
+        CategoriaErrorFirma categoria = obtenerCategoriaError(error);
+        if (categoria == CategoriaErrorFirma.PIN_INVALIDO || categoria == CategoriaErrorFirma.TOKEN_BLOQUEADO
+                || categoria == CategoriaErrorFirma.TOKEN_NO_CONECTADO
+                || categoria == CategoriaErrorFirma.TOKEN_NO_DISPONIBLE
+                || categoria == CategoriaErrorFirma.TOKEN_MULTIPLES
+                || categoria == CategoriaErrorFirma.ARCHIVO_NO_VALIDO) {
+            return categoria.getMensajeUsuario();
+        }
+        return CategoriaErrorFirma.TOKEN_NO_DISPONIBLE.getMensajeUsuario();
+    }
+
+    private CategoriaErrorFirma obtenerCategoriaError(Throwable error) {
+        return ClasificadorErroresFirma.clasificar(error);
     }
 
     private class CustomException extends RuntimeException {
