@@ -478,20 +478,6 @@ public class FormAplicacion extends Application {
                     } else {
                         FormFirmante formFirmante = prepararFormFirmante(itemSeleccionado.getSlot(), Constants.PDF);
                         if (formFirmante != null && formFirmante.getLabel() != null) {
-                            try {
-                                if (!confirmarEstructuraPdfAntesDeFirmar()) {
-                                    return;
-                                }
-                            } catch (IOException ex) {
-                                Alert alert = new Alert(AlertType.WARNING,
-                                        "No se pudo comprobar si el PDF está listo para firmar: " + ex.getMessage(),
-                                        ButtonType.OK);
-                                alert.initOwner(stage);
-                                alert.initModality(Modality.APPLICATION_MODAL);
-                                alert.setTitle("Jacobitus");
-                                alert.showAndWait();
-                                return;
-                            }
                             new Thread(firmarPdf(formFirmante.isBloquea(), itemSeleccionado.getSlot(), formFirmante.getLabel(),
                                     formFirmante.getPass())).start();
                         }
@@ -1039,15 +1025,6 @@ public class FormAplicacion extends Application {
         return task;
     }
 
-    private boolean confirmarEstructuraPdfAntesDeFirmar() throws IOException {
-        Optional<String> advertencias = obtenerAdvertenciasEstructuraPdfEnLista();
-        if (advertencias.isEmpty()) {
-            return true;
-        }
-        AlertaEstructuraPdf.mostrarBloqueoFirma(stage, advertencias.get());
-        return false;
-    }
-
     private void analizarYRepararArchivos(List<File> archivosEntrada) throws IOException {
         DatosPdfsEnLista datos = construirDatosDesdeArchivos(archivosEntrada);
         if (datos.archivosPdf.isEmpty()) {
@@ -1167,47 +1144,6 @@ public class FormAplicacion extends Application {
         return nomArchivo.replace(".pdf", ".reparado.pdf");
     }
 
-    private Optional<String> obtenerAdvertenciasEstructuraPdfEnLista() throws IOException {
-        DatosPdfsEnLista datos = recopilarPdfsEnLista();
-        if (datos.archivosPdf.isEmpty()) {
-            return Optional.empty();
-        }
-        return ValidadorEstructuraPdf.revisarAntesDeFirmar(datos.archivosPdf, datos.firmasPorArchivo);
-    }
-
-    private DatosPdfsEnLista recopilarPdfsEnLista() throws IOException {
-        List<File> archivosPdf = new ArrayList<>();
-        List<List<Firma>> firmasPorArchivo = new ArrayList<>();
-        List<Integer> indicesArchivosPdf = new ArrayList<>();
-        List<ValidadorExtendido> items = tbvArchivos.getItems();
-        for (int i = 0; i < items.size(); i++) {
-            ValidadorExtendido item = items.get(i);
-            if (MagicBytes.PDF.is(item.getFile())) {
-                archivosPdf.add(item.getFile());
-                indicesArchivosPdf.add(i);
-                if (item instanceof ValidadorExtendidoPdf) {
-                    ValidadorExtendidoPdf pdfItem = (ValidadorExtendidoPdf) item;
-                    if (pdfItem.esFirmasReferenciaTrasReparacion()) {
-                        firmasPorArchivo.add(List.of());
-                    } else {
-                        List<Firma> firmas = new ArrayList<>();
-                        for (Firma firma : item) {
-                            firmas.add(firma);
-                        }
-                        firmasPorArchivo.add(firmas);
-                    }
-                } else {
-                    List<Firma> firmas = new ArrayList<>();
-                    for (Firma firma : item) {
-                        firmas.add(firma);
-                    }
-                    firmasPorArchivo.add(firmas);
-                }
-            }
-        }
-        return new DatosPdfsEnLista(archivosPdf, firmasPorArchivo, indicesArchivosPdf);
-    }
-
     private ResultadoReparacionPdf repararPdfsEnLista(DatosPdfsEnLista datos, File directorioDestino) throws IOException {
         List<String> fallosReparacion = new ArrayList<>();
         List<String> exitosReparacion = new ArrayList<>();
@@ -1324,6 +1260,18 @@ public class FormAplicacion extends Application {
                         java.nio.file.Path archivoTemporal = null;
                         File archivoFirmado = null;
                         try {
+                            ValidadorExtendido archivo = archivos.get(i);
+                            List<Firma> firmas = new ArrayList<>();
+                            if (!(archivo instanceof ValidadorExtendidoPdf)
+                                    || !((ValidadorExtendidoPdf) archivo).esFirmasReferenciaTrasReparacion()) {
+                                for (Firma firma : archivo) {
+                                    firmas.add(firma);
+                                }
+                            }
+                            if (ValidadorEstructuraPdf.requiereAtencionAntesDeFirmar(archivo.getFile(), firmas)) {
+                                throw new JacobitusException(CategoriaErrorFirma.ESTRUCTURA_PDF,
+                                        CategoriaErrorFirma.ESTRUCTURA_PDF.getMensajeUsuario(), null);
+                            }
                             IFirmador firmador = FirmadorPdf.getInstance(slotID, alias, contrasenia, getConfigFirmador());
                             String nomArchivo = new File(archivos.get(i).getAbsolutePath()).getName();
                             if (!nomArchivo.endsWith(".pdf")) {
