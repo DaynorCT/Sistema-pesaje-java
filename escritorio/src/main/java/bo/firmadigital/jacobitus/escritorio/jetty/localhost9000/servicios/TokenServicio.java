@@ -13,6 +13,7 @@ import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
 import bo.firmadigital.jacobitus.comun.InfoCertificado;
+import bo.firmadigital.jacobitus.comun.JacobitusException;
 import bo.firmadigital.jacobitus.escritorio.comun.Config;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.TokenAutenticacionDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.TokenCertificateEmisorDto;
@@ -174,7 +175,7 @@ public class TokenServicio {
                     }
    
                     data.setPrivate_keys(llaves.size());
-                } catch (GeneralSecurityException ex) {
+                } catch (GeneralSecurityException | JacobitusException ex) {
                     respuesta.setFinalizado(false);
                     respuesta.setMensaje(ex.getMessage());
                 } finally {
