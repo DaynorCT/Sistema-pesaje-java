@@ -1,3 +1,42 @@
 .context-menu {
     -fx-effect: null;
 }
+
+.version-banner {
+    -fx-background-color: #9a3412;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 7 10 7 10;
+}
+
+.progress-bar {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.progress-bar .track {
+    -fx-background-color: #f1f5f9;
+    -fx-background-radius: 0;
+    -fx-background-insets: 0;
+}
+
+.progress-bar .bar {
+    -fx-background-radius: 0;
+    -fx-background-insets: 0;
+    -fx-padding: 2px;
+}
+
+.progress-bar.progress-bar-prerelease .bar {
+    -fx-background-color: #eab308;
+}
+
+.prerelease-theme .progress-bar .bar {
+    -fx-background-color: #eab308;
+}
+
+.table-view.tabla-sin-scroll-horizontal .scroll-bar:horizontal {
+    -fx-pref-height: 0;
+    -fx-max-height: 0;
+    -fx-opacity: 0;
+    -fx-padding: 0;
+}

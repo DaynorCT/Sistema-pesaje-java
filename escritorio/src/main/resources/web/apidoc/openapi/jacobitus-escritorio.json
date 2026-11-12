@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Jacobitus Escritorio",
-    "version": "2.0.1",
+    "version": "2.2.0",
     "summary": "Solución de escritorio para todo requerimiento de firma digital",
     "description": "Administra tu dispositivo criptográfico (token) de la manera más intuitiva y fácil con esta herramienta.",
     "contact": {
@@ -11,7 +11,7 @@
       "url": "https://firmadigital.bo/herramientas/jacobitus-escritorio/"
     },
     "x-logo": {
-      "url": "./assets/images/logo-agetic.png",
+      "url": "./assets/images/logo-agetic.svg",
       "altText": "AGETIC"
     },
     "license": {
@@ -282,6 +282,216 @@
         "tags": [
           "validador"
         ]
+      }
+    },
+    "/sign-hash": {
+      "servers": [
+        {
+          "url": "https://localhost:4637"
+        }
+      ],
+      "post": {
+        "summary": "Firmador-HASH",
+        "operationId": "post-sign-hash",
+        "responses": {
+          "200": {
+            "description": "Recurso encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "files": {
+                          "$ref": "#/components/schemas/FirmaArregloHashModoSeguroFirmadoDto",
+                          "x-stoplight": {
+                            "id": "pf9bqtpqftdnb"
+                          }
+                        },
+                        "certificate": {
+                          "type": "string",
+                          "x-stoplight": {
+                            "id": "b8ft0tnpara54"
+                          },
+                          "description": "Certificado público del usuario que realizó la firma."
+                        },
+                        "certificateChain": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Cadena de certificados públicos del usuario que realizó la firma.",
+                          "x-stoplight": {
+                            "id": "1dq6ozh10sdwx"
+                          }
+                        },
+                        "encryptionAlgorithm": {
+                          "type": "string",
+                          "x-stoplight": {
+                            "id": "r19txb32nc84b"
+                          },
+                          "description": "Tipo de encriptación utilizado para la firma."
+                        }
+                      },
+                      "required": [
+                        "files",
+                        "certificate",
+                        "certificateChain",
+                        "encryptionAlgorithm"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "message": {
+                          "type": "string"
+                        },
+                        "error": {
+                          "type": "null"
+                        },
+                        "files": {
+                          "$ref": "#/components/schemas/FirmaArregloHashModoSeguroFirmadoDto"
+                        }
+                      },
+                      "required": [
+                        "message",
+                        "error",
+                        "files"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "Cancelación del usuario": {
+                    "value": {
+                      "message": "Se canceló la firma del documento",
+                      "error": null,
+                      "files": []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "x-stoplight": {
+                        "id": "4oyrdtymt7w0a"
+                      },
+                      "description": "Descripción del error."
+                    },
+                    "error": {
+                      "type": "string",
+                      "x-stoplight": {
+                        "id": "10rcohcau9zd2"
+                      },
+                      "description": "Detalle del error."
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "error"
+                  ]
+                },
+                "examples": {
+                  "CI no corresponde al certificado": {
+                    "value": {
+                      "message": "No se pudo firmar el documento",
+                      "error": "El CI del token no corresponde con el CI de la persona para la que se solicitó la firma."
+                    }
+                  },
+                  "Proceso de firma en progreso": {
+                    "value": {
+                      "message": "Ya se está ejecutando un proceso de firma",
+                      "error": "Ya se tiene una solicitud de firma pendiente."
+                    }
+                  },
+                  "Formato no soportado": {
+                    "value": {
+                      "message": "No se pudo firmar el documento",
+                      "error": "Formato no soportado."
+                    }
+                  },
+                  "Campo archivo faltante": {
+                    "value": {
+                      "message": "No se pudo firmar el documento",
+                      "error": "El campo archivo es obligatorio."
+                    }
+                  },
+                  "Campo archivo[].base64 faltante": {
+                    "value": {
+                      "message": "No se pudo firmar el documento",
+                      "error": "El campo archivo[].base64 es obligatorio."
+                    }
+                  },
+                  "Campo archivo[].date faltante": {
+                    "value": {
+                      "message": "No se pudo firmar el documento",
+                      "error": "El campo archivo[].date es obligatorio."
+                    }
+                  },
+                  "Formato de fecha inválido": {
+                    "value": {
+                      "message": "No se pudo firmar el documento",
+                      "error": "Formato de fecha inválido. Formato esperado: yyyy-MM-dd HH:mm:ss.SSSZ"
+                    }
+                  },
+                  "Más de un token conectado": {
+                    "value": {
+                      "message": "No se pudo firmar el documento",
+                      "error": "Por favor conecte solo un token."
+                    }
+                  },
+                  "Llaves no encontradas en el token": {
+                    "value": {
+                      "message": "No se pudo firmar el documento",
+                      "error": "Llaves no encontradas en token"
+                    }
+                  },
+                  "Parámetros con problemas": {
+                    "value": {
+                      "message": "No se pudo firmar el documento",
+                      "error": "Uno o más parámetros tienen problemas."
+                    }
+                  },
+                  "Idioma no válido": {
+                    "value": {
+                      "message": "No se pudo firmar el documento",
+                      "error": "El campo language no es válido. Valor permitido: es."
+                    }
+                  },
+                  "Campo no reconocido": {
+                    "value": {
+                      "message": "Error en la petición",
+                      "error": "Campo no reconocido: archivo.base642"
+                    }
+                  },
+                  "Campo con tipo de dato incorrecto": {
+                    "value": {
+                      "message": "Error en la petición",
+                      "error": "El campo 'ci' tiene un valor con formato incorrecto."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "firmador"
+        ],
+        "description": "Permite firmar una cadena hash en formato pades_hash.",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/FirmaHashModoSeguro"
+        }
       }
     }
   },
@@ -946,6 +1156,143 @@
         "required": [
           "file"
         ]
+      },
+      "FirmaArregloModoSeguroDto": {
+        "title": "FirmaArregloModoSeguroDto",
+        "x-stoplight": {
+          "id": "2btumnpigmc83"
+        },
+        "type": "array",
+        "items": {
+          "x-stoplight": {
+            "id": "f71iibhjy389g"
+          },
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "x-stoplight": {
+                "id": "gfd0si41sen64"
+              }
+            },
+            "base64": {
+              "type": "string",
+              "x-stoplight": {
+                "id": "o88iaqem30ftd"
+              }
+            }
+          },
+          "required": [
+            "name",
+            "base64"
+          ]
+        }
+      },
+      "FirmaArregloModoSeguroFirmadoDto": {
+        "title": "FirmaArregloModoSeguroFirmadoDto",
+        "x-stoplight": {
+          "id": "ykpivghmcyct6"
+        },
+        "type": "array",
+        "items": {
+          "x-stoplight": {
+            "id": "sjrinpfng88bb"
+          },
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "x-stoplight": {
+                "id": "pns9jefa7otrt"
+              }
+            },
+            "base64": {
+              "type": "string",
+              "x-stoplight": {
+                "id": "rglsgif28ey0u"
+              }
+            }
+          },
+          "required": [
+            "name",
+            "base64"
+          ]
+        }
+      },
+      "FirmaArregloHashModoSeguroDto": {
+        "title": "FirmaArregloHashModoSeguroDto",
+        "x-stoplight": {
+          "id": "aw6z7di21vaku"
+        },
+        "description": "Array de objetos archivo, o un único objeto archivo.",
+        "type": "array",
+        "items": {
+          "x-stoplight": {
+            "id": "x8aln063pvwlf"
+          },
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "x-stoplight": {
+                "id": "sk0ylvvwz2jb3"
+              },
+              "description": "Identificador del archivo. (Opcional)"
+            },
+            "base64": {
+              "type": "string",
+              "x-stoplight": {
+                "id": "96e4ypnzvaw88"
+              },
+              "description": "HASH en base64 que se quiere firmar digitalmente."
+            },
+            "date": {
+              "type": "string",
+              "x-stoplight": {
+                "id": "pxvk07odggay4"
+              },
+              "description": "Fecha del documento, en formato estricto yyyy-MM-dd HH:mm:ss.SSSZ.",
+              "example": "2026-08-21 15:35:23.126-0400"
+            }
+          },
+          "required": [
+            "base64",
+            "date"
+          ]
+        }
+      },
+      "FirmaArregloHashModoSeguroFirmadoDto": {
+        "title": "FirmaArregloHashModoSeguroFirmadoDto",
+        "x-stoplight": {
+          "id": "dhk4vms1fvpm5"
+        },
+        "type": "array",
+        "items": {
+          "x-stoplight": {
+            "id": "3ldsh0bxxrjgr"
+          },
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "string",
+              "x-stoplight": {
+                "id": "00nb9r5ad1ooc"
+              },
+              "description": "Hash firmado."
+            },
+            "algorithm": {
+              "type": "string",
+              "x-stoplight": {
+                "id": "nhb8f8psjaq3v"
+              },
+              "description": "Algoritmo utilizado para la firma."
+            }
+          },
+          "required": [
+            "value",
+            "algorithm"
+          ]
+        }
       }
     },
     "securitySchemes": {},
@@ -1892,6 +2239,133 @@
                 "value": {
                   "file": "MII...truncated...==",
                   "date": "2024-10-18T14:43:52.231-04:00"
+                }
+              }
+            }
+          }
+        }
+      },
+      "FirmaModoSeguro": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "archivo": {
+                  "$ref": "#/components/schemas/FirmaArregloModoSeguroDto",
+                  "x-stoplight": {
+                    "id": "5w5scv9n60hpc"
+                  }
+                },
+                "ci": {
+                  "type": "string",
+                  "x-stoplight": {
+                    "id": "mqj265neq1bhz"
+                  }
+                },
+                "format": {
+                  "type": "string",
+                  "x-stoplight": {
+                    "id": "euiximkltahri"
+                  }
+                },
+                "getcertificate": {
+                  "type": "boolean",
+                  "x-stoplight": {
+                    "id": "iu0ca6w4gkaew"
+                  }
+                }
+              },
+              "required": [
+                "archivo",
+                "format"
+              ]
+            }
+          }
+        }
+      },
+      "FirmaHashModoSeguro": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "archivo": {
+                  "$ref": "#/components/schemas/FirmaArregloHashModoSeguroDto",
+                  "x-stoplight": {
+                    "id": "govzf5pemq84f"
+                  },
+                  "description": "Hashes a firmar: array de objetos, o un solo objeto (ver ejemplos)."
+                },
+                "ci": {
+                  "type": "string",
+                  "x-stoplight": {
+                    "id": "uhfd2kcv2n5il"
+                  },
+                  "description": "El CI de la persona que debe firmar. (Opcional)"
+                },
+                "format": {
+                  "type": "string",
+                  "x-stoplight": {
+                    "id": "yiz9bs10u2dwi"
+                  },
+                  "enum": [
+                    "pades_hash"
+                  ],
+                  "description": "Formato del archivo a firmar."
+                },
+                "language": {
+                  "type": "string",
+                  "description": "Idioma del sistema. (Opcional)",
+                  "enum": [
+                    "es"
+                  ],
+                  "default": "es"
+                },
+                "digest": {
+                  "type": "string",
+                  "description": "Algoritmo de encriptación. (Opcional)",
+                  "enum": [
+                    "sha1",
+                    "sha224",
+                    "sha256",
+                    "sha384",
+                    "sha512"
+                  ],
+                  "default": "sha256"
+                },
+                "pin": {
+                  "type": "string",
+                  "description": "Código de seguridad del token. (Opcional)"
+                }
+              },
+              "required": [
+                "archivo",
+                "format"
+              ]
+            },
+            "examples": {
+              "Array de archivos": {
+                "value": {
+                  "format": "pades_hash",
+                  "digest": "sha256",
+                  "archivo": [
+                    {
+                      "id": "1",
+                      "base64": "MII...truncated...==",
+                      "date": "2026-08-21 15:35:23.126-0400"
+                    }
+                  ]
+                }
+              },
+              "Objeto único": {
+                "value": {
+                  "format": "pades_hash",
+                  "digest": "sha256",
+                  "archivo": {
+                    "base64": "MII...truncated...==",
+                    "date": "2026-08-21 15:35:23.126-0400"
+                  }
                 }
               }
             }

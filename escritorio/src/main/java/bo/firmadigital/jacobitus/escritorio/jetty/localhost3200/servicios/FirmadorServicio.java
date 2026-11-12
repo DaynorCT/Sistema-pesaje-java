@@ -16,6 +16,11 @@ import java.util.logging.Logger;
 import org.codehaus.jettison.json.JSONObject;
 
 import bo.firmadigital.jacobitus.comun.InfoCertificado;
+import bo.firmadigital.jacobitus.escritorio.comun.Config;
+import bo.firmadigital.jacobitus.escritorio.jetty.localhost3200.dtos.CertificadoDto;
+import bo.firmadigital.jacobitus.escritorio.jetty.localhost3200.dtos.FirmaPdfDto;
+import bo.firmadigital.jacobitus.escritorio.jetty.localhost3200.dtos.FirmaPdfRespuestaDto;
+import bo.firmadigital.jacobitus.escritorio.jetty.localhost3200.dtos.comun.RespuestaDto;
 import bo.firmadigital.jacobitus.firmador.FirmadorPdf;
 import bo.firmadigital.jacobitus.firmador.base.ConfiguracionFirmador;
 import bo.firmadigital.jacobitus.firmador.base.SmartCard;
@@ -26,11 +31,6 @@ import bo.firmadigital.jacobitus.token.IToken;
 import bo.firmadigital.jacobitus.token.Slot;
 import bo.firmadigital.jacobitus.validador.base.ConfiguracionValidador;
 import bo.firmadigital.jacobitus.validador.comun.CadenaConfianzaHelper;
-import bo.firmadigital.jacobitus.escritorio.comun.Config;
-import bo.firmadigital.jacobitus.escritorio.jetty.localhost3200.dtos.CertificadoDto;
-import bo.firmadigital.jacobitus.escritorio.jetty.localhost3200.dtos.FirmaPdfDto;
-import bo.firmadigital.jacobitus.escritorio.jetty.localhost3200.dtos.FirmaPdfRespuestaDto;
-import bo.firmadigital.jacobitus.escritorio.jetty.localhost4637.dtos.comun.RespuestaDto;
 
 public class FirmadorServicio {
 
@@ -46,13 +46,6 @@ public class FirmadorServicio {
         configFirmador.setSoftoken(config.getToken());
         configFirmador.setDirectorioControladores(config.getDirectorioControladores());
         configFirmador.setDispositivosCompatibles(config.getDispositivosCompatibles());
-        configFirmador.setSelloTiempoHabilitado(config.isTSEnabled());
-        // configFirmador.setApiSelloTiempo(config.getTS());
-        // configFirmador.setJwtSelloTiempo(config.getTSJWT());
-        // configFirmador.setHsmHabilitado(config.isHsmEnabled());
-        // configFirmador.setTipoHsm(config.getHsmType());
-        // configFirmador.setApiHsm(config.getHsmCloud());
-        // configFirmador.setJwtHsm(config.getHsmJWT());
         return configFirmador;
     }
     
@@ -99,28 +92,30 @@ public class FirmadorServicio {
         } else {
             try {
                 if (slots != null) {
-                    if (slots.length == 1) {
-                        slots[0].getToken().salir();
-                    }
+                    Slot[] sesionAnterior = slots;
                     slots = null;
+                    if (sesionAnterior.length == 1) {
+                        sesionAnterior[0].getToken().salir();
+                    }
                 }
                 GestorSlot gestorSlot = GestorSlot.getInstance();
                 gestorSlot.setConfigFirmador(this.getConfigFirmador());
-                slots = gestorSlot.listarSlots();
-                if (slots.length == 1) {
-                    slots[0].getToken().iniciar(pin);
+                Slot[] slotsDisponibles = gestorSlot.listarSlots();
+                if (slotsDisponibles.length == 1) {
+                    slotsDisponibles[0].getToken().iniciar(pin);
+                    slots = slotsDisponibles;
                     respuesta.setFinalizado(true);
                     respuesta.setMensaje("Autenticacion correcta");
                 } else {
                     respuesta.setFinalizado(false);
-                    if (slots.length > 1) {
+                    if (slotsDisponibles.length > 1) {
                         respuesta.setMensaje("Se encontró más de un token conectado.");
                     } else {
                         respuesta.setMensaje("No se encontró ningún token conectado.");
                     }
-                    slots = null;
                 }
             } catch (RuntimeException | GeneralSecurityException ex) {
+                slots = null;
                 respuesta.setFinalizado(false);
                 respuesta.setMensaje(ex.getMessage());
             }
@@ -251,8 +246,9 @@ public class FirmadorServicio {
         } else {
             try {
                 if (slots.length == 1) {
-                    slots[0].getToken().salir();
+                    Slot[] sesionFinalizada = slots;
                     slots = null;
+                    sesionFinalizada[0].getToken().salir();
                     respuesta.setFinalizado(true);
                     respuesta.setMensaje("Cerrado sesión correctamente");
                 } else {
@@ -284,10 +280,11 @@ public class FirmadorServicio {
 
     public String reset() {
         if (slots != null) {
-            if (slots.length == 1) {
-                slots[0].getToken().salir();
-            }
+            Slot[] sesionActual = slots;
             slots = null;
+            if (sesionActual.length == 1) {
+                sesionActual[0].getToken().salir();
+            }
         }
         return "Ok";
     }

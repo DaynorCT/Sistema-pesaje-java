@@ -25,18 +25,19 @@ public class FormContrasenaNueva extends Stage {
     
     public FormContrasenaNueva(Stage parent) {
         stage = parent;
-        setTitle("Pin del token");
+        setTitle("PIN del token");
+        IconosVentana.aplicarAplicacion(this);
         initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);
         VBox root = new VBox();
         root.setPadding(new Insets(10));
         root.setSpacing(8);
-        Label label = new Label("Introduzca nuevo pin:");
+        Label label = new Label("Introduzca nuevo PIN:");
         root.getChildren().add(label);
         PasswordField passwordField = new PasswordField();
         passwordField.setPromptText("Su contraseña");
         root.getChildren().add(passwordField);
-        Label label2 = new Label("Repita pin:");
+        Label label2 = new Label("Repita PIN:");
         root.getChildren().add(label2);
         PasswordField passwordField2 = new PasswordField();
         passwordField2.setPromptText("Repita su contraseña");
@@ -52,6 +53,7 @@ public class FormContrasenaNueva extends Stage {
             }
         });
         root.getChildren().add(passwordField2);
+        root.getChildren().add(IndicadorTeclado.crearIndicadorBloqMayus(passwordField, passwordField2));
         Button buttonAceptar = new Button("Aceptar");
         buttonAceptar.setOnAction(t -> {
             establecerContrasenia(passwordField.getText(), passwordField2.getText());
@@ -64,8 +66,11 @@ public class FormContrasenaNueva extends Stage {
         HBox hBox = new HBox();
         hBox.getChildren().addAll(buttonAceptar, buttonCancelar);
         root.getChildren().add(hBox);
-        Scene scene = new Scene(root, 300, 165);
+        Scene scene = new Scene(root);
         setScene(scene);
+        setMinWidth(300);
+        setWidth(300);
+        setResizable(true);
     }
 
     private void establecerContrasenia(String contrasenia1, String contrasenia2) {
@@ -103,6 +108,7 @@ public class FormContrasenaNueva extends Stage {
         alert.initOwner(stage);
         alert.initModality(Modality.APPLICATION_MODAL);
         alert.setTitle("Jacobitus");
+        IconosVentana.aplicarModal(alert);
         alert.showAndWait();
     }
 }

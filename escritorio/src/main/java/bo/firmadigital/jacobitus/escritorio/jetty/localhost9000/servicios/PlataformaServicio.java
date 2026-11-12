@@ -26,11 +26,7 @@ import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.Payload;
 import com.nimbusds.jose.crypto.RSASSASigner;
 
-import bo.firmadigital.jacobitus.firmador.base.ConfiguracionFirmador;
-import bo.firmadigital.jacobitus.token.GestorSlot;
-import bo.firmadigital.jacobitus.token.IToken;
-import bo.firmadigital.jacobitus.token.Slot;
-import bo.firmadigital.jacobitus.token.TokenPKCS12;
+import bo.firmadigital.jacobitus.comun.JacobitusException;
 import bo.firmadigital.jacobitus.escritorio.comun.Config;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.TokenAutenticacionDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.TokenChangePinDto;
@@ -47,6 +43,11 @@ import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.TokenSolici
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.TokenSolicitudRespuestaDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.comun.ITokenCertificateDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.comun.RespuestaDto;
+import bo.firmadigital.jacobitus.firmador.base.ConfiguracionFirmador;
+import bo.firmadigital.jacobitus.token.GestorSlot;
+import bo.firmadigital.jacobitus.token.IToken;
+import bo.firmadigital.jacobitus.token.Slot;
+import bo.firmadigital.jacobitus.token.TokenPKCS12;
 
 public class PlataformaServicio {
     public PlataformaServicio() {
@@ -59,13 +60,6 @@ public class PlataformaServicio {
         configFirmador.setSoftoken(config.getToken());
         configFirmador.setDirectorioControladores(config.getDirectorioControladores());
         configFirmador.setDispositivosCompatibles(config.getDispositivosCompatibles());
-        // configFirmador.setSelloTiempoHabilitado(config.isTSEnabled());
-        // configFirmador.setApiSelloTiempo(config.getTS());
-        // configFirmador.setJwtSelloTiempo(config.getTSJWT());
-        // configFirmador.setHsmHabilitado(config.isHsmEnabled());
-        // configFirmador.setTipoHsm(config.getHsmType());
-        // configFirmador.setApiHsm(config.getHsmCloud());
-        // configFirmador.setJwtHsm(config.getHsmJWT());
         return configFirmador;
     }
 
@@ -127,31 +121,34 @@ public class PlataformaServicio {
             if (slot != null) {
                 IToken token = slot.getToken();
                 token.iniciar(objetoDto.getPin());
-                BigInteger max = new BigInteger("1000000000000");
-                BigInteger id = (new BigInteger(max.bitLength(), new SecureRandom())).mod(max);
-                token.generarClaves(id.toString(), objetoDto.getPin(), Integer.parseInt(objetoDto.getSlot().toString()));
-                TokenDataRespuestaDto datos = new TokenDataRespuestaDto();
-                respuesta.setDatos(datos);
-                TokenDataDto data_token = new TokenDataDto();
-                datos.setData_token(data_token);
-                data_token.setCertificates(0);
-                List<ITokenCertificateDto> data = new ArrayList<ITokenCertificateDto>();
-                data_token.setData(data);
-                TokenPrivateCertificateDto pk = new TokenPrivateCertificateDto();
-                data.add(pk);
-                pk.setTipo("PRIMARY_KEY");
-                pk.setTipo_desc("Clave Privada");
-                pk.setAlias(id.toString());
-                pk.setTiene_certificado(false);
-                data_token.setPrivate_keys(1);
-                respuesta.setFinalizado(true);
-                respuesta.setMensaje("Se genero el par de claves correctamente.");
-                token.salir();
+                try {
+                    BigInteger max = new BigInteger("1000000000000");
+                    BigInteger id = (new BigInteger(max.bitLength(), new SecureRandom())).mod(max);
+                    token.generarClaves(id.toString(), objetoDto.getPin(), Integer.parseInt(objetoDto.getSlot().toString()));
+                    TokenDataRespuestaDto datos = new TokenDataRespuestaDto();
+                    respuesta.setDatos(datos);
+                    TokenDataDto data_token = new TokenDataDto();
+                    datos.setData_token(data_token);
+                    data_token.setCertificates(0);
+                    List<ITokenCertificateDto> data = new ArrayList<ITokenCertificateDto>();
+                    data_token.setData(data);
+                    TokenPrivateCertificateDto pk = new TokenPrivateCertificateDto();
+                    data.add(pk);
+                    pk.setTipo("PRIMARY_KEY");
+                    pk.setTipo_desc("Clave Privada");
+                    pk.setAlias(id.toString());
+                    pk.setTiene_certificado(false);
+                    data_token.setPrivate_keys(1);
+                    respuesta.setFinalizado(true);
+                    respuesta.setMensaje("Se genero el par de claves correctamente.");
+                } finally {
+                    token.salir();
+                }
             } else {
                 respuesta.setFinalizado(false);
                 respuesta.setMensaje("El slot " + objetoDto.getSlot() + " no se encuentra disponible.");
             }
-        } catch (GeneralSecurityException ex) {
+        } catch (GeneralSecurityException | JacobitusException ex) {
             Logger.getLogger(TokenServicio.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
         }
 
@@ -182,11 +179,12 @@ public class PlataformaServicio {
                     datos.setCsr(token.generarCSR(objetoDto.getAlias_certificado(), array));
                     respuesta.setFinalizado(true);
                     respuesta.setMensaje("Se genero el CSR correctamente");
-                } catch (GeneralSecurityException ex) {
+                } catch (GeneralSecurityException | JacobitusException ex) {
                     respuesta.setFinalizado(false);
                     respuesta.setMensaje(ex.getMessage());
+                } finally {
+                    token.salir();
                 }
-                token.salir();
             } else {
                 respuesta.setFinalizado(false);
                 respuesta.setMensaje("El slot " + objetoDto.getSlot() + " no se encuentra disponible.");
@@ -213,11 +211,12 @@ public class PlataformaServicio {
                             objetoDto.getId());
                     respuesta.setFinalizado(true);
                     respuesta.setMensaje("El certificado fue adicionado correctamente");
-                } catch (UnsupportedEncodingException | GeneralSecurityException ex) {
+                } catch (UnsupportedEncodingException | GeneralSecurityException | JacobitusException ex) {
                     respuesta.setFinalizado(false);
                     respuesta.setMensaje(ex.getMessage());
+                } finally {
+                    token.salir();
                 }
-                token.salir();
             } else {
                 respuesta.setFinalizado(false);
                 respuesta.setMensaje("El slot " + objetoDto.getSlot() + " no se encuentra disponible.");
@@ -323,45 +322,47 @@ public class PlataformaServicio {
             if (slot != null) {
                 IToken token = slot.getToken();
                 token.iniciar(objetoDto.getPin());
-                List<TokenSolicitudDetalleDto> data = objetoDto.getData();
-                List<TokenSolicitudRespuestaDto> datos = new ArrayList<TokenSolicitudRespuestaDto>();
-                for (int i = 0; i < data.size(); i++) {
-                    TokenSolicitudRespuestaDto element = new TokenSolicitudRespuestaDto();
-                    element.setId(data.get(i).getId());
-                    PrivateKey pk = token.obtenerClavePrivada(objetoDto.getAlias());
-                    if (pk == null) {
-                        token.salir();
-                        throw new KeyStoreException("No se encontró la clave con alias: " + objetoDto.getAlias());
-                    }
-                    JWSSigner jwsSigner = new RSASSASigner(pk);
-                    JWSHeader.Builder builder = new JWSHeader.Builder(JWSAlgorithm.RS256);
-                    if (data.get(i).getUrl() == null) {
-                        builder.x509CertURL(new URI("https://agencia.firmadigital.bo/services_ar/certificado?serial_number=" + token.obtenerCertificado(objetoDto.getAlias()).getSerialNumber()));
-                    } else {
-                        if (data.get(i).getUrl().contains("?")) {
-                            builder.x509CertURL(new URI(data.get(i).getUrl()));
-                        } else {
-                            builder.x509CertURL(new URI(data.get(i).getUrl() + "?serial_number=" + token.obtenerCertificado(objetoDto.getAlias()).getSerialNumber()));
+                try {
+                    List<TokenSolicitudDetalleDto> data = objetoDto.getData();
+                    List<TokenSolicitudRespuestaDto> datos = new ArrayList<TokenSolicitudRespuestaDto>();
+                    for (int i = 0; i < data.size(); i++) {
+                        TokenSolicitudRespuestaDto element = new TokenSolicitudRespuestaDto();
+                        element.setId(data.get(i).getId());
+                        PrivateKey pk = token.obtenerClavePrivada(objetoDto.getAlias());
+                        if (pk == null) {
+                            throw new KeyStoreException("No se encontró la clave con alias: " + objetoDto.getAlias());
                         }
+                        JWSSigner jwsSigner = new RSASSASigner(pk);
+                        JWSHeader.Builder builder = new JWSHeader.Builder(JWSAlgorithm.RS256);
+                        if (data.get(i).getUrl() == null) {
+                            builder.x509CertURL(new URI("https://agencia.firmadigital.bo/services_ar/certificado?serial_number=" + token.obtenerCertificado(objetoDto.getAlias()).getSerialNumber()));
+                        } else {
+                            if (data.get(i).getUrl().contains("?")) {
+                                builder.x509CertURL(new URI(data.get(i).getUrl()));
+                            } else {
+                                builder.x509CertURL(new URI(data.get(i).getUrl() + "?serial_number=" + token.obtenerCertificado(objetoDto.getAlias()).getSerialNumber()));
+                            }
+                        }
+                        JWSObject jwsObject = new JWSObject(builder.build(),new Payload(data.get(i).getPayload()));
+                        jwsObject.sign(jwsSigner);
+                        element.setJws(jwsObject.serialize());
+                        datos.add(element);
                     }
-                    JWSObject jwsObject = new JWSObject(builder.build(),new Payload(data.get(i).getPayload()));
-                    jwsObject.sign(jwsSigner);
-                    element.setJws(jwsObject.serialize());
-                    datos.add(element);
+                    respuesta.setDatos(datos);
+                    respuesta.setFinalizado(true);
+                    respuesta.setMensaje("Se firmaron las solicitudes correctamente.");
+                } finally {
+                    token.salir();
                 }
-                token.salir();
-                respuesta.setDatos(datos);
-                respuesta.setFinalizado(true);
-                respuesta.setMensaje("Se firmo las solicitudes correctamente!");
             } else {
                 respuesta.setFinalizado(false);
                 respuesta.setMensaje("El slot " + objetoDto.getSlot() + " no se encuentra disponible.");
             }
-        } catch (GeneralSecurityException | URISyntaxException | JOSEException ex) {
+        } catch (GeneralSecurityException | URISyntaxException | JOSEException | JacobitusException ex) {
             String mensaje = ex.getMessage();
             if (ex.getCause() instanceof IOException) {
                 if (ex.getCause().getMessage() != null && ex.getCause().getMessage().equals("PKCS12 key store mac invalid - wrong password or corrupted file.")) {
-                    mensaje = "Pin incorrecto, intente nuevamente.";
+                    mensaje = "El PIN es incorrecto. Inténtelo nuevamente.";
                 }
             }
             if (ex instanceof java.security.cert.CertificateExpiredException) {
@@ -372,7 +373,7 @@ public class PlataformaServicio {
             }
             if (ex.getCause() instanceof java.security.UnrecoverableKeyException) {
                 if (ex.getCause().getCause() instanceof javax.security.auth.login.FailedLoginException) {
-                    mensaje = "Por favor verifique el pin.";
+                    mensaje = "Por favor verifique el PIN.";
                 }
             }
             if (ex.getCause() instanceof javax.security.auth.login.LoginException) {

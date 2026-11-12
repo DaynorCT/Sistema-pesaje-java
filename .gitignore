@@ -39,3 +39,6 @@ out/
 ### Personalizacion
 **/dist
 **/.DS_Store
+
+### Archivos temporales
+/temp

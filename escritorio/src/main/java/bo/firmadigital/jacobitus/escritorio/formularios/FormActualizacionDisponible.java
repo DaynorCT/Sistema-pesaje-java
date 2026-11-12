@@ -32,11 +32,15 @@ public class FormActualizacionDisponible extends Stage {
 
         setTitle("Jacobitus - Actualización disponible");
 
+        IconosVentana.aplicarAplicacion(this);
         initOwner(parent);
         initModality(Modality.APPLICATION_MODAL);
 
         ImageView imagen = new ImageView(new Image(
                             this.getClass().getClassLoader().getResource("logo-agetic.png").toExternalForm()));
+        imagen.setFitWidth(280);
+        imagen.setPreserveRatio(true);
+        imagen.setSmooth(true);
 
         Label titulo = new Label("Nueva actualización disponible");
         titulo.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
@@ -115,6 +119,7 @@ public class FormActualizacionDisponible extends Stage {
         alert.setTitle("Jacobitus");
         alert.setHeaderText("Error");
         alert.setContentText(msg);
+        IconosVentana.aplicarModal(alert);
         alert.showAndWait();
     }
 }

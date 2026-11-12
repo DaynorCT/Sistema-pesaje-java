@@ -1,0 +1,183 @@
+package bo.firmadigital.jacobitus.escritorio.formularios;
+
+import java.util.List;
+import java.util.Optional;
+
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.DialogPane;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+import javafx.util.Duration;
+
+public final class AlertaEstructuraPdf {
+
+  private static final int COUNTDOWN_SEGUNDOS = 5;
+
+  private AlertaEstructuraPdf() {}
+
+  public enum Resultado {
+    CANCELAR,
+    REPARAR
+  }
+
+  public static void mostrarBloqueoFirma(Stage owner, String detalleAdvertencias) {
+    Alert alert = new Alert(AlertType.WARNING);
+    alert.initOwner(owner);
+    alert.initModality(Modality.APPLICATION_MODAL);
+    alert.setTitle("Jacobitus");
+    alert.setHeaderText("No se puede firmar este documento");
+    alert.setContentText(null);
+    configurarContenido(
+        alert,
+        detalleAdvertencias,
+        "• Use Archivo → Reparar PDF y vuelva a intentar.");
+    alert.getButtonTypes().setAll(ButtonType.OK);
+    alert.showAndWait();
+  }
+
+  public static void mostrarSinProblemas(Stage owner) {
+    Alert alert = new Alert(AlertType.INFORMATION);
+    alert.initOwner(owner);
+    alert.initModality(Modality.APPLICATION_MODAL);
+    alert.setTitle("Jacobitus");
+    alert.setHeaderText(null);
+    alert.setContentText("El documento está en condiciones de firmarse.");
+    alert.getButtonTypes().setAll(ButtonType.OK);
+    alert.showAndWait();
+  }
+
+  public static Resultado mostrarAnalizarReparar(Stage owner, String detalleAdvertencias) {
+    StringBuilder pie = new StringBuilder();
+    pie.append("• Solo se repararán los documentos listados en «Requieren reparación».\n");
+    pie.append("• Se creará una copia nombre.reparado.pdf en la carpeta que elija.\n");
+    pie.append("• El archivo original no se modifica.");
+    boolean reparar = mostrarConCountdown(owner, "¿Reparar el documento?", detalleAdvertencias, pie.toString(), "Reparar");
+    return reparar ? Resultado.REPARAR : Resultado.CANCELAR;
+  }
+
+  public static void mostrarFalloReparacion(Stage owner, String detalleFallos) {
+    Alert alert = new Alert(AlertType.WARNING);
+    alert.initOwner(owner);
+    alert.initModality(Modality.APPLICATION_MODAL);
+    alert.setTitle("Jacobitus");
+    alert.setHeaderText("No se pudo reparar");
+    alert.setContentText(null);
+    configurarContenido(alert, detalleFallos, "• Obtenga una copia nueva del documento e intente de nuevo.");
+    alert.getButtonTypes().setAll(ButtonType.OK);
+    alert.showAndWait();
+  }
+
+  public static void mostrarResultadoReparacion(Stage owner, List<String> exitos, List<String> fallos) {
+    StringBuilder detalle = new StringBuilder();
+    if (exitos != null && !exitos.isEmpty()) {
+      detalle.append("Reparados correctamente (").append(exitos.size()).append("):\n\n");
+      detalle.append(String.join("\n", exitos));
+    }
+    if (fallos != null && !fallos.isEmpty()) {
+      if (detalle.length() > 0) {
+        detalle.append("\n\n");
+      }
+      detalle.append("No se pudo reparar (").append(fallos.size()).append("):\n\n");
+      detalle.append(String.join("\n", fallos));
+    }
+    AlertType tipo =
+        (fallos != null && !fallos.isEmpty()) ? AlertType.WARNING : AlertType.INFORMATION;
+    String encabezado = (fallos != null && !fallos.isEmpty())
+        ? ((exitos != null && !exitos.isEmpty()) ? "Reparación completada con advertencias"
+            : "No se pudo reparar")
+        : "Reparación completada";
+    String pie = (fallos != null && !fallos.isEmpty())
+        ? "• Los documentos reparados están listos para firmar.\n• Obtenga una copia nueva de los que fallaron e intente de nuevo."
+        : "• Ya puede firmar los documentos reparados.";
+    Alert alert = new Alert(tipo);
+    alert.initOwner(owner);
+    alert.initModality(Modality.APPLICATION_MODAL);
+    alert.setTitle("Jacobitus");
+    alert.setHeaderText(encabezado);
+    alert.setContentText(null);
+    configurarContenido(alert, detalle.toString().trim(), pie);
+    alert.getButtonTypes().setAll(ButtonType.OK);
+    alert.showAndWait();
+  }
+
+  public static void mostrarReparacionExitosa(Stage owner) {
+    Alert alert = new Alert(AlertType.INFORMATION);
+    alert.initOwner(owner);
+    alert.initModality(Modality.APPLICATION_MODAL);
+    alert.setTitle("Jacobitus");
+    alert.setHeaderText(null);
+    alert.setContentText("Listo. Ya puede firmar el documento reparado.");
+    alert.getButtonTypes().setAll(ButtonType.OK);
+    alert.showAndWait();
+  }
+
+  private static void configurarContenido(Alert alert, String detalle, String textoPie) {
+    TextArea areaDetalle = new TextArea(detalle);
+    areaDetalle.setEditable(false);
+    areaDetalle.setWrapText(true);
+    int lineas = detalle.split("\n", -1).length;
+    areaDetalle.setPrefRowCount(Math.min(16, Math.max(3, lineas)));
+    areaDetalle.setPrefColumnCount(72);
+    areaDetalle.setMaxWidth(520);
+
+    Label pie = new Label(textoPie);
+    pie.setWrapText(true);
+    pie.setMaxWidth(Double.MAX_VALUE);
+
+    if (textoPie == null || textoPie.isEmpty()) {
+      alert.getDialogPane().setContent(areaDetalle);
+    } else {
+      alert.getDialogPane().setContent(new javafx.scene.layout.VBox(12, areaDetalle, pie));
+    }
+  }
+
+  private static boolean mostrarConCountdown(
+      Stage owner, String headerText, String detalle, String textoPie, String textoBotonPrincipal) {
+    Alert alert = new Alert(AlertType.WARNING);
+    alert.initOwner(owner);
+    alert.initModality(Modality.APPLICATION_MODAL);
+    alert.setTitle("Jacobitus");
+    alert.setHeaderText(headerText);
+    alert.setContentText(null);
+    configurarContenido(alert, detalle, textoPie);
+
+    DialogPane dialogPane = alert.getDialogPane();
+    ButtonType cancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+    ButtonType botonPrincipalTipo =
+        new ButtonType(textoBotonPrincipal + " (" + COUNTDOWN_SEGUNDOS + "s)", ButtonBar.ButtonData.OK_DONE);
+    dialogPane.getButtonTypes().setAll(cancelar, botonPrincipalTipo);
+
+    Button botonPrincipal = (Button) dialogPane.lookupButton(botonPrincipalTipo);
+    botonPrincipal.setDisable(true);
+
+    final int[] segundosRestantes = {COUNTDOWN_SEGUNDOS};
+    Timeline countdown = new Timeline(
+        new KeyFrame(
+            Duration.seconds(1),
+            event -> {
+              segundosRestantes[0]--;
+              if (segundosRestantes[0] <= 0) {
+                botonPrincipal.setDisable(false);
+                botonPrincipal.setText(textoBotonPrincipal);
+              } else {
+                botonPrincipal.setText(textoBotonPrincipal + " (" + segundosRestantes[0] + "s)");
+              }
+            }));
+    countdown.setCycleCount(COUNTDOWN_SEGUNDOS);
+
+    alert.setOnShown(event -> countdown.play());
+    alert.setOnHidden(event -> countdown.stop());
+
+    Optional<ButtonType> resultado = alert.showAndWait();
+    countdown.stop();
+    return resultado.isPresent() && resultado.get() == botonPrincipalTipo && !botonPrincipal.isDisable();
+  }
+}
