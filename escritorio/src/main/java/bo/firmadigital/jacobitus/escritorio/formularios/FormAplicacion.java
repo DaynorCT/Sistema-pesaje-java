@@ -144,7 +144,6 @@ public class FormAplicacion extends Application {
     private static final TokenSelected tokenSelected = new TokenSelected();
     private static String contraseniaMacOS = null;
     private static boolean lanzada = false;
-
     private static FormAplicacion app;
 
     private ConfiguracionFirmador getConfigFirmador() {
@@ -905,7 +904,6 @@ public class FormAplicacion extends Application {
         } else {
             new Thread(descargarArchivo(urlArchivo, tokenAutorizacion, urlRespuesta)).start();
         }
-
         stage.setOnShown((WindowEvent e) -> {
             Platform.runLater(() -> {
                 if (actualizacionInfo != null && actualizacionInfo.isActualizacionDisponible()) {
