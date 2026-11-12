@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.security.Security;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -14,6 +15,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 
 import bo.firmadigital.jacobitus.comun.BadPasswordException;
+import bo.firmadigital.jacobitus.comun.DiagnosticoEstructuraPdf;
 import bo.firmadigital.jacobitus.comun.JacobitusException;
 import bo.firmadigital.jacobitus.utilidades.PdfHelper;
 import bo.firmadigital.jacobitus.validador.base.ConfiguracionValidador;
@@ -27,6 +29,31 @@ public class ValidadorExtendidoPdf extends ValidadorExtendido {
 
     protected ConfiguracionValidador configValidador = null;
     private String contrasenia = null;
+    private PdfHelper pdfHelper;
+    private boolean ocultarFirmasInvalidasEnRuta = false;
+
+    /**
+     * Tras reparar un PDF firmado, el archivo nuevo suele perder el PKCS#7 embebido; se conservan
+     * los titulares del original solo para mostrar en la lista (integridad false).
+     */
+    public void aplicarTitularesTrasReparacion(List<Firma> firmasDelOriginal) {
+        if (firmasDelOriginal == null || firmasDelOriginal.isEmpty()) {
+            return;
+        }
+        List<Firma> referencia = new ArrayList<>(firmasDelOriginal.size());
+        for (Firma firma : firmasDelOriginal) {
+            firma.setIntegridad(false);
+            firma.setCadenaConfianza(false);
+            referencia.add(firma);
+        }
+        this.firmas = referencia;
+        this.ocultarFirmasInvalidasEnRuta = true;
+    }
+
+    /** Firmas mostradas solo en UI; no deben bloquear cofirmar tras reparar. */
+    public boolean esFirmasReferenciaTrasReparacion() {
+        return ocultarFirmasInvalidasEnRuta;
+    }
 
     public ValidadorExtendidoPdf(File archivo, ConfiguracionValidador configValidador) {
         this.configValidador = configValidador;
@@ -127,9 +154,30 @@ public class ValidadorExtendidoPdf extends ValidadorExtendido {
     }    
 
     public List<Firma> listarCertificados(InputStream is) throws OperatorCreationException, IOException, GeneralSecurityException {
-        PdfHelper pdfHelper = new PdfHelper();
+        this.pdfHelper = new PdfHelper();
         pdfHelper.setConfigValidador(this.configValidador);
         return pdfHelper.listarCertificados(is, this.contrasenia);
+    }
+
+    // Advertencias de xRef/trailer al abrir el documento; no reemplaza a Firma#getObjetoPdf() (shadow attack).
+    public List<String> getAdvertenciasEstructura() {
+        DiagnosticoEstructuraPdf diagnostico = pdfHelper == null ? null : pdfHelper.getDiagnosticoEstructura();
+        return diagnostico == null ? List.of() : diagnostico.getMensajesUsuario();
+    }
+
+    public List<String> getFirmasInvalidas() {
+        return pdfHelper == null ? List.of() : pdfHelper.getFirmasInvalidas();
+    }
+
+    @Override
+    public String getPathValidated() {
+        StringBuilder res = new StringBuilder(super.getPathValidated());
+        if (!ocultarFirmasInvalidasEnRuta) {
+            for (String firmaInvalida : getFirmasInvalidas()) {
+                res.append("\n\t✘ ").append(firmaInvalida);
+            }
+        }
+        return res.toString();
     }
 
     public boolean getBloqueado() {

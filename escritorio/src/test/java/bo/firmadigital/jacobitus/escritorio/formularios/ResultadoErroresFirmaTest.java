@@ -9,8 +9,10 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.security.cert.CertificateException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import org.junit.Test;
 
@@ -81,6 +83,40 @@ public class ResultadoErroresFirmaTest {
         assertEquals(4, resultado.getCantidadDocumentos());
         assertEquals(1, resultado.getCantidadFirmados());
         assertEquals(3, resultado.getCantidadFallidos());
+    }
+
+    @Test
+    public void loteMixtoConservaConteosYMensajesDeDiagnosticoDeLaVersion210() {
+        String[] mensajes = {
+                "El PDF parece dañado o incompleto.",
+                "El archivo no parece ser un PDF completo.",
+                "El contenido del PDF está incompleto o dañado.",
+                "La estructura de este PDF impide firmarlo.",
+                "No se identificó una causa específica para el error al firmar el PDF."
+        };
+        List<IncidenciaFirmaArchivo> incidencias = new ArrayList<>();
+        for (int i = 0; i < mensajes.length; i++) {
+            incidencias.add(new IncidenciaFirmaArchivo(
+                    Paths.get("entrada", "observado-" + i + ".pdf").toString(),
+                    CategoriaErrorFirma.ESTRUCTURA_PDF, "PDF-" + (101 + i)));
+        }
+        incidencias.add(new IncidenciaFirmaArchivo(Paths.get("entrada", "otro.pdf").toString(),
+                CategoriaErrorFirma.ESTRUCTURA_PDF, "PDF-101"));
+
+        ResultadoErroresFirma resultado = ResultadoErroresFirma.crear(null, incidencias, 8, 2);
+
+        assertEquals(ResultadoErroresFirma.Tipo.ARCHIVOS, resultado.getTipo());
+        assertEquals(8, resultado.getCantidadDocumentos());
+        assertEquals(2, resultado.getCantidadFirmados());
+        assertEquals(6, resultado.getCantidadFallidos());
+        assertEquals(5, resultado.getGrupos().size());
+        for (int i = 0; i < mensajes.length; i++) {
+            assertEquals(mensajes[i], resultado.getGrupos().get(i).getMensajeUsuario());
+        }
+        assertEquals(Arrays.asList("observado-0.pdf", "otro.pdf"),
+                resultado.getGrupos().get(0).getNombresArchivos());
+        assertEquals(Collections.singletonList("observado-3.pdf"),
+                resultado.getGrupos().get(3).getNombresArchivos());
     }
 
     @Test

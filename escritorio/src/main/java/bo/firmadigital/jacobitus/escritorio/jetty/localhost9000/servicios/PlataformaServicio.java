@@ -26,6 +26,7 @@ import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.Payload;
 import com.nimbusds.jose.crypto.RSASSASigner;
 
+import bo.firmadigital.jacobitus.comun.JacobitusException;
 import bo.firmadigital.jacobitus.escritorio.comun.Config;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.TokenAutenticacionDto;
 import bo.firmadigital.jacobitus.escritorio.jetty.localhost9000.dtos.TokenChangePinDto;
@@ -147,7 +148,7 @@ public class PlataformaServicio {
                 respuesta.setFinalizado(false);
                 respuesta.setMensaje("El slot " + objetoDto.getSlot() + " no se encuentra disponible.");
             }
-        } catch (GeneralSecurityException ex) {
+        } catch (GeneralSecurityException | JacobitusException ex) {
             Logger.getLogger(TokenServicio.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
         }
 
@@ -178,7 +179,7 @@ public class PlataformaServicio {
                     datos.setCsr(token.generarCSR(objetoDto.getAlias_certificado(), array));
                     respuesta.setFinalizado(true);
                     respuesta.setMensaje("Se genero el CSR correctamente");
-                } catch (GeneralSecurityException ex) {
+                } catch (GeneralSecurityException | JacobitusException ex) {
                     respuesta.setFinalizado(false);
                     respuesta.setMensaje(ex.getMessage());
                 } finally {
@@ -210,7 +211,7 @@ public class PlataformaServicio {
                             objetoDto.getId());
                     respuesta.setFinalizado(true);
                     respuesta.setMensaje("El certificado fue adicionado correctamente");
-                } catch (UnsupportedEncodingException | GeneralSecurityException ex) {
+                } catch (UnsupportedEncodingException | GeneralSecurityException | JacobitusException ex) {
                     respuesta.setFinalizado(false);
                     respuesta.setMensaje(ex.getMessage());
                 } finally {
@@ -357,7 +358,7 @@ public class PlataformaServicio {
                 respuesta.setFinalizado(false);
                 respuesta.setMensaje("El slot " + objetoDto.getSlot() + " no se encuentra disponible.");
             }
-        } catch (GeneralSecurityException | URISyntaxException | JOSEException ex) {
+        } catch (GeneralSecurityException | URISyntaxException | JOSEException | JacobitusException ex) {
             String mensaje = ex.getMessage();
             if (ex.getCause() instanceof IOException) {
                 if (ex.getCause().getMessage() != null && ex.getCause().getMessage().equals("PKCS12 key store mac invalid - wrong password or corrupted file.")) {
