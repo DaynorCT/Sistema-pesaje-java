@@ -24,6 +24,11 @@ plugins {
 
 group = 'bo.firmadigital.jacobitus.pesaje'
 
+// Version por defecto del modulo. Se evalua en tiempo de ejecucion (ver
+// appBaseVersion) porque el modulo puede sobrescribirla despues de aplicada
+// la convencion.
+version = '1.0.0'
+
 ext {
     appName = 'Sistema de Pesaje'
     appDescription = 'Sistema de escritorio para el registro de pesajes.'
@@ -107,18 +112,18 @@ def appProfile = { profile ->
     suffix
 }
 
-def appBaseVersion = version.toString()
+def appBaseVersion = { project.version.toString() }
 
 def buildInstallerFilename = { extension ->
     def currentProfile = appProfile(project.ext.buildAppProfile)
     def profilePart = currentProfile ? "-${currentProfile}" : ''
     def ext = extension.startsWith('.') ? extension : ".${extension}"
-    return "${project.ext.jarName}-${appBaseVersion}${profilePart}-${normalizedArch}${ext}"
+    return "${project.ext.jarName}-${appBaseVersion()}${profilePart}-${normalizedArch}${ext}"
 }
 
 def appRuntimeProperties = { profile ->
     [
-            "-Dpesaje.version=${appBaseVersion}",
+            "-Dpesaje.version=${appBaseVersion()}",
             "-Dpesaje.profile=${appProfile(profile)}",
             "-Dpesaje.compilacion=${System.currentTimeMillis()}"
     ]
@@ -134,7 +139,7 @@ def printTaskHeader = { taskName, profile ->
     println "Aplicación   : ${project.ext.appName}"
     println "Sistema      : ${System.getProperty('os.name')}"
     println "Arquitectura : ${normalizedArch}"
-    println "Versión      : ${appBaseVersion}"
+    println "Versión      : ${appBaseVersion()}"
     println "Perfil       : ${dispProfile}"
     println '=================================================='
 }
@@ -295,7 +300,7 @@ def renameProfileArtifacts = { before, buildStartedAt, extension ->
     def targetFilename = buildInstallerFilename(extension)
 
     distDir.listFiles()
-            .findAll { (!before.contains(it.name) || it.lastModified() >= buildStartedAt) && (it.name.contains(appBaseVersion) || it.name.contains(project.ext.jarName)) }
+            .findAll { (!before.contains(it.name) || it.lastModified() >= buildStartedAt) && (it.name.contains(appBaseVersion()) || it.name.contains(project.ext.jarName)) }
             .each { artifact ->
                 def renamedArtifact = file("${artifact.parent}/${targetFilename}")
                 delete renamedArtifact
@@ -323,15 +328,15 @@ def jpackageArgs = { ->
             '--verbose',
             '--input', 'build/libs',
             '--main-class', mainClassName,
-            '--main-jar', "${project.ext.jarName}-${appBaseVersion}.jar",
+            '--main-jar', "${project.ext.jarName}-${appBaseVersion()}.jar",
             '--vendor', project.ext.vendorName,
             '--dest', 'dist',
             '--name', project.ext.appName,
-            '--app-version', appBaseVersion,
+            '--app-version', appBaseVersion(),
             '--description', project.ext.appDescription,
             '--icon', iconFile,
             '--java-options', '-Dfile.encoding=UTF-8',
-            '--java-options', "-Dpesaje.version=${appBaseVersion}",
+            '--java-options', "-Dpesaje.version=${appBaseVersion()}",
             '--java-options', '-Dpesaje.profile=',
             '--java-options', "-Dpesaje.compilacion=${System.currentTimeMillis()}"
     ]
@@ -495,7 +500,7 @@ tasks.register('packageRpm', PackageRpmTask) {
         def specContent = specTemplate.text
                 .replace('@SUMMARY@', project.ext.appName)
                 .replace('@NAME@', project.ext.jarName)
-                .replace('@VERSION@', appBaseVersion)
+                .replace('@VERSION@', appBaseVersion())
                 .replace('@RELEASE@', '1')
                 .replace('@LICENSE@', 'LPG-Bolivia')
                 .replace('@VENDOR@', project.ext.vendorName)
@@ -641,7 +646,7 @@ tasks.register('packageArch', PackageArchTask) {
 
         def pkgbuildContent = pkgbuildTemplate.text
                 .replace('@PKGNAME@', project.ext.jarName.toLowerCase())
-                .replace('@PKGVER@', appBaseVersion)
+                .replace('@PKGVER@', appBaseVersion())
                 .replace('@PKGREL@', '1')
                 .replace('@PKGDESC@', project.ext.appDescription)
                 .replace('@ARCH@', getArchLinuxArch(normalizedArch))
