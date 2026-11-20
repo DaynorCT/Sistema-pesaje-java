@@ -1,0 +1,40 @@
+plugins {
+    id 'bo.firmadigital.jacobitus.pesaje.java-conventions'
+}
+
+version = '1.0.0'
+// mainClassName lo declara la convencion (buildSrc) para que el manifiesto
+// del jar y la tarea `run` usen el mismo valor.
+
+dependencies {
+    implementation 'org.xerial:sqlite-jdbc:3.46.1.3'
+    implementation 'com.fazecast:jSerialComm:2.11.0'
+    implementation 'org.apache.pdfbox:pdfbox:3.0.8'
+    implementation 'org.codehaus.jettison:jettison:1.5.1'
+    implementation 'org.codehaus.jackson:jackson-mapper-asl:1.9.13'
+
+    testImplementation 'junit:junit:4.13.2'
+}
+
+// La UI del pesaje usa los recursos visuales de Jacobitus (una sola fuente
+// de verdad): se copian en build/generated/resources/shared en vez de
+// duplicarlos en el arbol de fuentes de este modulo.
+def sharedResourcesDir = layout.buildDirectory.dir('generated/resources/shared')
+
+tasks.register('copySharedResources', Copy) {
+    from(rootProject.file('escritorio/src/main/resources')) {
+        include 'jacobitus.css'
+        include 'logo-agetic.png'
+    }
+    into sharedResourcesDir
+}
+
+sourceSets {
+    main {
+        resources.srcDir sharedResourcesDir
+    }
+}
+
+tasks.named('processResources') {
+    dependsOn tasks.named('copySharedResources')
+}

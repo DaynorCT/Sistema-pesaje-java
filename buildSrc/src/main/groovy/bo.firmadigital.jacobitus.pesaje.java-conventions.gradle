@@ -1,0 +1,684 @@
+import org.gradle.internal.os.OperatingSystem
+import org.gradle.api.tasks.options.Option
+import org.gradle.api.tasks.Internal
+
+/*
+ * Convenciones de build del Sistema de Pesaje.
+ *
+ * Reutiliza el mismo esqueleto de distribucion que jacobitus-escritorio
+ * (JavaFX + jpackage -> deb / pkg / msi / rpm / arch) parametrizado por las
+ * propiedades `ext` declaradas aqui, de modo que cada modulo app declare
+ * lo suyo y no repita la maquinaria.
+ *
+ * Nota: este plugin NO usa `org.openjfx.javafxplugin`. Las dependencias
+ * JavaFX se resuelven con el clasificador de plataforma explicito porque
+ * dos versiones del mismo plugin dentro de un build es un error de
+ * Gradle, y :pesaje no debe quedar atado a la version que aplica
+ * :escritorio.
+ */
+
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'bo.firmadigital.jacobitus.pesaje'
+
+ext {
+    appName = 'Sistema de Pesaje'
+    appDescription = 'Sistema de escritorio para el registro de pesajes.'
+    jarName = 'sistema-pesaje'
+    mainClassName = 'bo.firmadigital.jacobitus.pesaje.Main'
+    vendorName = 'AGETIC'
+    maintainer = 'desarrollo@firmadigital.bo'
+    javafxVersion = '17.0.10'
+    iconPng = 'iconos/icon.png'
+    iconIco = 'iconos/icon.ico'
+    iconIcns = 'iconos/icon.icns'
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.withType(Javadoc).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.withType(JavaExec).configureEach {
+    jvmArgs += '-Dfile.encoding=UTF-8'
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Utilidades de naming y perfil de distribucion
+// ───────────────────────────────────────────────────────────────────────────
+
+String normalizeArchitecture(String rawArch) {
+    if (rawArch == null) {
+        throw new GradleException('La arquitectura detectada es nula.')
+    }
+    String archLower = rawArch.toLowerCase().trim()
+    switch (archLower) {
+        case 'x86_64':
+        case 'amd64':
+        case 'x64':
+            return 'x64'
+        case 'x86':
+        case 'i386':
+        case 'i486':
+        case 'i586':
+        case 'i686':
+            return 'x86'
+        case 'aarch64':
+        case 'arm64':
+            return 'arm64'
+        default:
+            throw new GradleException("Arquitectura no soportada o no reconocida: '${rawArch}'. Las arquitecturas permitidas son x64, x86 y arm64.")
+    }
+}
+
+def normalizedArch = normalizeArchitecture(System.getProperty('os.arch'))
+def is64Bits = normalizedArch == 'x64'
+
+def getArchLinuxArch(String normArch) {
+    switch (normArch) {
+        case 'x64': return 'x86_64'
+        case 'x86': return 'i686'
+        case 'arm64': return 'aarch64'
+        default: return 'x86_64'
+    }
+}
+
+def appProfile = { profile ->
+    def suffix = (profile ?: '').trim().toLowerCase().replaceAll(/[^a-z0-9._-]/, '-')
+    if (suffix == 'prod') {
+        suffix = ''
+    }
+    suffix
+}
+
+def appBaseVersion = version.toString()
+
+def buildInstallerFilename = { extension ->
+    def currentProfile = appProfile(project.ext.buildAppProfile)
+    def profilePart = currentProfile ? "-${currentProfile}" : ''
+    def ext = extension.startsWith('.') ? extension : ".${extension}"
+    return "${project.ext.jarName}-${appBaseVersion}${profilePart}-${normalizedArch}${ext}"
+}
+
+def appRuntimeProperties = { profile ->
+    [
+            "-Dpesaje.version=${appBaseVersion}",
+            "-Dpesaje.profile=${appProfile(profile)}",
+            "-Dpesaje.compilacion=${System.currentTimeMillis()}"
+    ]
+}
+
+def printTaskHeader = { taskName, profile ->
+    def dispProfile = appProfile(profile)
+    if (dispProfile == '') dispProfile = 'prod'
+
+    println '=================================================='
+    println '                  GENERANDO INSTALADOR            '
+    println '=================================================='
+    println "Aplicación   : ${project.ext.appName}"
+    println "Sistema      : ${System.getProperty('os.name')}"
+    println "Arquitectura : ${normalizedArch}"
+    println "Versión      : ${appBaseVersion}"
+    println "Perfil       : ${dispProfile}"
+    println '=================================================='
+}
+
+def printTaskSuccess = { filename, File targetDir ->
+    println ''
+    println "Instalador generado: ${filename}"
+    println "Ubicación: ${new File(targetDir, filename).absolutePath}"
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// JavaFX: dependencias con el clasificador de plataforma explicito
+// ───────────────────────────────────────────────────────────────────────────
+
+def javafxPlatform = {
+    String osName = System.getProperty('os.name').toLowerCase()
+    String arch = System.getProperty('os.arch').toLowerCase()
+    boolean arm = arch in ['aarch64', 'arm64']
+    if (osName.contains('mac') || osName.contains('darwin')) {
+        return arm ? 'mac-aarch64' : 'mac-x64'
+    }
+    if (osName.contains('windows')) {
+        return 'win'
+    }
+    return arm ? 'linux-aarch64' : 'linux'
+}
+
+dependencies {
+    ['javafx-base', 'javafx-graphics', 'javafx-controls', 'javafx-fxml', 'javafx-swing'].each { module ->
+        implementation "org.openjfx:${module}:${project.ext.javafxVersion}:${javafxPlatform()}"
+    }
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Empaquetado de la aplicacion
+// ───────────────────────────────────────────────────────────────────────────
+
+jar {
+    archiveBaseName = project.ext.jarName
+    archiveVersion = version
+    manifest {
+        attributes('Main-Class': project.ext.mainClassName)
+    }
+    // El Class-Path se arma en tiempo de ejecucion: resolver el
+    // runtimeClasspath durante la configuracion impediria que el modulo
+    // declare sus dependencias despues de aplicada la convencion.
+    doFirst {
+        manifest {
+            attributes('Class-Path': configurations.runtimeClasspath.files.collect { file ->
+                "dependencias/${file.name}"
+            }.join(' '))
+        }
+    }
+}
+
+def generatedResourcesDir = layout.buildDirectory.dir('generated/resources/main')
+
+tasks.register('generateAppInfo') {
+    inputs.property 'appDescription', project.ext.appDescription
+    outputs.dir generatedResourcesDir
+    doLast {
+        def outputDir = generatedResourcesDir.get().asFile
+        outputDir.mkdirs()
+        def propertiesFile = new File(outputDir, 'pesaje.properties')
+        propertiesFile.setText("descripcion=${project.ext.appDescription}\n", 'UTF-8')
+    }
+}
+
+sourceSets {
+    main {
+        resources.srcDir generatedResourcesDir
+    }
+}
+
+tasks.named('processResources') {
+    dependsOn tasks.named('generateAppInfo')
+}
+
+tasks.named('run', JavaExec) {
+    doFirst {
+        def runProfile = project.findProperty('profile') ?: 'dev'
+        setJvmArgs((getJvmArgs() ?: [])
+                .findAll { arg ->
+                    !arg.startsWith('-Dpesaje.version=') &&
+                    !arg.startsWith('-Dpesaje.profile=') &&
+                    !arg.startsWith('-Dpesaje.compilacion=')
+                }
+                + appRuntimeProperties(runProfile))
+    }
+}
+
+tasks.register('copyAllDependencies') {
+    group = 'build'
+
+    dependsOn configurations.runtimeClasspath
+
+    doLast {
+        copy {
+            from configurations.runtimeClasspath
+            into layout.buildDirectory.dir('libs/dependencias')
+            exclude '*.so', '*.dylib', '*.dll'
+            duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        }
+    }
+}
+
+class PackageAppTask extends Exec {
+    @Internal String profile
+    @Option(option = 'app-profile', description = 'Perfil de distribucion del instalador. Ej: prod, dev, test, demo')
+
+    void setProfile(String profile) {
+        this.profile = profile
+        project.ext.buildAppProfile = profile
+    }
+}
+
+class PackageRpmTask extends DefaultTask {
+    @Internal String profile
+    @Option(option = 'app-profile', description = 'Perfil de distribucion del instalador. Ej: prod, dev, test, demo')
+
+    void setProfile(String profile) {
+        this.profile = profile
+        project.ext.buildAppProfile = profile
+    }
+}
+
+class PackageArchTask extends DefaultTask {
+    @Internal String profile
+    @Option(option = 'app-profile', description = 'Perfil de distribucion del instalador. Ej: prod, dev, test, demo')
+
+    void setProfile(String profile) {
+        this.profile = profile
+        project.ext.buildAppProfile = profile
+    }
+}
+
+class BuildAppTask extends DefaultTask {
+    @Internal String profile
+    @Option(option = 'app-profile', description = 'Perfil de distribucion del instalador. Ej: prod, dev, test, demo')
+
+    void setProfile(String profile) {
+        this.profile = profile
+        project.ext.buildAppProfile = profile
+    }
+}
+
+def distSnapshot = {
+    def distDir = file("${projectDir}/dist")
+    distDir.exists() ? distDir.listFiles().collect { it.name } as Set : [] as Set
+}
+
+def renameProfileArtifacts = { before, buildStartedAt, extension ->
+    def distDir = file("${projectDir}/dist")
+    if (!distDir.exists()) {
+        return
+    }
+
+    def targetFilename = buildInstallerFilename(extension)
+
+    distDir.listFiles()
+            .findAll { (!before.contains(it.name) || it.lastModified() >= buildStartedAt) && (it.name.contains(appBaseVersion) || it.name.contains(project.ext.jarName)) }
+            .each { artifact ->
+                def renamedArtifact = file("${artifact.parent}/${targetFilename}")
+                delete renamedArtifact
+                if (!artifact.renameTo(renamedArtifact)) {
+                    throw new GradleException("No se pudo renombrar ${artifact.name} a ${targetFilename}")
+                }
+                printTaskSuccess(targetFilename, distDir)
+            }
+}
+
+def os = OperatingSystem.current()
+
+def jpackageArgs = { ->
+    def iconFile
+    if (os.isWindows()) {
+        iconFile = project.ext.iconIco
+    } else if (os.isMacOsX()) {
+        iconFile = project.ext.iconIcns
+    } else {
+        iconFile = project.ext.iconPng
+    }
+
+    def args = [
+            "${System.getProperty('java.home')}/bin/jpackage",
+            '--verbose',
+            '--input', 'build/libs',
+            '--main-class', mainClassName,
+            '--main-jar', "${project.ext.jarName}-${appBaseVersion}.jar",
+            '--vendor', project.ext.vendorName,
+            '--dest', 'dist',
+            '--name', project.ext.appName,
+            '--app-version', appBaseVersion,
+            '--description', project.ext.appDescription,
+            '--icon', iconFile,
+            '--java-options', '-Dfile.encoding=UTF-8',
+            '--java-options', "-Dpesaje.version=${appBaseVersion}",
+            '--java-options', '-Dpesaje.profile=',
+            '--java-options', "-Dpesaje.compilacion=${System.currentTimeMillis()}"
+    ]
+
+    def licenseFile = os.isWindows() ? 'license.rtf' : 'license.txt'
+    if (file(licenseFile).exists()) {
+        args += ['--license-file', licenseFile]
+    }
+
+    args
+}
+
+tasks.register('packageApp', PackageAppTask) {
+    group = 'distribution'
+
+    dependsOn jar
+    dependsOn copyAllDependencies
+
+    def extension = 'bin'
+
+    doFirst {
+        printTaskHeader('packageApp', project.ext.buildAppProfile)
+        def profile = appProfile(project.ext.buildAppProfile)
+        def osArgs = []
+
+        if (os.isLinux()) {
+            extension = 'deb'
+            osArgs = [
+                    '--type', 'deb',
+                    '--resource-dir', 'plantillas/deb',
+                    '--linux-package-name', project.ext.jarName,
+                    '--linux-deb-maintainer', project.ext.maintainer,
+                    '--linux-deb-package-deps', 'libnss3-tools, pcscd, pcsc-tools, libnss3, libpcsclite1',
+                    '--linux-shortcut'
+            ]
+        } else if (os.isMacOsX()) {
+            extension = 'pkg'
+            osArgs = [
+                    '--type', 'pkg',
+                    '--icon', project.ext.iconIcns
+            ]
+        } else if (os.isWindows()) {
+            extension = 'msi'
+            osArgs = [
+                    '--type', 'msi',
+                    '--resource-dir', 'plantillas/windows',
+                    '--win-shortcut',
+                    '--win-menu',
+                    '--win-menu-group', 'AGETIC',
+                    '--win-upgrade-uuid', '9f1d6b2c-6c2a-4f1e-9a3d-2b7c4e5a1d80'
+            ]
+        } else {
+            throw new GradleException('Sistema operativo no soportado')
+        }
+
+        def before = distSnapshot()
+        def buildStartedAt = System.currentTimeMillis() - 2000
+
+        commandLine(jpackageArgs().collect {
+            it == '-Dpesaje.profile=' ? "-Dpesaje.profile=${profile}" : it
+        } + osArgs)
+
+        project.ext.packageExtension = extension
+        project.ext.packageBefore = before
+        project.ext.packageStartedAt = buildStartedAt
+    }
+
+    doLast {
+        renameProfileArtifacts(project.ext.packageBefore, project.ext.packageStartedAt, project.ext.packageExtension)
+    }
+}
+
+tasks.register('buildApp', BuildAppTask) {
+    group = 'distribution'
+    dependsOn packageApp
+    doLast {}
+}
+
+tasks.register('packageRpm', PackageRpmTask) {
+    group = 'distribution'
+
+    def appCategory = 'Utility;'
+    def mimeTypes = ''
+
+    def rpmRoot = file("${buildDir}/rpm")
+    def tempAppImageDir = file("${buildDir}/tmp/app-image")
+    def specTemplate = file("${projectDir}/plantillas/rpm/${project.ext.jarName}.spec")
+    def desktopTemplate = file("${projectDir}/plantillas/rpm/resources/${project.ext.jarName}-${project.ext.appName.replace(' ', '')}.desktop")
+
+    dependsOn jar
+    dependsOn copyAllDependencies
+
+    doFirst {
+        printTaskHeader('packageRpm', project.ext.buildAppProfile)
+        if (tempAppImageDir.exists()) {
+            logger.lifecycle('Eliminando app-image previo...')
+            delete tempAppImageDir
+        }
+
+        tempAppImageDir.mkdirs()
+        delete rpmRoot
+
+        ['BUILD', 'RPMS', 'SOURCES', 'SPECS', 'SRPMS'].each {
+            file("${rpmRoot}/${it}").mkdirs()
+        }
+    }
+
+    doLast {
+        exec {
+            workingDir './'
+            commandLine(jpackageArgs() + ['--type', 'app-image', '--dest', tempAppImageDir.absolutePath])
+        }
+
+        def appImageDir = tempAppImageDir.listFiles()?.find { it.isDirectory() }
+        if (appImageDir == null || !appImageDir.exists()) {
+            throw new GradleException("No se encontró el app-image en ${tempAppImageDir}")
+        }
+
+        def sourceDir = file("${rpmRoot}/SOURCES/opt/${project.ext.jarName}")
+
+        copy {
+            from appImageDir
+            into sourceDir
+        }
+
+        copy {
+            from(appImageDir) {
+                include '**/*.png'
+                eachFile { file ->
+                    if (file.name.contains(' ')) {
+                        file.name = file.name.replaceAll(/\s+/, '_')
+                    }
+                }
+                includeEmptyDirs = false
+            }
+            into sourceDir
+        }
+
+        def desktopFile = file("${sourceDir}/lib/${project.ext.jarName}-${project.ext.appName.replace(' ', '')}.desktop")
+
+        def desktopContent = desktopTemplate.text
+                .replace('@APP_NAME@', project.ext.appName)
+                .replace('@DESCRIPTION@', project.ext.appDescription)
+                .replace('@INSTALL_DIR@', "/opt/${project.ext.jarName}")
+                .replace('@EXECUTABLE_NAME@', project.ext.appName)
+                .replace('@ICON_NAME@', "${project.ext.appName.replace(' ', '_')}.png")
+                .replace('@CATEGORY@', appCategory)
+                .replace('@MIME_TYPES@', mimeTypes)
+
+        desktopFile.text = desktopContent
+
+        copy {
+            from("${projectDir}/plantillas/rpm/resources") {
+                exclude '*.desktop'
+            }
+            into "${sourceDir}/lib"
+        }
+
+        def specFile = file("${rpmRoot}/SPECS/${project.ext.jarName}.spec")
+
+        def specContent = specTemplate.text
+                .replace('@SUMMARY@', project.ext.appName)
+                .replace('@NAME@', project.ext.jarName)
+                .replace('@VERSION@', appBaseVersion)
+                .replace('@RELEASE@', '1')
+                .replace('@LICENSE@', 'LPG-Bolivia')
+                .replace('@VENDOR@', project.ext.vendorName)
+                .replace('@PREFIX@', '/opt')
+                .replace('@PROVIDES@', project.ext.jarName)
+                .replace('@GROUP@', 'Utility')
+                .replace('@REQUIRES@', ', nss-tools, pcsc-lite, pcsc-lite-ccid, pcsc-tools, nss, pcsc-lite-libs')
+                .replace('@DESCRIPTION@', project.ext.appDescription)
+                .replace('@SOURCE_DIR@', "/opt/${project.ext.jarName}")
+                .replace('@INSTALL_DIR@', "/opt/${project.ext.jarName}")
+                .replace('@LICENSE_FILE@', "${projectDir}/license.txt")
+                .replace('@DESKTOP_FILE@', "/opt/${project.ext.jarName}/lib/${project.ext.jarName}-${project.ext.appName.replace(' ', '')}.desktop")
+                .replace('@MIME_FILE@', "/opt/${project.ext.jarName}/lib/${project.ext.jarName}-${project.ext.appName.replace(' ', '')}-MimeInfo.xml")
+                .replace('@UNINSTALL_MIME@', '')
+
+        specFile.text = specContent
+
+        exec {
+            environment 'HOME', rpmRoot.absolutePath
+            commandLine('rpmbuild', '--define', "_topdir ${rpmRoot.absolutePath}", '-bb', specFile.absolutePath)
+        }
+
+        def rpmFiles = fileTree("${rpmRoot}/RPMS").matching {
+            include '**/*.rpm'
+        }.files
+
+        if (rpmFiles.empty) {
+            throw new GradleException('No se generó el RPM')
+        }
+
+        def rpmOutput = rpmFiles.first()
+        def targetFilename = buildInstallerFilename('rpm')
+
+        copy {
+            from rpmOutput
+            into "${projectDir}/dist"
+            rename { targetFilename }
+        }
+
+        printTaskSuccess(targetFilename, file("${projectDir}/dist"))
+    }
+}
+
+tasks.register('packageArch', PackageArchTask) {
+    group = 'distribution'
+
+    def appCategory = 'Utility'
+    def mimeTypes = ''
+
+    def archRoot = file("${buildDir}/arch")
+    def tempAppImageDir = file("${buildDir}/tmp/app-image")
+
+    dependsOn jar
+    dependsOn copyAllDependencies
+
+    doFirst {
+        printTaskHeader('packageArch', project.ext.buildAppProfile)
+        if (tempAppImageDir.exists()) {
+            logger.lifecycle('Eliminando app-image previo...')
+            delete tempAppImageDir
+        }
+        delete archRoot
+
+        tempAppImageDir.mkdirs()
+        archRoot.mkdirs()
+    }
+
+    doLast {
+        exec {
+            workingDir './'
+            commandLine(jpackageArgs() + ['--type', 'app-image', '--dest', tempAppImageDir.absolutePath])
+        }
+
+        def appImageDir = tempAppImageDir.listFiles()?.find { it.isDirectory() }
+        if (appImageDir == null || !appImageDir.exists()) {
+            throw new GradleException("No se encontró el app-image generado por jpackage")
+        }
+
+        def packageDir = file("${archRoot}/${project.ext.jarName}")
+
+        copy {
+            from appImageDir
+            into "${packageDir}/opt/${project.ext.jarName}"
+        }
+
+        copy {
+            from(appImageDir) {
+                include '**/*.png'
+                eachFile { file ->
+                    if (file.name.contains(' ')) {
+                        file.name = file.name.replaceAll(/\s+/, '_')
+                    }
+                }
+                includeEmptyDirs = false
+            }
+            into "${packageDir}/opt/${project.ext.jarName}"
+        }
+
+        copy {
+            from("${projectDir}/plantillas/arch/resources") {
+                exclude '*.desktop'
+            }
+            into "${packageDir}/opt/${project.ext.jarName}/lib"
+        }
+
+        def installTemplate = file("${projectDir}/plantillas/arch/resources/${project.ext.jarName}.install")
+        def installFile = file("${archRoot}/${project.ext.jarName.toLowerCase()}.install")
+
+        if (installTemplate.exists()) {
+            installFile.text = installTemplate.text.replace('@APP_NAME@', project.ext.appName)
+            logger.lifecycle(".install file generado: ${installFile.absolutePath}")
+        } else {
+            throw new GradleException("No se encontró la plantilla app.install en ${installTemplate.absolutePath}")
+        }
+
+        def desktopTemplate = file("${projectDir}/plantillas/arch/resources/${project.ext.jarName}-${project.ext.appName.replace(' ', '')}.desktop")
+        def desktopFile = file("${packageDir}/opt/${project.ext.jarName}/lib/${project.ext.jarName}-${project.ext.appName.replace(' ', '')}.desktop")
+
+        if (desktopTemplate.exists()) {
+            desktopFile.text = desktopTemplate.text
+                    .replace('@APP_NAME@', project.ext.appName)
+                    .replace('@DESCRIPTION@', project.ext.appDescription)
+                    .replace('@INSTALL_DIR@', "/opt/${project.ext.jarName}")
+                    .replace('@EXECUTABLE_NAME@', project.ext.appName)
+                    .replace('@ICON_NAME@', "${project.ext.appName.replace(' ', '_')}.png")
+                    .replace('@CATEGORY@', appCategory)
+                    .replace('@MIME_TYPES@', mimeTypes)
+            logger.lifecycle("Desktop file generado: ${desktopFile.absolutePath}")
+        }
+
+        def mimeSource = file("${projectDir}/plantillas/arch/${project.ext.jarName}.xml")
+        if (mimeSource.exists()) {
+            copy {
+                from mimeSource
+                into archRoot
+            }
+        } else {
+            file("${archRoot}/${project.ext.jarName}.xml").text = '<?xml version="1.0" encoding="utf-8"?>\n<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info"></mime-info>'
+        }
+
+        def pkgbuildTemplate = file("${projectDir}/plantillas/arch/PKGBUILD")
+        def pkgbuildFile = file("${archRoot}/PKGBUILD")
+
+        def pkgbuildContent = pkgbuildTemplate.text
+                .replace('@PKGNAME@', project.ext.jarName.toLowerCase())
+                .replace('@PKGVER@', appBaseVersion)
+                .replace('@PKGREL@', '1')
+                .replace('@PKGDESC@', project.ext.appDescription)
+                .replace('@ARCH@', getArchLinuxArch(normalizedArch))
+                .replace('@URL@', 'https://firmadigital.bo/herramientas/sistema-pesaje')
+                .replace('@LICENSE@', 'LPG-Bolivia')
+                .replace('@REQUIRES@', "'nss' 'pcsclite' 'ccid' 'pcsc-tools'")
+                .replace('@OPTREQUIRES@', '')
+                .replace('@VENDOR@', project.ext.vendorName)
+                .replace('@APP_NAME@', project.ext.appName.replace(' ', ''))
+                .replace('@JAR_NAME@', project.ext.jarName)
+
+        pkgbuildFile.text = pkgbuildContent
+        logger.lifecycle("PKGBUILD generado: ${pkgbuildFile.absolutePath}")
+
+        exec {
+            workingDir archRoot
+            commandLine 'makepkg', '-f', '--nodeps', '--noextract'
+        }
+
+        def pkgFiles = fileTree(archRoot).matching {
+            include "${project.ext.jarName}-*.pkg.tar.zst"
+            exclude '*-debug-*.pkg.tar.zst'
+        }.files
+
+        if (pkgFiles.empty) {
+            throw new GradleException('No se generó el paquete ArchLinux (.pkg.tar.zst)')
+        }
+
+        def pkgOutput = pkgFiles.first()
+        def targetFilename = buildInstallerFilename('pkg.tar.zst')
+
+        copy {
+            from pkgOutput
+            into "${projectDir}/dist"
+            rename { targetFilename }
+        }
+
+        printTaskSuccess(targetFilename, file("${projectDir}/dist"))
+    }
+}

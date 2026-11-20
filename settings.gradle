@@ -5,3 +5,4 @@
 rootProject.name = 'jacobitus-escritorio'
 include(':jacobitus-libreria')
 include(':escritorio')
+include(':pesaje')
