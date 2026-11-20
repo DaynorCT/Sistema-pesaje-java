@@ -81,7 +81,7 @@ public final class Database implements AutoCloseable {
     public static final String RECURSO_ESQUEMA = "/db/schema.sql";
 
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    private static final String EMAIL_ADMINISTRADOR = "admin@sistemapesaje.local";
+    private static final String EMAIL_ADMINISTRADOR = "admin@sistema.com";
     private static final int LONGITUD_CLAVE_GENERADA = 12;
     private static final String ALFABETO_CLAVE = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
     private static final SecureRandom ALEATORIO = new SecureRandom();
@@ -428,7 +428,7 @@ public final class Database implements AutoCloseable {
      * La operacion es idempotente: si ya hay un administrador, no se hace nada.
      */
     private void sembrarAdministrador() {
-        if (sql.contar("SELECT COUNT(*) FROM usuarios WHERE rol = ?", "admin") > 0) {
+        if (sql.contar("SELECT COUNT(*) FROM usuarios WHERE rol = ?", "administrador") > 0) {
             return;
         }
         String clave = generarClaveAleatoria();
@@ -439,7 +439,7 @@ public final class Database implements AutoCloseable {
         sql.insertar(
                 "INSERT INTO usuarios (persona_id, email, password_hash, rol, estado, fecha_creacion)"
                         + " VALUES (?, ?, ?, ?, ?, ?)",
-                personaId, EMAIL_ADMINISTRADOR, Passwords.hash(clave), "admin", "ACTIVO", ahora());
+                personaId, EMAIL_ADMINISTRADOR, Passwords.hash(clave), "administrador", "ACTIVO", ahora());
         claveAdministrador = clave;
         System.out.println("[SistemaPesaje] Usuario administrador creado (" + EMAIL_ADMINISTRADOR + ").");
         System.out.println("[SistemaPesaje] Contrasena inicial: " + clave + " (cambiela en el primer inicio).");

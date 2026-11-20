@@ -290,16 +290,16 @@ public class DatabaseTest {
 
     @Test
     public void siembraElUsuarioAdministradorConContrasenaGenerada() {
-        long administradores = base.sql().contar("SELECT COUNT(*) FROM usuarios WHERE rol = ?", "admin");
+        long administradores = base.sql().contar("SELECT COUNT(*) FROM usuarios WHERE rol = ?", "administrador");
         assertEquals("Debe sembrarse un usuario administrador", 1L, administradores);
 
         long conHash = base.sql().contar(
-                "SELECT COUNT(*) FROM usuarios WHERE rol = ? AND password_hash IS NOT NULL", "admin");
+                "SELECT COUNT(*) FROM usuarios WHERE rol = ? AND password_hash IS NOT NULL", "administrador");
         assertEquals("El administrador debe tener contrasena", 1L, conHash);
 
         // El hash no puede ser el original en texto plano ni una huella debil.
         List<String> hashes = base.sql().consultar(
-                "SELECT password_hash FROM usuarios WHERE rol = ?", rs -> rs.getString("password_hash"), "admin");
+                "SELECT password_hash FROM usuarios WHERE rol = ?", rs -> rs.getString("password_hash"), "administrador");
         assertEquals(1, hashes.size());
         assertFalse("No se debe usar SHA1 (D3)", hashes.get(0).toLowerCase().contains("sha1"));
         assertFalse("No se debe guardar la contrasena en claro (D3)",
@@ -308,7 +308,7 @@ public class DatabaseTest {
         // Reabrir la base no debe crear un segundo administrador.
         Database.cerrarInstancia();
         base = Database.obtenerInstancia();
-        assertEquals(1L, base.sql().contar("SELECT COUNT(*) FROM usuarios WHERE rol = ?", "admin"));
+        assertEquals(1L, base.sql().contar("SELECT COUNT(*) FROM usuarios WHERE rol = ?", "administrador"));
     }
 
     @Test
