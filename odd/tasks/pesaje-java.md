@@ -22,7 +22,7 @@ S5. "este siustea de escrito tiuene todo vr isbtar ya dp en windows" — el sist
 
 | ID | Spec | Tarea | Ruta | Commit |
 |----|------|-------|------|--------|
-| T1 | S1,S3,S4 | Módulo Gradle `:pesaje`: `build.gradle`, convención en `buildSrc`, `settings.gradle`, JavaFX 17, pipeline `jpackage` (deb/rpm/arch/msi/pkg) con perfil `--app-profile` | inline | `build: scaffold del modulo pesaje` |
+| T1 | S1,S3,S4 | Módulo Gradle `:pesaje`: `build.gradle`, convención en `buildSrc`, `settings.gradle`, JavaFX 17, pipeline `jpackage` (deb/rpm/arch/msi/pkg) con perfil `--app-profile` | inline | `92657c1` |
 | T2 | S2 | Esquema SQLite (18 tablas de `schema.sql`) + capa de datos: `Database`, migraciones, paths por SO, backup, seed admin | inline | `feat(pesaje): esquema sqlite y capa de datos` |
 | T3 | S2 | Autenticación: PBKDF2 + salt (no SHA1), login, roles, verificación de contraseña para cambio de modo | inline | `feat(pesaje): autenticacion local con pbkdf2` |
 | T4 | S2 | Configuración: `config.json` (url, apikey, autoenviar, modo_operacion, timeout) + `config_balanza` en BD + `Config` de Jacobitus | inline | `feat(pesaje): configuracion de sistema y balanza` |
@@ -62,3 +62,17 @@ externos, no como sustituto del sync.
 E1 (2026-11-20): entorno verificado — Gradle 7.6.2 sobre Zulu JDK 17 (Java 21 instalado no
 sirve: Gradle 7.6.2 no lo soporta), macOS arm64, red a Maven Central OK (200 en
 sqlite-jdbc y jSerialComm). `escritorio` compila (BUILD SUCCESSFUL) sin cambios.
+E2 (2026-11-20, T1): `:pesaje:jar` y `:pesaje:copyAllDependencies` en verde; el jar trae
+`jacobitus.css` y `logo-agetic.png` copiados desde los recursos de `escritorio` (fuente
+única de verdad) y el manifiesto con `Main-Class` y `Class-Path` a `dependencias/`. El
+slice de T1 quedó por encima de las ~400 líneas porque la mayoría son copias literales
+(licencia, plantillas de empaquetado y el template WiX); el código propio es la
+convención de build (~680 líneas) más el módulo y el shell mínimo.
+D5 (2026-11-20, T4): el `config.json` conserva las claves del sistema original
+(`modo_operacion`, `timeout_http`, `ciclo_catalogos`, …) para que el archivo ya existente
+sirva sin conversiones; si la carpeta del ejecutable no es escribible se guarda en la
+carpeta de datos del usuario y se avisa por log en vez de fallar en silencio.
+D6 (2026-11-20, T1): el módulo `:pesaje` no usa `org.openjfx.javafxplugin`; resuelve JavaFX
+con el clasificador de plataforma explícito. Motivo: dos versiones del mismo plugin en un
+mismo build es un error de Gradle y `:pesaje` no debe quedar atado a la versión que aplica
+`:escritorio`.
