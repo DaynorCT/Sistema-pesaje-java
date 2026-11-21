@@ -33,6 +33,7 @@ public class LoginPane extends VBox {
         setPadding(new Insets(32));
         setMaxWidth(420);
         getStyleClass().add("tarjeta");
+        getStyleClass().add("login");
 
         Label titulo = new Label("Sistema de Pesaje");
         titulo.getStyleClass().add("titulo-modulo");

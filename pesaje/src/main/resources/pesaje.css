@@ -221,11 +221,29 @@
 }
 
 .login-logo {
-    -fx-background-color: #f4f6f8;
+    -fx-background-color: #f6ece6;
     -fx-background-radius: 8px;
     -fx-border-color: #e0e0e0;
     -fx-border-radius: 8px;
     -fx-padding: 6px;
+}
+
+/* Campos del login con la paleta del sistema: sin el azul por defecto de
+   JavaFX. El alcance es solo el login; el resto de formularios mantiene su
+   aspecto actual. */
+.login .text-field,
+.login .password-field {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #1f2933;
+    -fx-prompt-text-fill: #8b98a5;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 6px;
+    -fx-padding: 8 10 8 10;
+}
+
+.login .text-field:focused,
+.login .password-field:focused {
+    -fx-border-color: #9a3412;
 }
 
 .panel-pesaje-medio {
