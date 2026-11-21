@@ -7,7 +7,8 @@ public final class RepositorioChofer {
     private final Sql sql = Database.obtenerInstancia().sql();
 
     private static final String SELECT =
-            "SELECT c.id, p.nombre, p.apellido_paterno, p.ci, c.licencia, c.telefono, c.estado"
+            "SELECT c.id, p.nombre, p.apellido_paterno, p.apellido_materno, p.ci, c.licencia,"
+                    + " c.telefono, c.estado"
                     + " FROM choferes c JOIN personas p ON p.id = c.persona_id";
 
     public List<RegistroChofer> listarActivos() {

@@ -7,8 +7,9 @@ public final class RepositorioProveedor {
     private final Sql sql = Database.obtenerInstancia().sql();
 
     private static final String SELECT =
-            "SELECT pr.id, p.nombre, p.apellido_paterno, p.ci, pr.nombre_empresa, pr.descripcion,"
-                    + " p.telefono, pr.estado FROM proveedores pr JOIN personas p ON p.id = pr.persona_id";
+            "SELECT pr.id, p.nombre, p.apellido_paterno, p.apellido_materno, p.ci, pr.nombre_empresa,"
+                    + " pr.descripcion, p.telefono, pr.estado"
+                    + " FROM proveedores pr JOIN personas p ON p.id = pr.persona_id";
 
     public List<RegistroProveedor> listarActivos() {
         return sql.consultar(SELECT + " WHERE pr.estado = 'ACTIVO' ORDER BY pr.nombre_empresa, p.nombre",

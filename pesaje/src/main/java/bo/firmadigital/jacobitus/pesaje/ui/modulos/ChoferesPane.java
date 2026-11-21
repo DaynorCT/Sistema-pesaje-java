@@ -64,6 +64,7 @@ public final class ChoferesPane extends PanelAbm<RegistroChofer> {
         }
         nombre.setText(r.getNombre() != null ? r.getNombre() : "");
         apellidoP.setText(r.getApellidoPaterno() != null ? r.getApellidoPaterno() : "");
+        apellidoM.setText(r.getApellidoMaterno() != null ? r.getApellidoMaterno() : "");
         ci.setText(r.getCi() != null ? r.getCi() : "");
         telefono.setText(r.getTelefono() != null ? r.getTelefono() : "");
         licencia.setText(r.getLicencia() != null ? r.getLicencia() : "");

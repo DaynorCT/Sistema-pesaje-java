@@ -760,11 +760,15 @@ public final class PesajePane extends BorderPane implements Cerrable {
 
     private boolean crearVehiculoRapido() {
         DialogoRapido dialogo = new DialogoRapido("Nuevo vehículo",
-                new String[] {"Placa", "Tipo", "Tara (kg)"}, new String[] {"", "", "0"});
+                new String[] {"Placa *", "Tipo", "Tara (kg)"}, new String[] {"", "", "0"});
         if (!dialogo.mostrar()) {
             return false;
         }
         String[] valores = dialogo.valores();
+        if (valores[0].isEmpty()) {
+            DialogoAviso.error(ventana(), "Nuevo vehículo", "La placa es obligatoria.");
+            return false;
+        }
         repoVehiculo.crear(valores[0].trim(), valores[1].trim(), enteroOCero(valores[2]));
         mensaje.getStyleClass().removeAll("mensaje-error", "mensaje-exito");
         mensaje.getStyleClass().add("mensaje-exito");
@@ -774,14 +778,18 @@ public final class PesajePane extends BorderPane implements Cerrable {
 
     private boolean crearChoferRapido() {
         DialogoRapido dialogo = new DialogoRapido("Nuevo chofer",
-                new String[] {"Nombre", "Apellido paterno", "Licencia", "Teléfono"},
-                new String[] {"", "", "", ""});
+                new String[] {"Nombre *", "Apellido paterno", "Apellido materno", "Nro. documento",
+                        "Teléfono", "Licencia"},
+                new String[] {"", "", "", "", "", ""});
         if (!dialogo.mostrar()) {
             return false;
         }
         String[] valores = dialogo.valores();
-        repoChofer.crear(valores[0].trim(), valores[1].trim(), null, null, valores[3].trim(),
-                valores[2].trim());
+        if (valores[0].isEmpty()) {
+            DialogoAviso.error(ventana(), "Nuevo chofer", "El nombre es obligatorio.");
+            return false;
+        }
+        repoChofer.crear(valores[0], valores[1], valores[2], valores[3], valores[4], valores[5]);
         mensaje.getStyleClass().removeAll("mensaje-error", "mensaje-exito");
         mensaje.getStyleClass().add("mensaje-exito");
         mensaje.setText("Chofer creado.");
@@ -790,14 +798,19 @@ public final class PesajePane extends BorderPane implements Cerrable {
 
     private boolean crearProveedorRapido() {
         DialogoRapido dialogo = new DialogoRapido("Nuevo proveedor",
-                new String[] {"Nombre", "Apellido paterno", "Empresa", "Teléfono"},
-                new String[] {"", "", "", ""});
+                new String[] {"Nombre *", "Apellido paterno", "Apellido materno", "CI", "Teléfono",
+                        "Empresa", "Descripción"},
+                new String[] {"", "", "", "", "", "", ""});
         if (!dialogo.mostrar()) {
             return false;
         }
         String[] valores = dialogo.valores();
-        repoProveedor.crear(valores[0].trim(), valores[1].trim(), null, null, valores[3].trim(),
-                valores[2].trim(), null);
+        if (valores[0].isEmpty()) {
+            DialogoAviso.error(ventana(), "Nuevo proveedor", "El nombre es obligatorio.");
+            return false;
+        }
+        repoProveedor.crear(valores[0], valores[1], valores[2], valores[3], valores[4], valores[5],
+                valores[6]);
         mensaje.getStyleClass().removeAll("mensaje-error", "mensaje-exito");
         mensaje.getStyleClass().add("mensaje-exito");
         mensaje.setText("Proveedor creado.");

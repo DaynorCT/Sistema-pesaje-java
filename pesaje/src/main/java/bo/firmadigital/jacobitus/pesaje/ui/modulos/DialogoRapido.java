@@ -39,6 +39,9 @@ public final class DialogoRapido {
         dialogo.setTitle(titulo);
         dialogo.setHeaderText(null);
         dialogo.setResizable(false);
+        if (etiquetas.length >= 5) {
+            dialogo.getDialogPane().setPrefWidth(440);
+        }
         dialogo.getDialogPane().getButtonTypes().add(javafx.scene.control.ButtonType.CANCEL);
         dialogo.setResultConverter(boton -> null);
 

@@ -8,16 +8,18 @@ public final class RegistroChofer {
     private final int id;
     private final String nombre;
     private final String apellidoPaterno;
+    private final String apellidoMaterno;
     private final String ci;
     private final String licencia;
     private final String telefono;
     private final String estado;
 
-    public RegistroChofer(int id, String nombre, String apellidoPaterno, String ci,
-            String licencia, String telefono, String estado) {
+    public RegistroChofer(int id, String nombre, String apellidoPaterno, String apellidoMaterno,
+            String ci, String licencia, String telefono, String estado) {
         this.id = id;
         this.nombre = nombre;
         this.apellidoPaterno = apellidoPaterno;
+        this.apellidoMaterno = apellidoMaterno;
         this.ci = ci;
         this.licencia = licencia;
         this.telefono = telefono;
@@ -34,6 +36,10 @@ public final class RegistroChofer {
 
     public String getApellidoPaterno() {
         return apellidoPaterno;
+    }
+
+    public String getApellidoMaterno() {
+        return apellidoMaterno;
     }
 
     public String getCi() {
@@ -53,7 +59,23 @@ public final class RegistroChofer {
     }
 
     public String nombreCompleto() {
-        return (nombre != null ? nombre : "") + (apellidoPaterno != null ? " " + apellidoPaterno : "");
+        StringBuilder sb = new StringBuilder();
+        if (nombre != null && !nombre.isEmpty()) {
+            sb.append(nombre);
+        }
+        if (apellidoPaterno != null && !apellidoPaterno.isEmpty()) {
+            if (sb.length() > 0) {
+                sb.append(' ');
+            }
+            sb.append(apellidoPaterno);
+        }
+        if (apellidoMaterno != null && !apellidoMaterno.isEmpty()) {
+            if (sb.length() > 0) {
+                sb.append(' ');
+            }
+            sb.append(apellidoMaterno);
+        }
+        return sb.toString();
     }
 
     static RegistroChofer deFila(ResultSet fila) throws SQLException {
@@ -61,6 +83,7 @@ public final class RegistroChofer {
                 fila.getInt("id"),
                 Sql.texto(fila, "nombre"),
                 Sql.texto(fila, "apellido_paterno"),
+                Sql.texto(fila, "apellido_materno"),
                 Sql.texto(fila, "ci"),
                 Sql.texto(fila, "licencia"),
                 Sql.texto(fila, "telefono"),

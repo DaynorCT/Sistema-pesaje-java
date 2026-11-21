@@ -66,6 +66,7 @@ public final class ProveedoresPane extends PanelAbm<RegistroProveedor> {
         }
         nombre.setText(r.getNombre() != null ? r.getNombre() : "");
         apellidoP.setText(r.getApellidoPaterno() != null ? r.getApellidoPaterno() : "");
+        apellidoM.setText(r.getApellidoMaterno() != null ? r.getApellidoMaterno() : "");
         ci.setText(r.getCi() != null ? r.getCi() : "");
         telefono.setText(r.getTelefono() != null ? r.getTelefono() : "");
         empresa.setText(r.getNombreEmpresa() != null ? r.getNombreEmpresa() : "");
@@ -86,6 +87,10 @@ public final class ProveedoresPane extends PanelAbm<RegistroProveedor> {
 
     private void guardar() {
         try {
+            if (nombre.getText().trim().isEmpty()) {
+                mostrarError("El nombre es obligatorio.");
+                return;
+            }
             if (seleccion() == null) {
                 repo.crear(nombre.getText().trim(), apellidoP.getText().trim(), apellidoM.getText().trim(),
                         ci.getText().trim(), telefono.getText().trim(), empresa.getText().trim(),
