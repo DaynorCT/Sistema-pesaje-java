@@ -24,7 +24,7 @@ public final class VehiculosPane extends PanelAbm<RegistroVehiculo> {
         TableColumn<RegistroVehiculo, String> colTara = new TableColumn<>("Tara");
         colTara.setCellValueFactory(c -> new SimpleStringProperty(String.valueOf(c.getValue().getTara())));
         tabla().getColumns().setAll(col, colTara);
-        agregarCampo(formulario(), 0, "Placa", placa);
+        agregarCampo(formulario(), 0, "Placa", placa, true);
         agregarCampo(formulario(), 1, "Tipo", tipo);
         agregarCampo(formulario(), 2, "Tara (kg)", tara);
         agregarCombo(formulario(), 3, "Estado", estado);
@@ -59,11 +59,11 @@ public final class VehiculosPane extends PanelAbm<RegistroVehiculo> {
 
     private void guardar() {
         try {
-            int taraKg = PanelAbm.parsearEntero(tara.getText(), "Tara");
-            if (placa.getText().trim().isEmpty()) {
-                mostrarError("La placa es obligatoria.");
+            if (!confirmarContextoGuardar()) {
                 return;
             }
+            int taraKg = PanelAbm.parsearEntero(tara.getText(), "Tara");
+            PanelAbm.validarObligatorio(placa.getText(), "Placa");
             if (seleccion() == null) {
                 repo.crear(placa.getText().trim(), tipo.getText().trim(), taraKg);
                 mostrarExito("Vehículo creado.");
@@ -75,6 +75,7 @@ public final class VehiculosPane extends PanelAbm<RegistroVehiculo> {
             cargar();
             limpiar();
             tabla().getSelectionModel().clearSelection();
+            finalizarFormulario();
         } catch (RuntimeException e) {
             mostrarError(e.getMessage());
         }

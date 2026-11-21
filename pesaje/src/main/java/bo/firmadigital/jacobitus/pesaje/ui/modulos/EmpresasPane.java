@@ -37,7 +37,7 @@ public final class EmpresasPane extends PanelAbm<RegistroEmpresa> {
         colTelefono.setPrefWidth(110);
         tabla().getColumns().setAll(colEmpresa, colActividad, colCorreo, colTelefono);
         anexarColumnaEstado(RegistroEmpresa::getEstado);
-        agregarCampo(formulario(), 0, "Nombre", nombre);
+        agregarCampo(formulario(), 0, "Nombre", nombre, true);
         agregarCampo(formulario(), 1, "Actividad", actividad);
         agregarCampo(formulario(), 2, "Correo", correo);
         agregarCampo(formulario(), 3, "Teléfono", telefono);
@@ -75,10 +75,10 @@ public final class EmpresasPane extends PanelAbm<RegistroEmpresa> {
 
     private void guardar() {
         try {
-            if (nombre.getText().trim().isEmpty()) {
-                mostrarError("El nombre de la empresa es obligatorio.");
+            if (!confirmarContextoGuardar()) {
                 return;
             }
+            PanelAbm.validarObligatorio(nombre.getText(), "Nombre");
             if (seleccion() == null) {
                 repo.crear(nombre.getText().trim(), actividad.getText().trim(),
                         correo.getText().trim(), telefono.getText().trim());
@@ -91,6 +91,7 @@ public final class EmpresasPane extends PanelAbm<RegistroEmpresa> {
             cargar();
             limpiar();
             tabla().getSelectionModel().clearSelection();
+            finalizarFormulario();
         } catch (RuntimeException e) {
             mostrarError(e.getMessage());
         }

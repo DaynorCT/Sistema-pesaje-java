@@ -779,7 +779,7 @@ public final class PesajePane extends BorderPane implements Cerrable {
     private boolean crearChoferRapido() {
         DialogoRapido dialogo = new DialogoRapido("Nuevo chofer",
                 new String[] {"Nombre *", "Apellido paterno", "Apellido materno", "Nro. documento",
-                        "Teléfono", "Licencia"},
+                        "Teléfono", "Licencia *"},
                 new String[] {"", "", "", "", "", ""});
         if (!dialogo.mostrar()) {
             return false;
@@ -787,6 +787,10 @@ public final class PesajePane extends BorderPane implements Cerrable {
         String[] valores = dialogo.valores();
         if (valores[0].isEmpty()) {
             DialogoAviso.error(ventana(), "Nuevo chofer", "El nombre es obligatorio.");
+            return false;
+        }
+        if (valores[5].isEmpty()) {
+            DialogoAviso.error(ventana(), "Nuevo chofer", "La licencia es obligatoria.");
             return false;
         }
         repoChofer.crear(valores[0], valores[1], valores[2], valores[3], valores[4], valores[5]);
@@ -799,14 +803,15 @@ public final class PesajePane extends BorderPane implements Cerrable {
     private boolean crearProveedorRapido() {
         DialogoRapido dialogo = new DialogoRapido("Nuevo proveedor",
                 new String[] {"Nombre *", "Apellido paterno", "Apellido materno", "CI", "Teléfono",
-                        "Empresa", "Descripción"},
+                        "Empresa *", "Descripción"},
                 new String[] {"", "", "", "", "", "", ""});
         if (!dialogo.mostrar()) {
             return false;
         }
         String[] valores = dialogo.valores();
-        if (valores[0].isEmpty()) {
-            DialogoAviso.error(ventana(), "Nuevo proveedor", "El nombre es obligatorio.");
+        if (valores[0].isEmpty() && valores[5].isEmpty()) {
+            DialogoAviso.error(ventana(), "Nuevo proveedor",
+                    "Indique el nombre o la empresa (al menos uno).");
             return false;
         }
         repoProveedor.crear(valores[0], valores[1], valores[2], valores[3], valores[4], valores[5],

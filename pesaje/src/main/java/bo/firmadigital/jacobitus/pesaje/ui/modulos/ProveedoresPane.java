@@ -40,12 +40,12 @@ public final class ProveedoresPane extends PanelAbm<RegistroProveedor> {
         colEmpresa.setPrefWidth(160);
         tabla().getColumns().setAll(colNombre, colCi, colTel, colEmpresa);
         int f = 0;
-        agregarCampo(formulario(), f++, "Nombre", nombre);
+        agregarCampo(formulario(), f++, "Nombre", nombre, true);
         agregarCampo(formulario(), f++, "Ap. paterno", apellidoP);
         agregarCampo(formulario(), f++, "Ap. materno", apellidoM);
         agregarCampo(formulario(), f++, "CI", ci);
         agregarCampo(formulario(), f++, "Teléfono", telefono);
-        agregarCampo(formulario(), f++, "Empresa", empresa);
+        agregarCampo(formulario(), f++, "Empresa", empresa, true);
         agregarCampo(formulario(), f++, "Descripción", descripcion);
         agregarCombo(formulario(), f, "Estado", estado);
         alSeleccionar(this::rellenar);
@@ -87,8 +87,11 @@ public final class ProveedoresPane extends PanelAbm<RegistroProveedor> {
 
     private void guardar() {
         try {
-            if (nombre.getText().trim().isEmpty()) {
-                mostrarError("El nombre es obligatorio.");
+            if (!confirmarContextoGuardar()) {
+                return;
+            }
+            if (nombre.getText().trim().isEmpty() && empresa.getText().trim().isEmpty()) {
+                mostrarError("Indique el nombre o la empresa (al menos uno).");
                 return;
             }
             if (seleccion() == null) {
@@ -105,6 +108,7 @@ public final class ProveedoresPane extends PanelAbm<RegistroProveedor> {
             cargar();
             limpiar();
             tabla().getSelectionModel().clearSelection();
+            finalizarFormulario();
         } catch (RuntimeException e) {
             mostrarError(e.getMessage());
         }

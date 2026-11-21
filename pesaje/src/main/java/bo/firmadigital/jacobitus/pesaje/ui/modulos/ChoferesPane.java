@@ -39,12 +39,12 @@ public final class ChoferesPane extends PanelAbm<RegistroChofer> {
         colLic.setPrefWidth(120);
         tabla().getColumns().setAll(colNombre, colCi, colTel, colLic);
         int f = 0;
-        agregarCampo(formulario(), f++, "Nombre", nombre);
+        agregarCampo(formulario(), f++, "Nombre", nombre, true);
         agregarCampo(formulario(), f++, "Ap. paterno", apellidoP);
         agregarCampo(formulario(), f++, "Ap. materno", apellidoM);
         agregarCampo(formulario(), f++, "CI", ci);
         agregarCampo(formulario(), f++, "Teléfono", telefono);
-        agregarCampo(formulario(), f++, "Licencia", licencia);
+        agregarCampo(formulario(), f++, "Licencia", licencia, true);
         agregarCombo(formulario(), f, "Estado", estado);
         alSeleccionar(this::rellenar);
         alNuevo(this::limpiar);
@@ -83,10 +83,11 @@ public final class ChoferesPane extends PanelAbm<RegistroChofer> {
 
     private void guardar() {
         try {
-            if (nombre.getText().trim().isEmpty()) {
-                mostrarError("El nombre es obligatorio.");
+            if (!confirmarContextoGuardar()) {
                 return;
             }
+            PanelAbm.validarObligatorio(nombre.getText(), "Nombre");
+            PanelAbm.validarObligatorio(licencia.getText(), "Licencia");
             if (seleccion() == null) {
                 repo.crear(nombre.getText().trim(), apellidoP.getText().trim(), apellidoM.getText().trim(),
                         ci.getText().trim(), telefono.getText().trim(), licencia.getText().trim());
@@ -100,6 +101,7 @@ public final class ChoferesPane extends PanelAbm<RegistroChofer> {
             cargar();
             limpiar();
             tabla().getSelectionModel().clearSelection();
+            finalizarFormulario();
         } catch (RuntimeException e) {
             mostrarError(e.getMessage());
         }

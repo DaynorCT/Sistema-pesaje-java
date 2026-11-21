@@ -48,13 +48,13 @@ public final class UsuariosPane extends PanelAbm<RegistroUsuario> {
         tabla().getColumns().setAll(colCi, colNombre, colCorreo, colTel, colRol);
         anexarColumnaEstado(RegistroUsuario::getEstado);
         int f = 0;
-        agregarCampo(formulario(), f++, "Nombre", nombre);
+        agregarCampo(formulario(), f++, "Nombre", nombre, true);
         agregarCampo(formulario(), f++, "Ap. paterno", apellidoP);
         agregarCampo(formulario(), f++, "Ap. materno", apellidoM);
         agregarCampo(formulario(), f++, "CI", ci);
         agregarCampo(formulario(), f++, "Teléfono", telefono);
-        agregarCampo(formulario(), f++, "Correo", correo);
-        agregarCampo(formulario(), f++, "Contraseña", clave);
+        agregarCampo(formulario(), f++, "Correo", correo, true);
+        agregarCampo(formulario(), f++, "Contraseña", clave, true);
         agregarCombo(formulario(), f++, "Rol", rol);
         agregarCombo(formulario(), f, "Estado", estado);
         rol.getSelectionModel().selectFirst();
@@ -98,11 +98,13 @@ public final class UsuariosPane extends PanelAbm<RegistroUsuario> {
 
     private void guardar() {
         try {
-            if (correo.getText().trim().isEmpty()) {
-                mostrarError("El correo es obligatorio.");
+            if (!confirmarContextoGuardar()) {
                 return;
             }
+            PanelAbm.validarObligatorio(nombre.getText(), "Nombre");
+            PanelAbm.validarObligatorio(correo.getText(), "Correo");
             if (seleccion() == null) {
+                PanelAbm.validarObligatorio(clave.getText(), "Contraseña");
                 repo.crear(nombre.getText().trim(), apellidoP.getText().trim(), apellidoM.getText().trim(),
                         ci.getText().trim(), telefono.getText().trim(), correo.getText().trim(),
                         rol.getValue(), clave.getText());
@@ -123,6 +125,7 @@ public final class UsuariosPane extends PanelAbm<RegistroUsuario> {
             cargar();
             limpiar();
             tabla().getSelectionModel().clearSelection();
+            finalizarFormulario();
         } catch (RuntimeException e) {
             mostrarError(e.getMessage());
         }

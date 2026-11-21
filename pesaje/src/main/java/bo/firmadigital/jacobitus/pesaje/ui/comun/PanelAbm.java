@@ -33,6 +33,7 @@ public class PanelAbm<T> extends BorderPane {
     private final Runnable recargar;
 
     private T seleccion;
+    private boolean modoNuevo;
 
     public PanelAbm(Runnable recargar) {
         this.recargar = recargar;
@@ -51,14 +52,17 @@ public class PanelAbm<T> extends BorderPane {
         tabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tabla.getSelectionModel().selectedItemProperty().addListener((obs, anterior, actual) -> {
             seleccion = actual;
+            if (actual != null) {
+                modoNuevo = false;
+            }
             if (onSeleccion != null) {
                 onSeleccion.run();
             }
         });
 
-
         botonNuevo.setOnAction(e -> {
             seleccion = null;
+            modoNuevo = true;
             tabla.getSelectionModel().clearSelection();
             if (onNuevo != null) {
                 onNuevo.run();
@@ -142,8 +146,57 @@ public class PanelAbm<T> extends BorderPane {
         mensaje.setText("");
     }
 
+    /**
+     * Alta solo si el usuario pulso Nuevo; edicion con fila seleccionada.
+     *
+     * @return false si el contexto no permite guardar
+     */
+    public boolean confirmarContextoGuardar() {
+        if (seleccion != null) {
+            return true;
+        }
+        if (modoNuevo) {
+            return true;
+        }
+        mostrarError("Pulse Nuevo para registrar o seleccione una fila para editar.");
+        return false;
+    }
+
+  /** Tras un guardado exitoso, salir del modo alta. */
+    public void finalizarFormulario() {
+        modoNuevo = false;
+    }
+
+    public static String textoRequerido(String texto) {
+        if (texto == null) {
+            return " *";
+        }
+        String t = texto.trim();
+        if (t.endsWith("*")) {
+            return t;
+        }
+        return t + " *";
+    }
+
+    public static void validarObligatorio(String valor, String nombreCampo) {
+        if (valor == null || valor.trim().isEmpty()) {
+            throw new IllegalArgumentException("El campo " + nombreCampo + " es obligatorio.");
+        }
+    }
+
     public static void agregarCampo(GridPane grid, int fila, String etiqueta, TextField campo) {
-        grid.add(new Label(etiqueta), 0, fila);
+        agregarCampo(grid, fila, etiqueta, campo, false);
+    }
+
+    public static void agregarCampo(GridPane grid, int fila, String etiqueta, TextField campo,
+            boolean obligatorio) {
+        agregarCampo(grid, fila, etiqueta, (javafx.scene.Node) campo, obligatorio);
+    }
+
+    public static void agregarCampo(GridPane grid, int fila, String etiqueta, javafx.scene.Node campo,
+            boolean obligatorio) {
+        String lbl = obligatorio ? textoRequerido(etiqueta) : etiqueta;
+        grid.add(new Label(lbl), 0, fila);
         grid.add(campo, 1, fila);
         GridPane.setHgrow(campo, Priority.ALWAYS);
     }

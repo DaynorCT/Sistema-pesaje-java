@@ -26,7 +26,7 @@ public final class CatalogoPane extends PanelAbm<RegistroCatalogo> {
         tabla().getColumns().setAll(colNombre);
         anexarColumnaEstado(RegistroCatalogo::getEstado);
 
-        agregarCampo(formulario(), 0, "Nombre", nombre);
+        agregarCampo(formulario(), 0, "Nombre", nombre, true);
         agregarCampo(formulario(), 1, "Descripción", descripcion);
         agregarCombo(formulario(), 2, "Estado", estado);
 
@@ -58,10 +58,10 @@ public final class CatalogoPane extends PanelAbm<RegistroCatalogo> {
 
     private void guardar() {
         try {
-            if (nombre.getText().trim().isEmpty()) {
-                mostrarError("El nombre es obligatorio.");
+            if (!confirmarContextoGuardar()) {
                 return;
             }
+            PanelAbm.validarObligatorio(nombre.getText(), "Nombre");
             if (seleccion() == null) {
                 repositorio.crear(nombre.getText().trim(), descripcion.getText().trim());
                 mostrarExito("Registro creado.");
@@ -73,6 +73,7 @@ public final class CatalogoPane extends PanelAbm<RegistroCatalogo> {
             cargar();
             limpiar();
             tabla().getSelectionModel().clearSelection();
+            finalizarFormulario();
         } catch (RuntimeException e) {
             mostrarError(e.getMessage());
         }
