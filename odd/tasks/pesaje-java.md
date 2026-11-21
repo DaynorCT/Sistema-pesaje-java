@@ -31,7 +31,7 @@ S5. "este siustea de escrito tiuene todo vr isbtar ya dp en windows" — el sist
 | T7 | S2 | Módulo Pesaje: captura bruto/tara, combos (vehículo/chofer/proveedor/producto/origen/destino), grilla, finalizar/anular, quick-add | inline | `ac7e6dd` (captura y combos), `7fecba7` (grilla y quick-add) |
 | T8 | S2 | Catálogos CRUD: ABM genérico + empresas, choferes, proveedores, vehículos, usuarios (soft delete, badges, logo) | inline | `ac7e6dd` (ABM; falta logo) |
 | T9 | S2 | Dashboard con estadísticas | inline | `ac7e6dd` |
-| T10 | S2 | Reportes PDF: boleta de pesaje (fppdf→PDFBox) y reporte por rango de fechas/placa | inline | `ac7e6dd` (listado; falta PDF) |
+| T10 | S2 | Reportes PDF: boleta de pesaje (fppdf→PDFBox) y reporte por rango de fechas/placa | inline | `72cde86` |
 | T11 | S2 | Sincronización con la web: token+refresh, delta pull por cursor, push idempotente (`client_event_id`), outbox durable, backoff con jitter, LWW por `version`, conflictos | writer | `9e9ab02` (politica), `e5f95a2` (motor) |
 | T12 | S2,S3 | Modo integrado: pantalla mínima (conectar→capturar→enviar), menú engranaje, conmutación INTEGRADO/AUTONOMO con contraseña | inline | parcial en `ac7e6dd` (volver a pesaje) |
 | T13 | S5,S3 | Instaladores: `packageApp`/`packageRpm`/`packageArch` del módulo pesaje + guía de compilación en Windows (WiX, MSYS2) | inline | `96901a7` (guías), `15abf16` (jpackage con module-path) |
@@ -122,3 +122,8 @@ crear una fila: en `app/api/sync/[recurso]/route.ts` la variable se llama `userI
 usa `usuarioId` (línea 134). Afecta al push de catálogos; el pull no se ve afectado. El
 escritorio lo reporta como evento con error y reintenta, y queda listo para cuando se
 corrija.
+E10 (2026-11-20, T10): la boleta y el reporte en PDF quedaron implementados con PDFBox y
+verificados generando los archivos y **renderizandolos a imagen**: la boleta respeta el
+diseno del original (carta apaisada, encabezado de tres columnas, dos columnas de datos,
+bloque de pesos y firmas) y el reporte el suyo (carta vertical, bloque por pesaje y total
+de registros). Los PDF van a `Documentos/SistemaPesaje`. 92 tests verdes.
