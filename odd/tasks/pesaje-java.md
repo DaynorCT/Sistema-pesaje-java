@@ -132,6 +132,11 @@ E20 (2026-11-21): ShellPane barra = Navegacion.principales(); Catálogo y Config
 E19 (2026-11-21): ABM sin columna Acciones; solo badge Estado; activar/inactivar por combo + Guardar.
 E18 (2026-11-21): ABM con Estado badge + Editar/Activar/Desactivar en todos; toggle sin dialogo; usuario en sesion no se desactiva.
 E17 (2026-11-21): tabla Usuarios alineada a Lazarus (CI, nombres completos, correo, telefono, rol, estado).
+E24 (2026-11-21, T5/T8/T10): el logo del sistema (`assets/images/logo-pesaje.jpg`) es
+una sola fuente de verdad: el build lo copia a los recursos del modulo y se ve en el
+**login**, en la **cabecera**, en el **modo bascula** y en la **boleta** (angulo superior
+derecho, bajo "ACREDITADO POR:"). La carga de logo por empresa se retira de Empresas:
+el logo del sistema es fijo. 117 tests verdes.
 E23 (2026-11-21, T5/T8): el logo de la empresa se ve en la **cabecera derecha** del shell,
 junto al boton de usuario, y se refresca al guardarlo desde Empresas. El shell recibe
 el aviso de forma perezosa (todavia no existe cuando se registran los modulos). 120
