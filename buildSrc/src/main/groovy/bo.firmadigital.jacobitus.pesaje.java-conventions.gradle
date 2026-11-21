@@ -42,6 +42,14 @@ ext {
     iconIcns = 'iconos/icon.icns'
 }
 
+// El plugin application lee mainClassName a nivel de proyecto (como en :escritorio),
+// no desde ext.
+mainClassName = project.ext.mainClassName
+
+application {
+    mainClass.set(project.ext.mainClassName)
+}
+
 repositories {
     mavenLocal()
     mavenCentral()
@@ -167,6 +175,20 @@ def javafxPlatform = {
     return arm ? 'linux-aarch64' : 'linux'
 }
 
+def javafxModulesAdd = 'javafx.controls,javafx.fxml,javafx.swing,javafx.graphics,javafx.base'
+
+/** JARs JavaFX con clasificador de plataforma (sin los *Empty* sin nativos). */
+def javafxModuleJars = {
+    def platform = javafxPlatform()
+    configurations.runtimeClasspath.files.findAll { file ->
+        file.name.startsWith('javafx-') && file.name.endsWith('.jar') && file.name.contains("-${platform}")
+    }.sort()
+}
+
+def javafxModulePath = {
+    javafxModuleJars().collect { it.absolutePath }.join(File.pathSeparator)
+}
+
 dependencies {
     ['javafx-base', 'javafx-graphics', 'javafx-controls', 'javafx-fxml', 'javafx-swing'].each { module ->
         implementation "org.openjfx:${module}:${project.ext.javafxVersion}:${javafxPlatform()}"
@@ -221,12 +243,17 @@ tasks.named('processResources') {
 tasks.named('run', JavaExec) {
     doFirst {
         def runProfile = project.findProperty('profile') ?: 'dev'
+        def fxPath = javafxModulePath()
+        classpath = classpath.filter { file -> !file.name.startsWith('javafx-') }
         setJvmArgs((getJvmArgs() ?: [])
                 .findAll { arg ->
                     !arg.startsWith('-Dpesaje.version=') &&
                     !arg.startsWith('-Dpesaje.profile=') &&
-                    !arg.startsWith('-Dpesaje.compilacion=')
+                    !arg.startsWith('-Dpesaje.compilacion=') &&
+                    arg != '--module-path' &&
+                    !arg.startsWith('--add-modules')
                 }
+                + (fxPath ? ['--module-path', fxPath, '--add-modules', javafxModulesAdd] : [])
                 + appRuntimeProperties(runProfile))
     }
 }
@@ -236,11 +263,29 @@ tasks.register('copyAllDependencies') {
 
     dependsOn configurations.runtimeClasspath
 
+    doFirst {
+        def depsDir = layout.buildDirectory.dir('libs/dependencias').get().asFile
+        def platform = javafxPlatform()
+        if (depsDir.exists()) {
+            depsDir.listFiles()?.each { artifact ->
+                if (artifact.name.startsWith('javafx-') && artifact.name.endsWith('.jar')
+                        && !artifact.name.contains("-${platform}")) {
+                    delete artifact
+                }
+            }
+        }
+    }
+
     doLast {
+        def platform = javafxPlatform()
         copy {
             from configurations.runtimeClasspath
             into layout.buildDirectory.dir('libs/dependencias')
             exclude '*.so', '*.dylib', '*.dll'
+            exclude { details ->
+                def name = details.file.name
+                name.startsWith('javafx-') && name.endsWith('.jar') && !name.contains("-${platform}")
+            }
             duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         }
     }
@@ -344,6 +389,12 @@ def jpackageArgs = { ->
     def licenseFile = os.isWindows() ? 'license.rtf' : 'license.txt'
     if (file(licenseFile).exists()) {
         args += ['--license-file', licenseFile]
+    }
+
+    def fxPath = javafxModulePath()
+    if (fxPath) {
+        args += ['--module-path', fxPath]
+        args += ['--add-modules', javafxModulesAdd]
     }
 
     args
