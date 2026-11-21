@@ -228,11 +228,10 @@
     -fx-padding: 6px;
 }
 
-/* Campos del login con la paleta del sistema: sin el azul por defecto de
-   JavaFX. El alcance es solo el login; el resto de formularios mantiene su
-   aspecto actual. */
-.login .text-field,
-.login .password-field {
+/* Campos del sistema: la misma paleta en el login y en el resto de
+   formularios, sin el azul por defecto de JavaFX. */
+.text-field,
+.password-field {
     -fx-background-color: #ffffff;
     -fx-text-fill: #1f2933;
     -fx-prompt-text-fill: #8b98a5;
@@ -241,9 +240,43 @@
     -fx-padding: 8 10 8 10;
 }
 
-.login .text-field:focused,
-.login .password-field:focused {
+.text-field:focused,
+.password-field:focused {
     -fx-border-color: #9a3412;
+}
+
+.combo-box {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #1f2933;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 6px;
+    -fx-padding: 4 8 4 10;
+}
+
+.combo-box:focused {
+    -fx-border-color: #9a3412;
+}
+
+.combo-box .arrow-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0 6 0 6;
+}
+
+.combo-box .arrow-button .arrow {
+    -fx-background-color: #52616f;
+    -fx-pref-width: 9px;
+    -fx-pref-height: 9px;
+}
+
+.combo-box .list-cell {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #1f2933;
+    -fx-padding: 6 10 6 10;
+}
+
+.combo-box .list-cell:hover {
+    -fx-background-color: #f3f4f6;
 }
 
 .panel-pesaje-medio {
@@ -270,26 +303,31 @@
     -fx-text-fill: #5f6c7b;
 }
 
+/* Boton informativo: variante con borde de la paleta del sistema, para
+   distinguirlo del primario sin salir de los colores de Jacobitus. */
 .boton-info {
-    -fx-background-color: #2a7ae2;
-    -fx-text-fill: white;
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #9a3412;
     -fx-font-weight: bold;
+    -fx-border-color: #e0e0e0;
     -fx-background-radius: 6px;
     -fx-padding: 8 16 8 16;
 }
 
 .boton-info:hover {
-    -fx-background-color: #1f63bd;
+    -fx-background-color: #f6ece6;
 }
 
 .boton-info:disabled {
     -fx-opacity: 0.5;
 }
 
+/* Boton "+" de alta rapida: la misma paleta, sin el verde anterior. */
 .boton-mas {
-    -fx-background-color: #1b6e3c;
-    -fx-text-fill: white;
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #9a3412;
     -fx-font-weight: bold;
+    -fx-border-color: #e0e0e0;
     -fx-background-radius: 6px;
     -fx-min-width: 28;
     -fx-min-height: 28;
@@ -297,7 +335,27 @@
 }
 
 .boton-mas:hover {
-    -fx-background-color: #155a31;
+    -fx-background-color: #f6ece6;
+}
+
+/* Casillas de verificacion con la paleta del sistema. */
+.check-box {
+    -fx-text-fill: #52616f;
+}
+
+.check-box .box {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 3px;
+}
+
+.check-box:selected .box {
+    -fx-background-color: #9a3412;
+    -fx-border-color: #9a3412;
+}
+
+.check-box:selected .mark {
+    -fx-background-color: #ffffff;
 }
 
 .menu-flotante {
