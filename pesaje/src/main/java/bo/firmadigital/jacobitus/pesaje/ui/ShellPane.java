@@ -15,6 +15,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
+import bo.firmadigital.jacobitus.pesaje.ui.comun.Cerrable;
+
 /**
  * Ventana principal del sistema: barra lateral con los modulos, barra
  * superior con el modulo activo y el menu de usuario, y el area de
@@ -66,6 +68,10 @@ public class ShellPane extends BorderPane {
      * @param modulo modulo a mostrar
      */
     public void navegar(Navegacion modulo) {
+        Node anterior = contenido.getChildren().isEmpty() ? null : contenido.getChildren().get(0);
+        if (anterior instanceof Cerrable) {
+            ((Cerrable) anterior).cerrar();
+        }
         this.moduloActual = modulo;
         tituloModulo.setText(modulo.getTitulo());
         contenido.getChildren().setAll(Modulos.crear(modulo));
