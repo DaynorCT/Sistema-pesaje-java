@@ -17,11 +17,13 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.stage.Window;
 
 import bo.firmadigital.jacobitus.pesaje.datos.FilaPesaje;
 import bo.firmadigital.jacobitus.pesaje.datos.RepositorioPesaje;
 import bo.firmadigital.jacobitus.pesaje.reportes.BoletaPdf;
 import bo.firmadigital.jacobitus.pesaje.reportes.ReportePdf;
+import bo.firmadigital.jacobitus.pesaje.ui.comun.DialogoVistaPreviaPdf;
 
 /**
  * Reportes de pesaje: listado, reporte en PDF y boleta por pesaje.
@@ -102,6 +104,8 @@ public final class ReportesPane extends BorderPane {
             ReportePdf.guardar(desde.getText().trim(), hasta.getText().trim(),
                     placa.getText().trim(), destino.toFile());
             mensaje.setText("Reporte generado: " + destino);
+            DialogoVistaPreviaPdf.mostrar(ventanaDeEstaPantalla(), "Reporte de pesaje",
+                    destino.toFile());
         } catch (Exception e) {
             mensaje.setText("No se pudo generar el reporte: " + e.getMessage());
         }
@@ -117,9 +121,21 @@ public final class ReportesPane extends BorderPane {
             Path destino = carpetaReportes().resolve("boleta-" + seleccion.getGuia() + ".pdf");
             BoletaPdf.guardar(seleccion.getId(), destino.toFile());
             mensaje.setText("Boleta generada: " + destino);
+            DialogoVistaPreviaPdf.mostrar(ventanaDeEstaPantalla(), "Boleta de pesaje",
+                    destino.toFile());
         } catch (Exception e) {
             mensaje.setText("No se pudo generar la boleta: " + e.getMessage());
         }
+    }
+
+    /**
+     * Ventana donde esta esta pantalla.
+     *
+     * @return la ventana propietaria del dialogo, o null si la pantalla
+     *         todavia no esta en escena
+     */
+    private Window ventanaDeEstaPantalla() {
+        return getScene() != null ? getScene().getWindow() : null;
     }
 
     /**

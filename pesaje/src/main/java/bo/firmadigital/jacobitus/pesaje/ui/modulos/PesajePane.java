@@ -48,6 +48,7 @@ import bo.firmadigital.jacobitus.pesaje.sync.ServicioSync;
 import bo.firmadigital.jacobitus.pesaje.ui.comun.Cerrable;
 import bo.firmadigital.jacobitus.pesaje.ui.comun.ComboOpcion;
 import bo.firmadigital.jacobitus.pesaje.ui.comun.DialogoAviso;
+import bo.firmadigital.jacobitus.pesaje.ui.comun.DialogoVistaPreviaPdf;
 
 /**
  * Pantalla operativa de pesaje (layout Lazarus / captura de referencia).
@@ -504,7 +505,7 @@ public final class PesajePane extends BorderPane implements Cerrable {
             java.nio.file.Path destino = ReportesPane.carpetaReportes()
                     .resolve("boleta-" + (fila.getGuia() != null ? fila.getGuia() : fila.getId()) + ".pdf");
             BoletaPdf.guardar(fila.getId(), destino.toFile());
-            DialogoAviso.informar(ventana(), "Boleta", "Boleta generada:\n" + destino);
+            DialogoVistaPreviaPdf.mostrar(ventana(), "Boleta de pesaje", destino.toFile());
         } catch (Exception e) {
             DialogoAviso.error(ventana(), "Boleta", "No se pudo generar la boleta: " + e.getMessage());
         }

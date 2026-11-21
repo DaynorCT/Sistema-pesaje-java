@@ -133,7 +133,11 @@ def appRuntimeProperties = { profile ->
     [
             "-Dpesaje.version=${appBaseVersion()}",
             "-Dpesaje.profile=${appProfile(profile)}",
-            "-Dpesaje.compilacion=${System.currentTimeMillis()}"
+            "-Dpesaje.compilacion=${System.currentTimeMillis()}",
+            // El render del PDF (PDFBox) usa AWT. Con JavaFX ya iniciado, AWT
+            // pisa el AppKit y la app se cae en macOS: headless evita que se
+            // inicialice el toolkit grafico de AWT.
+            "-Djava.awt.headless=true"
     ]
 }
 
@@ -381,6 +385,9 @@ def jpackageArgs = { ->
             '--description', project.ext.appDescription,
             '--icon', iconFile,
             '--java-options', '-Dfile.encoding=UTF-8',
+            // Ver appRuntimeProperties: sin headless, el render del PDF con
+            // AWT y JavaFX juntos revientan la app en macOS.
+            '--java-options', '-Djava.awt.headless=true',
             '--java-options', "-Dpesaje.version=${appBaseVersion()}",
             '--java-options', '-Dpesaje.profile=',
             '--java-options', "-Dpesaje.compilacion=${System.currentTimeMillis()}"
