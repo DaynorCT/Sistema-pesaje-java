@@ -31,22 +31,61 @@ public final class RepositorioPesaje {
      */
     public List<FilaPesaje> listarListado(int limite) {
         return sql.consultar(
-                "SELECT p.id, p.guia, p.lote, v.placa AS placa,"
-                        + " TRIM(COALESCE(cper.nombre, '') || ' ' || COALESCE(cper.apellido_paterno, '')) AS chofer,"
-                        + " pr.nombre_empresa AS proveedor, prod.nombre AS producto,"
-                        + " o.nombre AS origen, d.nombre AS destino,"
-                        + " p.peso_bruto, p.tara, p.peso_neto, p.fecha_creacion, p.estado_balanza"
+                "SELECT p.id, p.guia, p.lote,"
+                        + " TRIM(COALESCE(cper.nombre, '') || ' ' || COALESCE(cper.apellido_paterno, '')"
+                        + " || ' ' || COALESCE(cper.apellido_materno, '')) AS chofer,"
+                        + " v.placa AS placa, COALESCE(c.licencia, '') AS licencia,"
+                        + " COALESCE(v.tipo_vehiculo, '') AS tipo,"
+                        + " COALESCE(NULLIF(TRIM(COALESCE(pper.nombre, '') || ' '"
+                        + " || COALESCE(pper.apellido_paterno, '') || ' '"
+                        + " || COALESCE(pper.apellido_materno, '')), ''),"
+                        + " pr.nombre_empresa, '') AS proveedor,"
+                        + " COALESCE(prod.nombre, '') AS producto,"
+                        + " COALESCE(o.nombre, '') AS origen, COALESCE(d.nombre, '') AS destino,"
+                        + " p.costo_bs, p.flete_bs_pendiente, p.fecha_creacion,"
+                        + " p.peso_bruto, p.tara, p.peso_neto, p.estado, p.estado_balanza"
                         + " FROM pesajes p"
                         + " LEFT JOIN vehiculos v ON v.id = p.vehiculo_id"
                         + " LEFT JOIN choferes c ON c.id = p.chofer_id"
                         + " LEFT JOIN personas cper ON cper.id = c.persona_id"
                         + " LEFT JOIN proveedores pr ON pr.id = p.proveedor_id"
+                        + " LEFT JOIN personas pper ON pper.id = pr.persona_id"
                         + " LEFT JOIN productos prod ON prod.id = p.producto_id"
                         + " LEFT JOIN origenes o ON o.id = p.id_origen"
                         + " LEFT JOIN destinos d ON d.id = p.id_destino"
+                        + " WHERE p.estado IN ('ACTIVO', 'INACTIVO')"
                         + " ORDER BY p.id DESC LIMIT ?",
                 FilaPesaje::deFila,
                 limite);
+    }
+
+    /**
+     * Activa o desactiva el registro del pesaje (estado ACTIVO / INACTIVO).
+     *
+     * @param id        id del pesaje
+     * @param nuevo     nuevo estado
+     * @param usuarioId usuario que realiza el cambio
+     */
+    public void cambiarEstadoRegistro(int id, String nuevo, Integer usuarioId) {
+        sql.actualizar(
+                "UPDATE pesajes SET estado = ?, usuario_modificacion = ?, fecha_modificacion = ?"
+                        + " WHERE id = ?",
+                nuevo, usuarioId, Fechas.ahora(), id);
+    }
+
+    /**
+     * Marca el pesaje como finalizado si tenía bruto y tara válidos.
+     *
+     * @param id        id del pesaje
+     * @param usuarioId usuario que finaliza
+     */
+    public void finalizar(int id, Integer usuarioId) {
+        sql.actualizar(
+                "UPDATE pesajes SET estado_balanza = 'FINALIZADO', usuario_modificacion = ?,"
+                        + " fecha_modificacion = ?"
+                        + " WHERE id = ? AND estado_balanza = 'EN_PROCESO'"
+                        + " AND peso_bruto > 0 AND tara > 0",
+                usuarioId, Fechas.ahora(), id);
     }
 
     public long guardar(Pesaje pesaje, Integer usuarioId) {

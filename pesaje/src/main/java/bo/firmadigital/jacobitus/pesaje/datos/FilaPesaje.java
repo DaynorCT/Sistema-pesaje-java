@@ -12,35 +12,46 @@ public final class FilaPesaje {
     private final int id;
     private final String guia;
     private final String lote;
-    private final String placaVehiculo;
     private final String nombreChofer;
+    private final String placaVehiculo;
+    private final String licenciaChofer;
+    private final String tipoVehiculo;
     private final String nombreProveedor;
     private final String nombreProducto;
     private final String origen;
     private final String destino;
+    private final Integer costoBs;
+    private final Integer fleteBsPendiente;
+    private final String fechaCreacion;
     private final Integer pesoBruto;
     private final Integer tara;
     private final Integer pesoNeto;
-    private final String fechaCreacion;
+    private final String estado;
     private final String estadoBalanza;
 
-    public FilaPesaje(int id, String guia, String lote, String placaVehiculo, String nombreChofer,
-            String nombreProveedor, String nombreProducto, String origen, String destino,
-            Integer pesoBruto, Integer tara, Integer pesoNeto, String fechaCreacion,
-            String estadoBalanza) {
+    public FilaPesaje(int id, String guia, String lote, String nombreChofer, String placaVehiculo,
+            String licenciaChofer, String tipoVehiculo, String nombreProveedor, String nombreProducto,
+            String origen, String destino, Integer costoBs, Integer fleteBsPendiente,
+            String fechaCreacion, Integer pesoBruto, Integer tara, Integer pesoNeto,
+            String estado, String estadoBalanza) {
         this.id = id;
         this.guia = guia;
         this.lote = lote;
-        this.placaVehiculo = placaVehiculo;
         this.nombreChofer = nombreChofer;
+        this.placaVehiculo = placaVehiculo;
+        this.licenciaChofer = licenciaChofer;
+        this.tipoVehiculo = tipoVehiculo;
         this.nombreProveedor = nombreProveedor;
         this.nombreProducto = nombreProducto;
         this.origen = origen;
         this.destino = destino;
+        this.costoBs = costoBs;
+        this.fleteBsPendiente = fleteBsPendiente;
+        this.fechaCreacion = fechaCreacion;
         this.pesoBruto = pesoBruto;
         this.tara = tara;
         this.pesoNeto = pesoNeto;
-        this.fechaCreacion = fechaCreacion;
+        this.estado = estado;
         this.estadoBalanza = estadoBalanza;
     }
 
@@ -56,12 +67,20 @@ public final class FilaPesaje {
         return lote;
     }
 
+    public String getNombreChofer() {
+        return nombreChofer;
+    }
+
     public String getPlacaVehiculo() {
         return placaVehiculo;
     }
 
-    public String getNombreChofer() {
-        return nombreChofer;
+    public String getLicenciaChofer() {
+        return licenciaChofer;
+    }
+
+    public String getTipoVehiculo() {
+        return tipoVehiculo;
     }
 
     public String getNombreProveedor() {
@@ -80,6 +99,26 @@ public final class FilaPesaje {
         return destino;
     }
 
+    public Integer getCostoBs() {
+        return costoBs;
+    }
+
+    public Integer getFleteBsPendiente() {
+        return fleteBsPendiente;
+    }
+
+    public String getFechaCreacion() {
+        return fechaCreacion;
+    }
+
+    public String getFecha() {
+        return Fechas.soloFecha(fechaCreacion);
+    }
+
+    public String getHora() {
+        return Fechas.soloHora(fechaCreacion);
+    }
+
     public Integer getPesoBruto() {
         return pesoBruto;
     }
@@ -92,10 +131,12 @@ public final class FilaPesaje {
         return pesoNeto;
     }
 
-    public String getFechaCreacion() {
-        return fechaCreacion;
+    /** Estado del registro (ACTIVO / INACTIVO). */
+    public String getEstado() {
+        return estado;
     }
 
+    /** Estado frente a la báscula (EN_PROCESO / FINALIZADO). */
     public String getEstadoBalanza() {
         return estadoBalanza;
     }
@@ -105,16 +146,21 @@ public final class FilaPesaje {
                 r.getInt("id"),
                 Sql.texto(r, "guia"),
                 Sql.texto(r, "lote"),
-                Sql.texto(r, "placa"),
                 Sql.texto(r, "chofer"),
+                Sql.texto(r, "placa"),
+                Sql.texto(r, "licencia"),
+                Sql.texto(r, "tipo"),
                 Sql.texto(r, "proveedor"),
                 Sql.texto(r, "producto"),
                 Sql.texto(r, "origen"),
                 Sql.texto(r, "destino"),
+                Sql.entero(r, "costo_bs"),
+                Sql.entero(r, "flete_bs_pendiente"),
+                Sql.texto(r, "fecha_creacion"),
                 Sql.entero(r, "peso_bruto"),
                 Sql.entero(r, "tara"),
                 Sql.entero(r, "peso_neto"),
-                Sql.texto(r, "fecha_creacion"),
+                Sql.texto(r, "estado"),
                 Sql.texto(r, "estado_balanza"));
     }
 }

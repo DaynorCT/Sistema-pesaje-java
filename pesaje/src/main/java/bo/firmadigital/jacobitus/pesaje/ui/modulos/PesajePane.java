@@ -12,9 +12,11 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.stage.Window;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
@@ -41,9 +43,11 @@ import bo.firmadigital.jacobitus.pesaje.datos.RepositorioVehiculo;
 import bo.firmadigital.jacobitus.pesaje.modelo.CalculoPesaje;
 import bo.firmadigital.jacobitus.pesaje.modelo.EstadoBalanza;
 import bo.firmadigital.jacobitus.pesaje.modelo.Pesaje;
+import bo.firmadigital.jacobitus.pesaje.reportes.BoletaPdf;
 import bo.firmadigital.jacobitus.pesaje.sync.ServicioSync;
 import bo.firmadigital.jacobitus.pesaje.ui.comun.Cerrable;
 import bo.firmadigital.jacobitus.pesaje.ui.comun.ComboOpcion;
+import bo.firmadigital.jacobitus.pesaje.ui.comun.DialogoAviso;
 
 /**
  * Pantalla operativa de pesaje (layout Lazarus / captura de referencia).
@@ -71,8 +75,6 @@ public final class PesajePane extends BorderPane implements Cerrable {
     private final Button botonCapPeso = new Button("Cap. peso");
     private final Button botonCapTara = new Button("Cap. tara");
 
-    private final TextField guia = new TextField();
-    private final TextField lote = new TextField();
     private final TextField licencia = new TextField();
     private final TextField tipoVehiculo = new TextField();
     private final TextField tara = new TextField("0");
@@ -248,9 +250,6 @@ public final class PesajePane extends BorderPane implements Cerrable {
         grid.getColumnConstraints().addAll(c1, c2, c3);
 
         int f = 0;
-        grid.add(campo("Guía", guia), 0, f);
-        grid.add(campo("Lote", lote), 1, f);
-        f++;
         grid.add(campoConBoton("Chofer", comboChofer, plusChofer), 0, f);
         grid.add(campoConBoton("Placa *", comboVehiculo, plusVehiculo), 1, f);
         grid.add(campo("Licencia", licencia), 2, f);
@@ -316,39 +315,203 @@ public final class PesajePane extends BorderPane implements Cerrable {
 
     private VBox construirGrillaCard() {
         grilla.getStyleClass().add("tabla-modulo");
-        grilla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        TableColumn<FilaPesaje, String> colId = new TableColumn<>("ID");
-        colId.setCellValueFactory(c -> new SimpleStringProperty(String.valueOf(c.getValue().getId())));
-        TableColumn<FilaPesaje, String> colChofer = new TableColumn<>("Chofer");
-        colChofer.setCellValueFactory(c -> new SimpleStringProperty(texto(c.getValue().getNombreChofer())));
-        TableColumn<FilaPesaje, String> colPlaca = new TableColumn<>("Placa");
-        colPlaca.setCellValueFactory(c -> new SimpleStringProperty(texto(c.getValue().getPlacaVehiculo())));
-        TableColumn<FilaPesaje, String> colProveedor = new TableColumn<>("Proveedor");
-        colProveedor.setCellValueFactory(c -> new SimpleStringProperty(texto(c.getValue().getNombreProveedor())));
-        TableColumn<FilaPesaje, String> colProducto = new TableColumn<>("Producto");
-        colProducto.setCellValueFactory(c -> new SimpleStringProperty(texto(c.getValue().getNombreProducto())));
-        TableColumn<FilaPesaje, String> colOrigen = new TableColumn<>("Origen");
-        colOrigen.setCellValueFactory(c -> new SimpleStringProperty(texto(c.getValue().getOrigen())));
-        TableColumn<FilaPesaje, String> colDestino = new TableColumn<>("Destino");
-        colDestino.setCellValueFactory(c -> new SimpleStringProperty(texto(c.getValue().getDestino())));
-        TableColumn<FilaPesaje, String> colBruto = new TableColumn<>("P.Bruto");
-        colBruto.setCellValueFactory(c -> new SimpleStringProperty(entero(c.getValue().getPesoBruto())));
-        TableColumn<FilaPesaje, String> colTara = new TableColumn<>("P.Tara");
-        colTara.setCellValueFactory(c -> new SimpleStringProperty(entero(c.getValue().getTara())));
-        TableColumn<FilaPesaje, String> colNeto = new TableColumn<>("P.Neto");
-        colNeto.setCellValueFactory(c -> new SimpleStringProperty(entero(c.getValue().getPesoNeto())));
-        TableColumn<FilaPesaje, String> colEstado = new TableColumn<>("Estado");
-        colEstado.setCellValueFactory(c -> new SimpleStringProperty(texto(c.getValue().getEstadoBalanza())));
-        TableColumn<FilaPesaje, String> colFecha = new TableColumn<>("Fecha");
-        colFecha.setCellValueFactory(c -> new SimpleStringProperty(texto(c.getValue().getFechaCreacion())));
-        grilla.getColumns().setAll(colId, colChofer, colPlaca, colProveedor, colProducto,
-                colOrigen, colDestino, colBruto, colTara, colNeto, colEstado, colFecha);
+        grilla.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
+
+        TableColumn<FilaPesaje, String> colId = columnaTexto("ID", f -> String.valueOf(f.getId()), 44);
+        TableColumn<FilaPesaje, String> colChofer = columnaTexto("Chofer",
+                f -> mayusculas(f.getNombreChofer()), 160);
+        TableColumn<FilaPesaje, String> colPlaca = columnaTexto("Placa",
+                f -> mayusculas(f.getPlacaVehiculo()), 90);
+        TableColumn<FilaPesaje, String> colLicencia = columnaTexto("Licencia",
+                f -> mayusculas(f.getLicenciaChofer()), 90);
+        TableColumn<FilaPesaje, String> colTipo = columnaTexto("Tipo",
+                f -> mayusculas(f.getTipoVehiculo()), 90);
+        TableColumn<FilaPesaje, String> colProveedor = columnaTexto("Proveedor",
+                f -> mayusculas(f.getNombreProveedor()), 160);
+        TableColumn<FilaPesaje, String> colProducto = columnaTexto("Producto",
+                f -> mayusculas(f.getNombreProducto()), 110);
+        TableColumn<FilaPesaje, String> colOrigen = columnaTexto("Origen",
+                f -> mayusculas(f.getOrigen()), 110);
+        TableColumn<FilaPesaje, String> colDestino = columnaTexto("Destino",
+                f -> mayusculas(f.getDestino()), 110);
+        TableColumn<FilaPesaje, String> colCosto = columnaTexto("Costo (Bs)",
+                f -> entero(f.getCostoBs()), 72);
+        TableColumn<FilaPesaje, String> colFlete = columnaTexto("Flete (Bs)",
+                f -> entero(f.getFleteBsPendiente()), 72);
+        TableColumn<FilaPesaje, String> colFecha = columnaTexto("Fecha",
+                FilaPesaje::getFecha, 76);
+        TableColumn<FilaPesaje, String> colHora = columnaTexto("Hora",
+                FilaPesaje::getHora, 52);
+        TableColumn<FilaPesaje, String> colBruto = columnaTexto("P. Bruto",
+                f -> entero(f.getPesoBruto()), 68);
+        TableColumn<FilaPesaje, String> colTara = columnaTexto("P. Tara",
+                f -> entero(f.getTara()), 68);
+        TableColumn<FilaPesaje, String> colNeto = columnaTexto("P. Neto",
+                f -> entero(f.getPesoNeto()), 68);
+        TableColumn<FilaPesaje, String> colEstado = columnaBadgeEstadoRegistro();
+        TableColumn<FilaPesaje, String> colEstadoPesaje = columnaBadgeEstadoPesaje();
+        TableColumn<FilaPesaje, Void> colAcciones = columnaAcciones();
+
+        grilla.getColumns().setAll(colId, colChofer, colPlaca, colLicencia, colTipo, colProveedor,
+                colProducto, colOrigen, colDestino, colCosto, colFlete, colFecha, colHora, colBruto,
+                colTara, colNeto, colEstado, colEstadoPesaje, colAcciones);
 
         VBox card = new VBox(grilla);
         card.getStyleClass().addAll("tarjeta", "tarjeta-sin-padding");
         VBox.setVgrow(grilla, Priority.ALWAYS);
         BorderPane.setMargin(card, new Insets(12, 0, 0, 0));
         return card;
+    }
+
+    private TableColumn<FilaPesaje, String> columnaTexto(String titulo,
+            java.util.function.Function<FilaPesaje, String> valor, double ancho) {
+        TableColumn<FilaPesaje, String> col = new TableColumn<>(titulo);
+        col.setPrefWidth(ancho);
+        col.setCellValueFactory(c -> new SimpleStringProperty(valor.apply(c.getValue())));
+        return col;
+    }
+
+    private TableColumn<FilaPesaje, String> columnaBadgeEstadoRegistro() {
+        TableColumn<FilaPesaje, String> col = new TableColumn<>("Estado");
+        col.setPrefWidth(88);
+        col.setCellValueFactory(c -> new SimpleStringProperty(texto(c.getValue().getEstado())));
+        col.setCellFactory(columna -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                    return;
+                }
+                Label badge = new Label(item.toUpperCase());
+                badge.getStyleClass().add("badge");
+                if ("ACTIVO".equalsIgnoreCase(item)) {
+                    badge.getStyleClass().add("badge-activo");
+                } else {
+                    badge.getStyleClass().add("badge-inactivo");
+                }
+                setGraphic(badge);
+            }
+        });
+        return col;
+    }
+
+    private TableColumn<FilaPesaje, String> columnaBadgeEstadoPesaje() {
+        TableColumn<FilaPesaje, String> col = new TableColumn<>("Estado pesaje");
+        col.setPrefWidth(108);
+        col.setCellValueFactory(c -> new SimpleStringProperty(texto(c.getValue().getEstadoBalanza())));
+        col.setCellFactory(columna -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                    return;
+                }
+                String texto = item.replace('_', ' ');
+                Label badge = new Label(texto.toUpperCase());
+                badge.getStyleClass().add("badge");
+                if ("FINALIZADO".equalsIgnoreCase(item)) {
+                    badge.getStyleClass().add("badge-finalizado");
+                } else {
+                    badge.getStyleClass().add("badge-proceso");
+                }
+                setGraphic(badge);
+            }
+        });
+        return col;
+    }
+
+    private TableColumn<FilaPesaje, Void> columnaAcciones() {
+        TableColumn<FilaPesaje, Void> col = new TableColumn<>("Acciones");
+        col.setPrefWidth(190);
+        col.setSortable(false);
+        col.setCellFactory(columna -> new TableCell<>() {
+            private final HBox botones = new HBox(6);
+
+            {
+                botones.setAlignment(Pos.CENTER_LEFT);
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                botones.getChildren().clear();
+                if (empty) {
+                    setGraphic(null);
+                    return;
+                }
+                FilaPesaje fila = getTableRow().getItem();
+                if (fila == null) {
+                    setGraphic(null);
+                    return;
+                }
+                boolean activo = "ACTIVO".equalsIgnoreCase(fila.getEstado());
+                boolean enProceso = "EN_PROCESO".equalsIgnoreCase(fila.getEstadoBalanza());
+                if (activo) {
+                    Button estado = botonAccion("Desactivar", () -> alternarEstadoRegistro(fila));
+                    botones.getChildren().add(estado);
+                    if (enProceso) {
+                        botones.getChildren().add(botonAccion("Finalizar", () -> finalizarPesaje(fila)));
+                    } else {
+                        botones.getChildren().add(botonAccion("Boleta", () -> imprimirBoleta(fila)));
+                    }
+                } else {
+                    botones.getChildren().add(botonAccion("Activar", () -> alternarEstadoRegistro(fila)));
+                }
+                setGraphic(botones);
+            }
+        });
+        return col;
+    }
+
+    private Button botonAccion(String texto, Runnable accion) {
+        Button boton = new Button(texto);
+        boton.getStyleClass().addAll("boton-secundario", "boton-tabla-accion");
+        boton.setOnAction(e -> accion.run());
+        return boton;
+    }
+
+    private void alternarEstadoRegistro(FilaPesaje fila) {
+        String actual = fila.getEstado();
+        String siguiente = "ACTIVO".equalsIgnoreCase(actual) ? "INACTIVO" : "ACTIVO";
+        String pregunta = "ACTIVO".equalsIgnoreCase(siguiente)
+                ? "¿Reactivar este pesaje?"
+                : "Se cambiará el estado a INACTIVO. ¿Continuar?";
+        if (!DialogoAviso.confirmar(ventana(), "Estado del pesaje", pregunta)) {
+            return;
+        }
+        repo.cambiarEstadoRegistro(fila.getId(), siguiente, usuario.getId());
+        recargarGrilla();
+    }
+
+    private void finalizarPesaje(FilaPesaje fila) {
+        if (fila.getPesoBruto() == null || fila.getPesoBruto() <= 0
+                || fila.getTara() == null || fila.getTara() <= 0) {
+            DialogoAviso.error(ventana(), "Finalizar", "No se puede finalizar: faltan peso bruto o tara.");
+            return;
+        }
+        if (!DialogoAviso.confirmar(ventana(), "Finalizar pesaje",
+                "¿Cerrar el pesaje #" + fila.getId() + " como FINALIZADO?")) {
+            return;
+        }
+        repo.finalizar(fila.getId(), usuario.getId());
+        recargarGrilla();
+    }
+
+    private void imprimirBoleta(FilaPesaje fila) {
+        try {
+            java.nio.file.Path destino = ReportesPane.carpetaReportes()
+                    .resolve("boleta-" + (fila.getGuia() != null ? fila.getGuia() : fila.getId()) + ".pdf");
+            BoletaPdf.guardar(fila.getId(), destino.toFile());
+            DialogoAviso.informar(ventana(), "Boleta", "Boleta generada:\n" + destino);
+        } catch (Exception e) {
+            DialogoAviso.error(ventana(), "Boleta", "No se pudo generar la boleta: " + e.getMessage());
+        }
+    }
+
+    private Window ventana() {
+        return getScene() != null ? getScene().getWindow() : null;
     }
 
     private void cargarCombos() {
@@ -547,8 +710,6 @@ public final class PesajePane extends BorderPane implements Cerrable {
             }
             CalculoPesaje.validar(pesoBruto, pesoTara);
             Pesaje p = new Pesaje();
-            p.setGuia(guia.getText().trim());
-            p.setLote(lote.getText().trim());
             p.setVehiculoId(vehiculoId);
             p.setChoferId(ComboOpcion.idSeleccionado(comboChofer));
             p.setProveedorId(ComboOpcion.idSeleccionado(comboProveedor));
@@ -568,8 +729,6 @@ public final class PesajePane extends BorderPane implements Cerrable {
             mensaje.getStyleClass().removeAll("mensaje-error", "mensaje-exito");
             mensaje.getStyleClass().add("mensaje-exito");
             mensaje.setText("Pesaje guardado correctamente.");
-            guia.clear();
-            lote.clear();
             pesoBruto = 0;
             actualizarResumenPesos();
             recargarGrilla();
@@ -589,6 +748,10 @@ public final class PesajePane extends BorderPane implements Cerrable {
 
     private static String texto(String valor) {
         return valor != null ? valor : "";
+    }
+
+    private static String mayusculas(String valor) {
+        return texto(valor).toUpperCase();
     }
 
     private static String entero(Integer valor) {

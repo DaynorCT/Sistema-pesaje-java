@@ -98,6 +98,11 @@
     -fx-background-color: #f3f4f6;
 }
 
+.boton-tabla-accion {
+    -fx-font-size: 11px;
+    -fx-padding: 2 8 2 8;
+}
+
 .badge {
     -fx-background-radius: 10px;
     -fx-padding: 2 8 2 8;
