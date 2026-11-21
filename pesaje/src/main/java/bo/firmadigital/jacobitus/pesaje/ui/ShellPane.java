@@ -1,5 +1,6 @@
 package bo.firmadigital.jacobitus.pesaje.ui;
 
+import java.io.ByteArrayInputStream;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,8 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
+import bo.firmadigital.jacobitus.pesaje.datos.LogoEmpresa;
+import bo.firmadigital.jacobitus.pesaje.datos.RepositorioEmpresa;
 import bo.firmadigital.jacobitus.pesaje.ui.comun.Cerrable;
 import bo.firmadigital.jacobitus.pesaje.ui.comun.MenuFlotante;
 
@@ -31,6 +34,7 @@ public class ShellPane extends BorderPane {
     private final Label tituloModulo = new Label();
     private final Map<Navegacion, Node> itemsMenu = new EnumMap<>(Navegacion.class);
     private final HBox cabeceraUsuario = new HBox(8);
+    private final ImageView logoEmpresa = new ImageView();
     private final MenuFlotante menuUsuario = new MenuFlotante();
     private final MenuFlotante menuGrupo = new MenuFlotante();
 
@@ -61,6 +65,31 @@ public class ShellPane extends BorderPane {
         tituloModulo.setText(modulo.getTitulo());
         contenido.getChildren().setAll(Modulos.crear(modulo));
         marcarActivo(modulo);
+        actualizarLogoEmpresa();
+    }
+
+    /**
+     * Actualiza el logo de la empresa en la cabecera, a la derecha del menu.
+     *
+     * El logo es el que se cargo desde la pantalla de Empresas; si no hay
+     * logo, la cabecera queda sin imagen.
+     */
+    public void actualizarLogoEmpresa() {
+        try {
+            byte[] bytes = LogoEmpresa.decodificar(new RepositorioEmpresa().logoActivo());
+            if (bytes.length == 0) {
+                logoEmpresa.setImage(null);
+                logoEmpresa.setVisible(false);
+                return;
+            }
+            logoEmpresa.setImage(new Image(new ByteArrayInputStream(bytes)));
+            logoEmpresa.setVisible(true);
+        } catch (RuntimeException e) {
+            // El logo es un dato opcional: si no se puede leer, el sistema
+            // sigue mostrando la cabecera sin logo.
+            logoEmpresa.setImage(null);
+            logoEmpresa.setVisible(false);
+        }
     }
 
     private void marcarActivo(Navegacion modulo) {
@@ -94,6 +123,11 @@ public class ShellPane extends BorderPane {
         ImageView logo = new ImageView(new Image("/logo-agetic.png"));
         logo.setFitHeight(32);
         logo.setPreserveRatio(true);
+
+        logoEmpresa.setFitHeight(28);
+        logoEmpresa.setPreserveRatio(true);
+        logoEmpresa.setVisible(false);
+        cabeceraUsuario.getChildren().add(logoEmpresa);
 
         HBox modulos = construirMenuHorizontal();
         HBox.setHgrow(modulos, Priority.ALWAYS);
@@ -160,7 +194,7 @@ public class ShellPane extends BorderPane {
         Button menu = new Button(texto);
         menu.getStyleClass().add("boton-secundario");
         menu.setOnAction(event -> alternarMenuUsuario(menu, texto, acciones));
-        cabeceraUsuario.getChildren().setAll(menu);
+        cabeceraUsuario.getChildren().setAll(logoEmpresa, menu);
     }
 
     private void alternarMenuUsuario(Button ancla, String nombre, Runnable... acciones) {

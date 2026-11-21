@@ -6,7 +6,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Base64;
-import java.util.List;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -18,9 +17,9 @@ import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.util.Matrix;
 
-import bo.firmadigital.jacobitus.pesaje.datos.Database;
 import bo.firmadigital.jacobitus.pesaje.datos.RepositorioBoleta;
 import bo.firmadigital.jacobitus.pesaje.datos.RepositorioBoleta.BoletaFila;
+import bo.firmadigital.jacobitus.pesaje.datos.RepositorioEmpresa;
 
 /**
  * Generador de la boleta de pesaje en PDF.
@@ -299,10 +298,7 @@ public final class BoletaPdf {
      * @return logo en base64, o cadena vacia
      */
     private static String logoEmpresa() {
-        List<String> logos = Database.obtenerInstancia().sql().consultar(
-                "SELECT logo FROM empresas WHERE estado = 'ACTIVO' ORDER BY id DESC LIMIT 1",
-                fila -> fila.getString("logo"));
-        return logos.isEmpty() || logos.get(0) == null ? "" : logos.get(0);
+        return new RepositorioEmpresa().logoActivo();
     }
 
     /**

@@ -1,5 +1,7 @@
 package bo.firmadigital.jacobitus.pesaje.ui;
 
+import java.util.function.Supplier;
+
 import bo.firmadigital.jacobitus.pesaje.auth.UsuarioSesion;
 import bo.firmadigital.jacobitus.pesaje.sync.ServicioSync;
 import bo.firmadigital.jacobitus.pesaje.ui.modulos.BalanzaPane;
@@ -22,10 +24,21 @@ public final class RegistroModulos {
     private RegistroModulos() {
     }
 
-    public static void inicializar(UsuarioSesion usuario, ServicioSync servicioSync) {
+    /**
+     * Registra el panel de cada modulo.
+     *
+     * @param usuario        usuario de la sesion
+     * @param servicioSync   servicio de sincronizacion, puede ser null
+     * @param proveedorShell shell actual, resuelto de forma perezosa: el
+     *                       shell todavia no existe cuando se registran los
+     *                       modulos
+     */
+    public static void inicializar(UsuarioSesion usuario, ServicioSync servicioSync,
+            Supplier<ShellPane> proveedorShell) {
         Modulos.registrar(Navegacion.INICIO, () -> new InicioPane(servicioSync));
         Modulos.registrar(Navegacion.USUARIOS, () -> new UsuariosPane(usuario));
-        Modulos.registrar(Navegacion.EMPRESAS, EmpresasPane::new);
+        Modulos.registrar(Navegacion.EMPRESAS,
+                () -> new EmpresasPane(() -> proveedorShell.get().actualizarLogoEmpresa()));
         Modulos.registrar(Navegacion.CHOFERES, ChoferesPane::new);
         Modulos.registrar(Navegacion.PROVEEDORES, ProveedoresPane::new);
         Modulos.registrar(Navegacion.PESAJE, () -> new PesajePane(usuario, servicioSync));

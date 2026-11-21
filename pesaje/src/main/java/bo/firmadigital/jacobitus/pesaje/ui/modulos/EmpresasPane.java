@@ -37,8 +37,22 @@ public final class EmpresasPane extends PanelAbm<RegistroEmpresa> {
     /** Logo de la pantalla, como data URL. */
     private String logo;
 
+    /** Aviso para refrescar el logo de la empresa en la cabecera del shell. */
+    private final Runnable alGuardarLogo;
+
     public EmpresasPane() {
+        this(null);
+    }
+
+    /**
+     * Crea la pantalla de empresas.
+     *
+     * @param alGuardarLogo se avisa despues de guardar, para que la
+     *                      cabecera del shell refresque el logo; puede ser null
+     */
+    public EmpresasPane(Runnable alGuardarLogo) {
         super(() -> { });
+        this.alGuardarLogo = alGuardarLogo;
         TableColumn<RegistroEmpresa, String> colEmpresa = new TableColumn<>("Empresa");
         colEmpresa.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombreEmpresa()));
         colEmpresa.setPrefWidth(180);
@@ -185,6 +199,9 @@ public final class EmpresasPane extends PanelAbm<RegistroEmpresa> {
                 repo.actualizar(seleccion().getId(), nombre.getText().trim(), actividad.getText().trim(),
                         correo.getText().trim(), telefono.getText().trim(), estado.getValue(), logo);
                 mostrarExito("Empresa actualizada.");
+            }
+            if (alGuardarLogo != null) {
+                alGuardarLogo.run();
             }
             cargar();
             limpiar();

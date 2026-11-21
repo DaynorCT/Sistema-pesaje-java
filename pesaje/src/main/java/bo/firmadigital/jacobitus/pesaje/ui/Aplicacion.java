@@ -125,7 +125,10 @@ public class Aplicacion extends Application {
             modoIntegrado.cerrar();
             modoIntegrado = null;
         }
-        RegistroModulos.inicializar(usuario, servicioSync);
+        // El shell se resuelve de forma perezosa: todavia no existe cuando
+        // se registran los modulos, pero si cuando se crea el panel de
+        // Empresas (que avisa los cambios de logo).
+        RegistroModulos.inicializar(usuario, servicioSync, () -> shell);
         shell = new ShellPane();
         shell.setAlCerrarSesion(this::cerrarSesion);
         shell.setAlVolverAPesaje(this::volverAModoIntegrado);

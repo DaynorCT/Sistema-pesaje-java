@@ -39,6 +39,32 @@ public final class RepositorioEmpresa {
     }
 
     /**
+     * Logo de la ultima empresa activa, como data URL.
+     *
+     * Es la misma regla que usa la boleta en PDF: se toma la empresa
+     * activa mas reciente (mayor id). Si no hay empresas, o la empresa
+     * activa no tiene logo, se devuelve una cadena vacia.
+     *
+     * @return data URL del logo, o cadena vacia
+     */
+    public String logoActivo() {
+        try {
+            List<String> logos = sql.consultar(
+                    "SELECT logo FROM empresas WHERE estado = 'ACTIVO' ORDER BY id DESC LIMIT 1",
+                    fila -> fila.getString("logo"));
+            if (logos.isEmpty()) {
+                return "";
+            }
+            String logo = logos.get(0);
+            return logo == null ? "" : logo;
+        } catch (RuntimeException e) {
+            // El logo es un dato opcional de la cabecera: si la base no
+            // responde, se sigue mostrando el sistema sin logo.
+            return "";
+        }
+    }
+
+    /**
      * Normaliza el logo: sin logo se guarda una cadena vacia.
      *
      * @param logo logo de la empresa

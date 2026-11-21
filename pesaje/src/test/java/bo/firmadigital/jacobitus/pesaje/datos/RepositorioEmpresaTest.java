@@ -27,6 +27,10 @@ public class RepositorioEmpresaTest {
     private static final byte[] PNG_UN_PIXEL = Base64.getDecoder().decode(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==");
 
+    /** Otro PNG de 1x1 pixel, para distinguir los logos de dos empresas. */
+    private static final byte[] PNG_OTRO_PIXEL = Base64.getDecoder().decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
+
     @Rule
     public TemporaryFolder carpeta = new TemporaryFolder();
 
@@ -110,6 +114,46 @@ public class RepositorioEmpresaTest {
         List<RegistroEmpresa> empresas = repo.listarTodos();
         assertEquals("La empresa no debe borrarse", 1, empresas.size());
         assertEquals("INACTIVO", empresas.get(0).getEstado());
+    }
+
+    @Test
+    public void devuelveElLogoDeLaEmpresaActiva() {
+        RepositorioEmpresa repo = new RepositorioEmpresa();
+        String logo = dataUrl(PNG_UN_PIXEL);
+
+        repo.crear("Transporte Andino", "Transporte", "contacto@andino.bo", "70000000", logo);
+
+        assertEquals("Debe devolver el logo de la empresa activa", logo, repo.logoActivo());
+    }
+
+    @Test
+    public void devuelveCadenaVaciaCuandoNoHayEmpresas() {
+        RepositorioEmpresa repo = new RepositorioEmpresa();
+
+        assertEquals("Sin empresas debe devolver una cadena vacia", "", repo.logoActivo());
+    }
+
+    @Test
+    public void devuelveCadenaVaciaCuandoLaEmpresaActivaNoTieneLogo() {
+        RepositorioEmpresa repo = new RepositorioEmpresa();
+
+        repo.crear("Transporte Andino", "Transporte", "contacto@andino.bo", "70000000", "");
+
+        assertEquals("Sin logo debe devolver una cadena vacia", "", repo.logoActivo());
+    }
+
+    @Test
+    public void ignoraLasEmpresasInactivas() {
+        RepositorioEmpresa repo = new RepositorioEmpresa();
+        String logoActiva = dataUrl(PNG_UN_PIXEL);
+        String logoInactiva = dataUrl(PNG_OTRO_PIXEL);
+        repo.crear("Transporte Andino", "Transporte", "contacto@andino.bo", "70000000", logoActiva);
+        repo.crear("Transporte Austral", "Transporte", "contacto@austral.bo", "70000001", logoInactiva);
+        int idInactiva = repo.listarTodos().get(0).getId();
+        repo.cambiarEstado(idInactiva, "INACTIVO");
+
+        assertEquals("Debe ignorar la empresa inactiva mas reciente",
+                logoActiva, repo.logoActivo());
     }
 
     private String dataUrl(byte[] imagen) {
