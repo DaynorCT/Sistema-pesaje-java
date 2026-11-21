@@ -112,7 +112,7 @@ public final class PesajePane extends BorderPane implements Cerrable {
         VBox izq = construirRegistroPeso();
         VBox der = construirDatosPesaje();
         HBox.setHgrow(der, Priority.ALWAYS);
-        izq.setPrefWidth(320);
+        izq.setPrefWidth(520);
         izq.setMinWidth(280);
         HBox medio = new HBox(16, izq, der);
         medio.getStyleClass().add("panel-pesaje-medio");
