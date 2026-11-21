@@ -29,9 +29,9 @@ S5. "este siustea de escrito tiuene todo vr isbtar ya dp en windows" — el sist
 | T5 | S3,S4 | Shell JavaFX: `Main`, login, sidebar con navegación, submenú Catálogo, menú de usuario, carga de logo | inline | `f9a0788` |
 | T6 | S2 | Serial RS232 (jSerialComm) + parser único configurable (AUTO o por posición) con logger de tramas | inline | `9177b87` |
 | T7 | S2 | Módulo Pesaje: captura bruto/tara, combos (vehículo/chofer/proveedor/producto/origen/destino), grilla, finalizar/anular, quick-add | inline | `ac7e6dd` (captura y combos), `7fecba7` (grilla y quick-add) |
-| T8 | S2 | Catálogos CRUD: ABM genérico + empresas, choferes, proveedores, vehículos, usuarios (soft delete, badges, logo) | inline | `ac7e6dd` (ABM; falta logo) |
+| T8 | S2 | Catálogos CRUD: ABM genérico + empresas, choferes, proveedores, vehículos, usuarios (soft delete, badges, logo) | inline | `ac7e6dd` (ABM), logo de empresa `04d41f6` |
 | T9 | S2 | Dashboard con estadísticas | inline | `ac7e6dd` |
-| T10 | S2 | Reportes PDF: boleta de pesaje (fppdf→PDFBox) y reporte por rango de fechas/placa | inline | `72cde86` |
+| T10 | S2 | Reportes PDF: boleta de pesaje (fppdf→PDFBox) y reporte por rango de fechas/placa | inline | `72cde86` (boleta y reporte), `40107e6` (vista previa y visor) |
 | T11 | S2 | Sincronización con la web: token+refresh, delta pull por cursor, push idempotente (`client_event_id`), outbox durable, backoff con jitter, LWW por `version`, conflictos | writer | `9e9ab02` (politica), `e5f95a2` (motor) |
 | T12 | S2,S3 | Modo integrado compacto (artboard 02): barra superior, capturar→enviar peso vivo, menú, INTEGRADO/AUTONOMO con contraseña | inline | handoff 02 implementado (sin commit handoff) |
 | T13 | S5,S3 | Instaladores: `packageApp`/`packageRpm`/`packageArch` del módulo pesaje + guía de compilación en Windows (WiX, MSYS2) | inline | `96901a7` (guías), `15abf16` (jpackage con module-path) |
@@ -122,10 +122,33 @@ crear una fila: en `app/api/sync/[recurso]/route.ts` la variable se llama `userI
 usa `usuarioId` (línea 134). Afecta al push de catálogos; el pull no se ve afectado. El
 escritorio lo reporta como evento con error y reintenta, y queda listo para cuando se
 corrija.
+D10 (2026-11-21, entrega): la rama `feat/pesaje-java` acumula 16.789 lineas de codigo
+propio en 34 commits contra `master`, muy por encima del corte de 400 lineas por work
+unit: el diff **no** se publica como un PR unico. Los dos ultimos work units son
+`04d41f6` (logo de empresa en la boleta) y `40107e6` (vista previa del PDF con apertura
+en el visor). El push y la apertura del PR los decide el usuario; si se abre un PR,
+corresponde la estrategia de PRs encadenados por grupo de tareas ya acordada.
 E20 (2026-11-21): ShellPane barra = Navegacion.principales(); Catálogo y Configuración con MenuFlotante; único disparador ./gradlew pesaje:run.
 E19 (2026-11-21): ABM sin columna Acciones; solo badge Estado; activar/inactivar por combo + Guardar.
 E18 (2026-11-21): ABM con Estado badge + Editar/Activar/Desactivar en todos; toggle sin dialogo; usuario en sesion no se desactiva.
 E17 (2026-11-21): tabla Usuarios alineada a Lazarus (CI, nombres completos, correo, telefono, rol, estado).
+E22 (2026-11-21, T10 cierre): la boleta y el reporte ya se muestran en una **vista previa
+dentro de la app** (`DialogoVistaPreviaPdf` + `PrevisualizadorPdf`): se renderiza la
+primera pagina con PDFBox y se abre un dialogo con la vista previa, la ruta y el boton
+**Abrir con el visor** (paridad con el `OpenDocument` del original). Al implementarlo
+se descubrio que renderizar un PDF usa AWT y que, con JavaFX ya iniciado, AWT pisa el
+AppKit y **reventaba la app en macOS**: se fijo `-Djava.awt.headless=true` en el runtime
+(`appRuntimeProperties` y `jpackageArgs` del build) y el PDF se abre con el comando
+nativo (`open` / `rundll32` / `xdg-open`) en vez de `java.awt.Desktop`, que no esta
+soportado en modo headless. 116 tests verdes.
+E21 (2026-11-21, T8 cierre): el logo de la empresa ya se carga desde Empresas
+(`LogoEmpresa`: PNG o JPEG detectado por firma binaria, tope de 2 MB, data URL
+base64 en `empresas.logo`) y sale dibujado en la boleta. Al implementarlo se
+descubrio y corrigio un defecto de `BoletaPdf`: el logo se dibujaba en un
+**segundo** `PDPageContentStream`, que en PDFBox 3 **sobreescribe** el contenido
+de la pagina y dejaba la boleta en blanco (solo el logo). Ahora el logo se dibuja
+en el mismo flujo que el texto. Verificado renderizando el PDF a PNG y mirando la
+imagen. 109 tests verdes.
 E16 (2026-11-21): `DialogoAviso` reemplaza `Alert` en modo integrado y contraseña;
 modales con `boton-primario`/`boton-secundario` y `pesaje.css`.
 E15 (2026-11-21): política único lanzador documentada en `pesaje/README.md`;
