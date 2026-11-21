@@ -37,6 +37,7 @@ import bo.firmadigital.jacobitus.pesaje.datos.RepositorioVehiculo;
 import bo.firmadigital.jacobitus.pesaje.modelo.CalculoPesaje;
 import bo.firmadigital.jacobitus.pesaje.modelo.EstadoBalanza;
 import bo.firmadigital.jacobitus.pesaje.modelo.Pesaje;
+import bo.firmadigital.jacobitus.pesaje.sync.ServicioSync;
 import bo.firmadigital.jacobitus.pesaje.ui.comun.ComboOpcion;
 import bo.firmadigital.jacobitus.pesaje.ui.comun.Cerrable;
 
@@ -52,6 +53,7 @@ import bo.firmadigital.jacobitus.pesaje.ui.comun.Cerrable;
 public final class PesajePane extends BorderPane implements Cerrable {
 
     private final UsuarioSesion usuario;
+    private final ServicioSync servicioSync;
     private final RepositorioPesaje repo = new RepositorioPesaje();
     private final RepositorioVehiculo repoVehiculo = new RepositorioVehiculo();
     private final RepositorioChofer repoChofer = new RepositorioChofer();
@@ -80,8 +82,9 @@ public final class PesajePane extends BorderPane implements Cerrable {
 
     private ServicioBalanza servicioBalanza;
 
-    public PesajePane(UsuarioSesion usuario) {
+    public PesajePane(UsuarioSesion usuario, ServicioSync servicioSync) {
         this.usuario = usuario;
+        this.servicioSync = servicioSync;
         setPadding(new Insets(8));
         setCenter(construirCentro());
         setRight(construirFormulario());
@@ -380,6 +383,9 @@ public final class PesajePane extends BorderPane implements Cerrable {
             p.setPesadorId(usuario.getPersonaId());
             p.setEstadoBalanza(EstadoBalanza.FINALIZADO);
             repo.guardar(p, usuario.getId());
+            if (servicioSync != null) {
+                servicioSync.encolarPesaje(p);
+            }
             mensaje.setText("Pesaje guardado correctamente.");
             guia.clear();
             lote.clear();

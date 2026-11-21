@@ -1,6 +1,7 @@
 package bo.firmadigital.jacobitus.pesaje.ui;
 
 import bo.firmadigital.jacobitus.pesaje.auth.UsuarioSesion;
+import bo.firmadigital.jacobitus.pesaje.sync.ServicioSync;
 import bo.firmadigital.jacobitus.pesaje.ui.modulos.BalanzaPane;
 import bo.firmadigital.jacobitus.pesaje.ui.modulos.BoletaPane;
 import bo.firmadigital.jacobitus.pesaje.ui.modulos.CatalogoPane;
@@ -21,13 +22,13 @@ public final class RegistroModulos {
     private RegistroModulos() {
     }
 
-    public static void inicializar(UsuarioSesion usuario) {
-        Modulos.registrar(Navegacion.INICIO, InicioPane::new);
+    public static void inicializar(UsuarioSesion usuario, ServicioSync servicioSync) {
+        Modulos.registrar(Navegacion.INICIO, () -> new InicioPane(servicioSync));
         Modulos.registrar(Navegacion.USUARIOS, UsuariosPane::new);
         Modulos.registrar(Navegacion.EMPRESAS, EmpresasPane::new);
         Modulos.registrar(Navegacion.CHOFERES, ChoferesPane::new);
         Modulos.registrar(Navegacion.PROVEEDORES, ProveedoresPane::new);
-        Modulos.registrar(Navegacion.PESAJE, () -> new PesajePane(usuario));
+        Modulos.registrar(Navegacion.PESAJE, () -> new PesajePane(usuario, servicioSync));
         Modulos.registrar(Navegacion.VEHICULOS, VehiculosPane::new);
         Modulos.registrar(Navegacion.PRODUCTOS, () -> new CatalogoPane("productos"));
         Modulos.registrar(Navegacion.ORIGENES, () -> new CatalogoPane("origenes"));

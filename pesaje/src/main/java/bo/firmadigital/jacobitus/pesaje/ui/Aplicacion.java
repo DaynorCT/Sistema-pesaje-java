@@ -12,7 +12,9 @@ import javafx.stage.Stage;
 import bo.firmadigital.jacobitus.pesaje.auth.AuthService;
 import bo.firmadigital.jacobitus.pesaje.auth.ResultadoAutenticacion;
 import bo.firmadigital.jacobitus.pesaje.auth.UsuarioSesion;
+import bo.firmadigital.jacobitus.pesaje.config.ConfigSistema;
 import bo.firmadigital.jacobitus.pesaje.datos.Database;
+import bo.firmadigital.jacobitus.pesaje.sync.ServicioSync;
 
 /**
  * Aplicacion de escritorio del Sistema de Pesaje.
@@ -32,12 +34,15 @@ public class Aplicacion extends Application {
     private AuthService authService;
     private UsuarioSesion usuario;
     private ShellPane shell;
+    private ConfigSistema config = new ConfigSistema();
+    private ServicioSync servicioSync;
 
     @Override
     public void start(Stage stage) {
         this.stage = stage;
         stage.setTitle("Sistema de Pesaje");
         authService = new AuthService();
+        config.cargar();
         mostrarLogin();
     }
 
@@ -62,18 +67,39 @@ public class Aplicacion extends Application {
     }
 
     private void iniciarSesion(LoginPane panel) {
-        ResultadoAutenticacion resultado = authService.autenticar(
-                panel.getCampoCorreo().getText(), panel.getCampoClave().getText());
+        String correo = panel.getCampoCorreo().getText();
+        String clave = panel.getCampoClave().getText();
+        ResultadoAutenticacion resultado = authService.autenticar(correo, clave);
         if (!resultado.esExito()) {
             panel.mostrarError(mensajeDe(resultado.getEstado()));
             return;
         }
         usuario = resultado.getUsuario();
+        prepararSincronizacion(correo, clave);
         mostrarSistema();
     }
 
+    /**
+     * Prepara la sincronizacion con la web.
+     *
+     * <p>La contrasena en claro solo se usa para pedir el token: la base
+     * local guarda el hash, asi que no se puede recuperar de ahi. Es el
+     * mismo criterio del sistema original, que pide las credenciales de
+     * la web al iniciar sesion.
+     */
+    private void prepararSincronizacion(String correo, String clave) {
+        servicioSync = null;
+        if (config.getUrl() == null || config.getUrl().isEmpty()) {
+            return;
+        }
+        servicioSync = ServicioSync.crear(config, correo, clave);
+        if (config.isAutoEnviar()) {
+            servicioSync.iniciarAutomatico(ServicioSync.INTERVALO_AUTOMATICO_MINUTOS);
+        }
+    }
+
     private void mostrarSistema() {
-        RegistroModulos.inicializar(usuario);
+        RegistroModulos.inicializar(usuario, servicioSync);
         shell = new ShellPane();
         Runnable volver = this::volverAPesaje;
         Runnable cerrar = this::cerrarSesion;
@@ -127,6 +153,10 @@ public class Aplicacion extends Application {
      */
     private void cerrarSesion() {
         usuario = null;
+        if (servicioSync != null) {
+            servicioSync.close();
+            servicioSync = null;
+        }
         mostrarLogin();
     }
 }
