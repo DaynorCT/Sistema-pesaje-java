@@ -28,7 +28,7 @@ S5. "este siustea de escrito tiuene todo vr isbtar ya dp en windows" — el sist
 | T4 | S2 | Configuración: `config.json` (url, apikey, autoenviar, modo_operacion, timeout) + `config_balanza` en BD + `Config` de Jacobitus | inline | `8ada20f` |
 | T5 | S3,S4 | Shell JavaFX: `Main`, login, sidebar con navegación, submenú Catálogo, menú de usuario, carga de logo | inline | `f9a0788` |
 | T6 | S2 | Serial RS232 (jSerialComm) + parser único configurable (AUTO o por posición) con logger de tramas | inline | `9177b87` |
-| T7 | S2 | Módulo Pesaje: captura bruto/tara, combos (vehículo/chofer/proveedor/producto/origen/destino), grilla, finalizar/anular, quick-add | inline | `ac7e6dd` (captura y combos; falta grilla y quick-add) |
+| T7 | S2 | Módulo Pesaje: captura bruto/tara, combos (vehículo/chofer/proveedor/producto/origen/destino), grilla, finalizar/anular, quick-add | inline | `ac7e6dd` (captura y combos), `7fecba7` (grilla y quick-add) |
 | T8 | S2 | Catálogos CRUD: ABM genérico + empresas, choferes, proveedores, vehículos, usuarios (soft delete, badges, logo) | inline | `ac7e6dd` (ABM; falta logo) |
 | T9 | S2 | Dashboard con estadísticas | inline | `ac7e6dd` |
 | T10 | S2 | Reportes PDF: boleta de pesaje (fppdf→PDFBox) y reporte por rango de fechas/placa | inline | `ac7e6dd` (listado; falta PDF) |
@@ -93,3 +93,12 @@ se fija `application { mainClass }`. (2) `ErrorDeBaseDeDatos` al abrir la base: 
 `FileAlreadyExistsException`; el directorio padre solo se crea si no existe. (3) JavaFX
 solo funciona como módulo: los jars con clasificador de plataforma van en `--module-path`
 (tanto en `run` como en `jpackage`), no en el classpath junto a los jars vacíos.
+D8 (2026-11-20, T7): el peso de la pantalla de pesaje viene de la báscula real leída por
+`ServicioBalanza`; la fuente simulada queda solo para pruebas. El panel cierra la conexión
+al navegar (`Cerrable`), para no dejar el puerto serie abierto.
+E7 (2026-11-20, T7): la pantalla de pesaje queda con las tres partes del sistema
+original — lectura en vivo de la balanza (hilo propio, sin bloquear la interfaz), captura
+con combos y neto calculado, y grilla con los pesajes registrados. Se agrega el alta rápida
+de vehículo, chofer y proveedor desde la propia pantalla. Verificado con un arranque
+JavaFX que construye los 13 paneles (`PANELES OK`) y con `gradlew pesaje:run` (ventana
+viva). 81 tests verdes.
