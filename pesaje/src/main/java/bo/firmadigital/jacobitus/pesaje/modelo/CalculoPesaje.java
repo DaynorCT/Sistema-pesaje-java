@@ -26,6 +26,18 @@ public final class CalculoPesaje {
     }
 
     /**
+     * Recalcula el peso neto del pesaje cuando hay bruto y tara.
+     *
+     * @param pesaje pesaje a actualizar
+     */
+    public static void aplicar(Pesaje pesaje) {
+        if (pesaje == null || pesaje.getPesoBruto() == null || pesaje.getTara() == null) {
+            return;
+        }
+        pesaje.setPesoNeto(neto(pesaje.getPesoBruto(), pesaje.getTara()));
+    }
+
+    /**
      * Valida la pareja bruto/tara de un pesaje.
      *
      * @param bruto peso bruto en kilos

@@ -102,7 +102,7 @@ public final class Database implements AutoCloseable {
         boolean baseExistente = Files.exists(this.rutaBase);
         try {
             Path padre = this.rutaBase.getParent();
-            if (padre != null) {
+            if (padre != null && !Files.isDirectory(padre)) {
                 Files.createDirectories(padre);
             }
             this.conexion = DriverManager.getConnection("jdbc:sqlite:" + this.rutaBase);
@@ -112,7 +112,8 @@ public final class Database implements AutoCloseable {
             }
             this.sql = new Sql(this);
         } catch (IOException | SQLException e) {
-            throw new ErrorDeBaseDeDatos("No se pudo abrir la base de datos " + this.rutaBase, e);
+            throw new ErrorDeBaseDeDatos("No se pudo abrir la base de datos " + this.rutaBase
+                    + " (" + e.getClass().getSimpleName() + ": " + e.getMessage() + ")", e);
         }
         inicializar(baseExistente);
     }
