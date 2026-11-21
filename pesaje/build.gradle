@@ -16,16 +16,13 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
 }
 
-// La UI del pesaje usa los recursos visuales de Jacobitus (una sola fuente
-// de verdad): se copian en build/generated/resources/shared en vez de
-// duplicarlos en el arbol de fuentes de este modulo.
+// Los recursos visuales del sistema de pesaje son propios: el CSS del
+// modulo (pesaje.css y jacobitus.css) vive en sus propios recursos y el
+// logo del sistema se copia desde assets/images. El modulo no depende de
+// :escritorio, asi que se puede compilar y empaquetar por separado.
 def sharedResourcesDir = layout.buildDirectory.dir('generated/resources/shared')
 
 tasks.register('copySharedResources', Copy) {
-    from(rootProject.file('escritorio/src/main/resources')) {
-        include 'jacobitus.css'
-        include 'logo-agetic.png'
-    }
     // El logo del sistema de pesaje vive en assets/images del repositorio:
     // es la misma imagen que se ve en el login, en la cabecera, en el modo
     // bascula y en la boleta.
