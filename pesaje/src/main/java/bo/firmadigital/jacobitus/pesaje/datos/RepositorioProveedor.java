@@ -58,4 +58,24 @@ public final class RepositorioProveedor {
             return null;
         });
     }
+
+    public void cambiarEstado(int proveedorId, String nuevoEstado) {
+        String fecha = Fechas.ahora();
+        sql.enTransaccion(operaciones -> {
+            Integer personaId = operaciones.consultar(
+                    "SELECT persona_id FROM proveedores WHERE id = ?",
+                    fila -> fila.getInt("persona_id"),
+                    proveedorId).stream().findFirst().orElse(null);
+            if (personaId == null) {
+                throw new ErrorDeBaseDeDatos("Proveedor no encontrado: " + proveedorId);
+            }
+            operaciones.actualizar(
+                    "UPDATE personas SET estado = ?, fecha_modificacion = ? WHERE id = ?",
+                    nuevoEstado, fecha, personaId);
+            operaciones.actualizar(
+                    "UPDATE proveedores SET estado = ?, pendiente_push = 1, fecha_modificacion = ? WHERE id = ?",
+                    nuevoEstado, fecha, proveedorId);
+            return null;
+        });
+    }
 }

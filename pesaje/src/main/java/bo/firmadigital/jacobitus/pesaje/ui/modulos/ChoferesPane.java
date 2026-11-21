@@ -38,6 +38,7 @@ public final class ChoferesPane extends PanelAbm<RegistroChofer> {
         alSeleccionar(this::rellenar);
         alNuevo(this::limpiar);
         alGuardar(this::guardar);
+        anexarColumnaEstado(RegistroChofer::getEstado);
         cargar();
     }
 

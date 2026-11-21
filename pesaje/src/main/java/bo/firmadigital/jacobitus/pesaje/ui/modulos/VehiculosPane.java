@@ -31,6 +31,7 @@ public final class VehiculosPane extends PanelAbm<RegistroVehiculo> {
         alSeleccionar(this::rellenar);
         alNuevo(this::limpiar);
         alGuardar(this::guardar);
+        anexarColumnaEstado(RegistroVehiculo::getEstado);
         cargar();
     }
 

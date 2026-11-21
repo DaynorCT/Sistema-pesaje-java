@@ -1,11 +1,13 @@
 package bo.firmadigital.jacobitus.pesaje.ui.comun;
 
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
@@ -14,6 +16,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import java.util.function.Function;
 
 /**
  * Panel reutilizable de listado + formulario para ABM simples.
@@ -52,6 +55,7 @@ public class PanelAbm<T> extends BorderPane {
                 onSeleccion.run();
             }
         });
+
 
         botonNuevo.setOnAction(e -> {
             seleccion = null;
@@ -166,5 +170,35 @@ public class PanelAbm<T> extends BorderPane {
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("El campo " + campo + " debe ser un numero entero.");
         }
+    }
+
+    /**
+     * Columna Estado con badge. Edicion y baja logica van por clic en fila + formulario.
+     */
+    public void anexarColumnaEstado(Function<T, String> estadoDe) {
+        TableColumn<T, String> colEstado = new TableColumn<>("Estado");
+        colEstado.setPrefWidth(96);
+        colEstado.setCellValueFactory(c -> new SimpleStringProperty(estadoDe.apply(c.getValue())));
+        colEstado.setCellFactory(column -> new TableCell<T, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                    setText(null);
+                    return;
+                }
+                Label badge = new Label(item);
+                badge.getStyleClass().add("badge");
+                if ("ACTIVO".equalsIgnoreCase(item)) {
+                    badge.getStyleClass().add("badge-activo");
+                } else {
+                    badge.getStyleClass().add("badge-inactivo");
+                }
+                setGraphic(badge);
+                setText(null);
+            }
+        });
+        tabla.getColumns().add(colEstado);
     }
 }

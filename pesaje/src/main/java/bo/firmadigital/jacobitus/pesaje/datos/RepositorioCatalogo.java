@@ -56,4 +56,10 @@ public final class RepositorioCatalogo {
                         + " pendiente_push = 1, fecha_modificacion = ? WHERE id = ?",
                 nombre, descripcion, estado, Fechas.ahora(), id);
     }
+
+    public void cambiarEstado(int id, String nuevoEstado) {
+        sql.actualizar(
+                "UPDATE " + tabla + " SET estado = ?, pendiente_push = 1, fecha_modificacion = ? WHERE id = ?",
+                nuevoEstado, Fechas.ahora(), id);
+    }
 }

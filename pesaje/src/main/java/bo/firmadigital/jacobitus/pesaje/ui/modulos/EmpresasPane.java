@@ -22,9 +22,8 @@ public final class EmpresasPane extends PanelAbm<RegistroEmpresa> {
         super(() -> { });
         TableColumn<RegistroEmpresa, String> col = new TableColumn<>("Empresa");
         col.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombreEmpresa()));
-        TableColumn<RegistroEmpresa, String> colEstado = new TableColumn<>("Estado");
-        colEstado.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getEstado()));
-        tabla().getColumns().setAll(col, colEstado);
+        tabla().getColumns().setAll(col);
+        anexarColumnaEstado(RegistroEmpresa::getEstado);
         agregarCampo(formulario(), 0, "Nombre", nombre);
         agregarCampo(formulario(), 1, "Actividad", actividad);
         agregarCampo(formulario(), 2, "Correo", correo);
@@ -35,6 +34,7 @@ public final class EmpresasPane extends PanelAbm<RegistroEmpresa> {
         alGuardar(this::guardar);
         cargar();
     }
+
 
     private void cargar() {
         setItems(FXCollections.observableArrayList(repo.listarTodos()));

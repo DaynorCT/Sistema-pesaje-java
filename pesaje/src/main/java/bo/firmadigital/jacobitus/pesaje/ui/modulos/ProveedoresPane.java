@@ -38,6 +38,7 @@ public final class ProveedoresPane extends PanelAbm<RegistroProveedor> {
         alSeleccionar(this::rellenar);
         alNuevo(this::limpiar);
         alGuardar(this::guardar);
+        anexarColumnaEstado(RegistroProveedor::getEstado);
         cargar();
     }
 

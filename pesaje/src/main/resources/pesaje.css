@@ -155,6 +155,35 @@
     -fx-border-width: 0 0 1 0;
 }
 
+.barra-navegacion .item-menu {
+    -fx-text-fill: #52616f;
+    -fx-font-size: 13px;
+    -fx-padding: 8 12 8 12;
+    -fx-background-radius: 6px;
+    -fx-cursor: hand;
+}
+
+.barra-navegacion .item-menu:hover {
+    -fx-background-color: #f3f4f6;
+}
+
+.barra-navegacion .item-menu.activo {
+    -fx-background-color: #f6ece6;
+    -fx-text-fill: #9a3412;
+    -fx-font-weight: bold;
+}
+
+.scroll-menu-superior {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.scroll-menu-superior > .viewport {
+    -fx-background-color: transparent;
+}
+
 .display-peso {
     -fx-background-color: #ffffff;
     -fx-border-color: #9a3412;

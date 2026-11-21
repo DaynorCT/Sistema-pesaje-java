@@ -30,4 +30,11 @@ public final class RepositorioEmpresa {
                         + " WHERE id = ?",
                 nombre, actividad, correo, telefono, estado, Fechas.ahora(), id);
     }
+
+    /** Baja lógica: solo cambia {@code estado}. */
+    public void cambiarEstado(int id, String nuevoEstado) {
+        sql.actualizar(
+                "UPDATE empresas SET estado = ?, fecha_modificacion = ? WHERE id = ?",
+                nuevoEstado, Fechas.ahora(), id);
+    }
 }

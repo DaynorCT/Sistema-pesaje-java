@@ -8,8 +8,7 @@ import java.util.List;
  * Modulos del sistema y su orden en el menu.
  *
  * El orden y las etiquetas siguen al del sistema original (y al del modulo
- * web): el menu lateral es el mismo, de modo que el operador no cambia
- * de habits al migrar de escritorio a web.
+ * web). En el escritorio Java el menu principal va en la barra superior.
  */
 public enum Navegacion {
 

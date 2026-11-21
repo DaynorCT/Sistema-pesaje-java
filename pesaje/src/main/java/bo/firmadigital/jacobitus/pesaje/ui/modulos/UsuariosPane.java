@@ -7,6 +7,7 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TextField;
 
+import bo.firmadigital.jacobitus.pesaje.auth.UsuarioSesion;
 import bo.firmadigital.jacobitus.pesaje.datos.RegistroUsuario;
 import bo.firmadigital.jacobitus.pesaje.datos.RepositorioUsuario;
 import bo.firmadigital.jacobitus.pesaje.ui.comun.PanelAbm;
@@ -14,6 +15,7 @@ import bo.firmadigital.jacobitus.pesaje.ui.comun.PanelAbm;
 public final class UsuariosPane extends PanelAbm<RegistroUsuario> {
 
     private final RepositorioUsuario repo = new RepositorioUsuario();
+    private final UsuarioSesion sesion;
     private final TextField nombre = new TextField();
     private final TextField apellidoP = new TextField();
     private final TextField apellidoM = new TextField();
@@ -25,13 +27,26 @@ public final class UsuariosPane extends PanelAbm<RegistroUsuario> {
             "usuario", "administrador"));
     private final ComboBox<String> estado = PanelAbm.comboEstado();
 
-    public UsuariosPane() {
+    public UsuariosPane(UsuarioSesion sesion) {
         super(() -> { });
-        TableColumn<RegistroUsuario, String> col = new TableColumn<>("Correo");
-        col.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getEmail()));
+        this.sesion = sesion;
+        TableColumn<RegistroUsuario, String> colCi = new TableColumn<>("Nro. documento");
+        colCi.setCellValueFactory(c -> new SimpleStringProperty(
+                c.getValue().getCi() != null ? c.getValue().getCi() : ""));
+        TableColumn<RegistroUsuario, String> colNombre = new TableColumn<>("Nombres");
+        colNombre.setCellValueFactory(
+                c -> new SimpleStringProperty(c.getValue().getNombreCompleto()));
+        colNombre.setPrefWidth(220);
+        TableColumn<RegistroUsuario, String> colCorreo = new TableColumn<>("Correo electrónico");
+        colCorreo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getEmail()));
+        colCorreo.setPrefWidth(200);
+        TableColumn<RegistroUsuario, String> colTel = new TableColumn<>("Teléfono");
+        colTel.setCellValueFactory(c -> new SimpleStringProperty(
+                c.getValue().getTelefono() != null ? c.getValue().getTelefono() : ""));
         TableColumn<RegistroUsuario, String> colRol = new TableColumn<>("Rol");
         colRol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getRol()));
-        tabla().getColumns().setAll(col, colRol);
+        tabla().getColumns().setAll(colCi, colNombre, colCorreo, colTel, colRol);
+        anexarColumnaEstado(RegistroUsuario::getEstado);
         int f = 0;
         agregarCampo(formulario(), f++, "Nombre", nombre);
         agregarCampo(formulario(), f++, "Ap. paterno", apellidoP);
@@ -60,6 +75,8 @@ public final class UsuariosPane extends PanelAbm<RegistroUsuario> {
         }
         nombre.setText(r.getNombre() != null ? r.getNombre() : "");
         apellidoP.setText(r.getApellidoPaterno() != null ? r.getApellidoPaterno() : "");
+        apellidoM.setText(r.getApellidoMaterno() != null ? r.getApellidoMaterno() : "");
+        ci.setText(r.getCi() != null ? r.getCi() : "");
         telefono.setText(r.getTelefono() != null ? r.getTelefono() : "");
         correo.setText(r.getEmail());
         rol.getSelectionModel().select(r.getRol());
@@ -91,6 +108,11 @@ public final class UsuariosPane extends PanelAbm<RegistroUsuario> {
                         rol.getValue(), clave.getText());
                 mostrarExito("Usuario creado.");
             } else {
+                if (seleccion().getId() == sesion.getId()
+                        && "INACTIVO".equalsIgnoreCase(estado.getValue())) {
+                    mostrarError("No puede inactivar su propio usuario.");
+                    return;
+                }
                 String nuevaClave = clave.getText();
                 repo.actualizar(seleccion().getId(), nombre.getText().trim(), apellidoP.getText().trim(),
                         apellidoM.getText().trim(), ci.getText().trim(), telefono.getText().trim(),

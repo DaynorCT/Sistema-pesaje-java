@@ -24,7 +24,7 @@ public final class RegistroModulos {
 
     public static void inicializar(UsuarioSesion usuario, ServicioSync servicioSync) {
         Modulos.registrar(Navegacion.INICIO, () -> new InicioPane(servicioSync));
-        Modulos.registrar(Navegacion.USUARIOS, UsuariosPane::new);
+        Modulos.registrar(Navegacion.USUARIOS, () -> new UsuariosPane(usuario));
         Modulos.registrar(Navegacion.EMPRESAS, EmpresasPane::new);
         Modulos.registrar(Navegacion.CHOFERES, ChoferesPane::new);
         Modulos.registrar(Navegacion.PROVEEDORES, ProveedoresPane::new);

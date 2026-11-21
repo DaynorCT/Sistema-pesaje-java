@@ -33,4 +33,10 @@ public final class RepositorioVehiculo {
                         + " pendiente_push = 1, fecha_modificacion = ? WHERE id = ?",
                 placa, tipo, tara, estado, Fechas.ahora(), id);
     }
+
+    public void cambiarEstado(int id, String nuevoEstado) {
+        sql.actualizar(
+                "UPDATE vehiculos SET estado = ?, pendiente_push = 1, fecha_modificacion = ? WHERE id = ?",
+                nuevoEstado, Fechas.ahora(), id);
+    }
 }

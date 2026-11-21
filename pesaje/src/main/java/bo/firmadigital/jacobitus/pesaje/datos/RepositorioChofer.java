@@ -57,4 +57,24 @@ public final class RepositorioChofer {
             return null;
         });
     }
+
+    public void cambiarEstado(int choferId, String nuevoEstado) {
+        String fecha = Fechas.ahora();
+        sql.enTransaccion(operaciones -> {
+            Integer personaId = operaciones.consultar(
+                    "SELECT persona_id FROM choferes WHERE id = ?",
+                    fila -> fila.getInt("persona_id"),
+                    choferId).stream().findFirst().orElse(null);
+            if (personaId == null) {
+                throw new ErrorDeBaseDeDatos("Chofer no encontrado: " + choferId);
+            }
+            operaciones.actualizar(
+                    "UPDATE personas SET estado = ?, fecha_modificacion = ? WHERE id = ?",
+                    nuevoEstado, fecha, personaId);
+            operaciones.actualizar(
+                    "UPDATE choferes SET estado = ?, pendiente_push = 1, fecha_modificacion = ? WHERE id = ?",
+                    nuevoEstado, fecha, choferId);
+            return null;
+        });
+    }
 }

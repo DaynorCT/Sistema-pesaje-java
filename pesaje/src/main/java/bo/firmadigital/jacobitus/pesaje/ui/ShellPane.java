@@ -1,7 +1,7 @@
 package bo.firmadigital.jacobitus.pesaje.ui;
 
 import java.util.EnumMap;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javafx.geometry.Insets;
@@ -9,6 +9,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
@@ -21,56 +22,36 @@ import bo.firmadigital.jacobitus.pesaje.ui.comun.Cerrable;
 import bo.firmadigital.jacobitus.pesaje.ui.comun.MenuFlotante;
 
 /**
- * Ventana principal del sistema: barra lateral con los modulos, barra
- * superior con el modulo activo y el menu de usuario, y el area de
- * contenido donde se muestra el modulo.
- *
- * El recorrido y los nombres de los modulos son los del sistema original.
+ * Ventana principal del sistema: menu horizontal arriba (Inicio, Usuarios,
+ * Empresas, Choferes, Pesaje, etc.), usuario a la derecha y area de contenido.
  */
 public class ShellPane extends BorderPane {
 
     private final StackPane contenido = new StackPane();
     private final Label tituloModulo = new Label();
-    private final Map<Navegacion, Label> itemsMenu = new EnumMap<>(Navegacion.class);
-    private final Map<String, VBox> subMenus = new HashMap<>();
-    private final VBox lateral = new VBox();
+    private final Map<Navegacion, Node> itemsMenu = new EnumMap<>(Navegacion.class);
     private final HBox cabeceraUsuario = new HBox(8);
     private final MenuFlotante menuUsuario = new MenuFlotante();
+    private final MenuFlotante menuGrupo = new MenuFlotante();
 
     private Navegacion moduloActual = Navegacion.INICIO;
     private Runnable alCerrarSesion;
     private Runnable alVolverAPesaje;
 
     public ShellPane() {
-        setLeft(construirLateral());
         setTop(construirCabecera());
         setCenter(contenido);
         navegar(Navegacion.INICIO);
     }
 
-    /**
-     * Define la accion que se ejecuta al cerrar sesion.
-     *
-     * @param accion accion a ejecutar
-     */
     public void setAlCerrarSesion(Runnable accion) {
         this.alCerrarSesion = accion;
     }
 
-    /**
-     * Define la accion que se ejecuta al volver a la pantalla de pesaje.
-     *
-     * @param accion accion a ejecutar
-     */
     public void setAlVolverAPesaje(Runnable accion) {
         this.alVolverAPesaje = accion;
     }
 
-    /**
-     * Muestra un modulo en el area de contenido.
-     *
-     * @param modulo modulo a mostrar
-     */
     public void navegar(Navegacion modulo) {
         Node anterior = contenido.getChildren().isEmpty() ? null : contenido.getChildren().get(0);
         if (anterior instanceof Cerrable) {
@@ -82,14 +63,12 @@ public class ShellPane extends BorderPane {
         marcarActivo(modulo);
     }
 
-    /**
-     * Marca visualmente el modulo activo en el menu.
-     *
-     * @param modulo modulo activo
-     */
     private void marcarActivo(Navegacion modulo) {
         itemsMenu.forEach((clave, item) -> {
             boolean activo = clave == modulo;
+            if (!item.getStyleClass().contains("item-menu")) {
+                item.getStyleClass().add("item-menu");
+            }
             if (activo && !item.getStyleClass().contains("activo")) {
                 item.getStyleClass().add("activo");
             } else if (!activo && item.getStyleClass().contains("activo")) {
@@ -98,100 +77,91 @@ public class ShellPane extends BorderPane {
         });
     }
 
-    /**
-     * @return el modulo que se esta mostrando
-     */
     public Navegacion getModuloActual() {
         return moduloActual;
     }
 
-    private VBox construirLateral() {
-        lateral.setPadding(new Insets(12, 8, 12, 8));
-        lateral.setSpacing(2);
-        lateral.setPrefWidth(232);
-        lateral.getStyleClass().add("barra-lateral");
+    private VBox construirCabecera() {
+        VBox cabecera = new VBox(6);
+        cabecera.getStyleClass().add("barra-superior");
+
+        HBox filaPrincipal = new HBox(12);
+        filaPrincipal.setPadding(new Insets(10, 16, 6, 16));
+        filaPrincipal.setAlignment(Pos.CENTER_LEFT);
 
         ImageView logo = new ImageView(new Image("/logo-agetic.png"));
-        logo.setFitWidth(180);
+        logo.setFitHeight(32);
         logo.setPreserveRatio(true);
-        logo.setTranslateX(10);
-        VBox cabecera = new VBox(logo);
-        cabecera.setPadding(new Insets(0, 0, 12, 0));
 
-        lateral.getChildren().add(cabecera);
+        HBox modulos = construirMenuHorizontal();
+        HBox.setHgrow(modulos, Priority.ALWAYS);
 
-        for (Navegacion modulo : Navegacion.principales()) {
-            Label item = crearItem(modulo);
-            lateral.getChildren().add(item);
-            if (!Navegacion.deGrupo(modulo.getTitulo()).isEmpty()) {
-                VBox sub = construirSubMenu(modulo.getTitulo());
-                subMenus.put(modulo.getTitulo(), sub);
-                lateral.getChildren().add(sub);
-                sub.setVisible(false);
-            }
-        }
-        return lateral;
+        filaPrincipal.getChildren().addAll(logo, modulos, cabeceraUsuario);
+
+        tituloModulo.getStyleClass().add("titulo-modulo");
+        HBox filaTitulo = new HBox(tituloModulo);
+        filaTitulo.setPadding(new Insets(0, 16, 10, 16));
+
+        cabecera.getChildren().addAll(filaPrincipal, filaTitulo);
+        return cabecera;
     }
 
-    private Label crearItem(Navegacion modulo) {
+    private HBox construirMenuHorizontal() {
+        HBox fila = new HBox(4);
+        fila.setAlignment(Pos.CENTER_LEFT);
+        fila.getStyleClass().add("barra-navegacion");
+
+        for (Navegacion modulo : Navegacion.ordenMenu()) {
+            if (esCabeceraGrupo(modulo)) {
+                continue;
+            }
+            Label item = crearItemHorizontal(modulo);
+            fila.getChildren().add(item);
+        }
+
+        ScrollPane scroll = new ScrollPane(fila);
+        scroll.setFitToHeight(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.getStyleClass().add("scroll-menu-superior");
+        scroll.setPannable(true);
+
+        HBox contenedor = new HBox(scroll);
+        HBox.setHgrow(scroll, Priority.ALWAYS);
+        return contenedor;
+    }
+
+    private static boolean esCabeceraGrupo(Navegacion modulo) {
+        List<Navegacion> hijos = Navegacion.deGrupo(modulo.getTitulo());
+        return !hijos.isEmpty() && !Modulos.implementado(modulo);
+    }
+
+    private Label crearItemHorizontal(Navegacion modulo) {
         Label item = new Label(modulo.getTitulo());
         item.getStyleClass().add("item-menu");
-        item.setMaxWidth(Double.MAX_VALUE);
         item.setOnMouseClicked(event -> {
-            if (Navegacion.deGrupo(modulo.getTitulo()).isEmpty()) {
-                navegar(modulo);
+            List<Navegacion> hijos = Navegacion.deGrupo(modulo.getTitulo());
+            if (!hijos.isEmpty()) {
+                alternarMenuGrupo(item, modulo.getTitulo(), hijos);
             } else {
-                alternarSubMenu(modulo.getTitulo());
+                navegar(modulo);
             }
         });
         itemsMenu.put(modulo, item);
         return item;
     }
 
-    private VBox construirSubMenu(String grupo) {
-        VBox sub = new VBox(2);
-        sub.setPadding(new Insets(0, 0, 6, 16));
-        for (Navegacion modulo : Navegacion.deGrupo(grupo)) {
-            Label item = new Label("  " + modulo.getTitulo());
-            item.getStyleClass().add("item-menu");
-            item.setMaxWidth(Double.MAX_VALUE);
-            item.setOnMouseClicked(event -> navegar(modulo));
-            itemsMenu.put(modulo, item);
-            sub.getChildren().add(item);
+    private void alternarMenuGrupo(Label ancla, String tituloGrupo, List<Navegacion> hijos) {
+        MenuFlotante.Entrada[] entradas = new MenuFlotante.Entrada[hijos.size() + 2];
+        int i = 0;
+        entradas[i++] = MenuFlotante.encabezado(tituloGrupo);
+        entradas[i++] = MenuFlotante.separador();
+        for (Navegacion hijo : hijos) {
+            entradas[i++] = MenuFlotante.opcion(hijo.getTitulo(), () -> navegar(hijo));
         }
-        return sub;
+        menuGrupo.alternar(ancla, entradas);
     }
 
-    private void alternarSubMenu(String grupo) {
-        VBox sub = subMenus.get(grupo);
-        if (sub == null) {
-            return;
-        }
-        boolean visible = !sub.isVisible();
-        subMenus.values().forEach(otro -> otro.setVisible(false));
-        sub.setVisible(visible);
-    }
-
-    private HBox construirCabecera() {
-        HBox cabecera = new HBox(12);
-        cabecera.setPadding(new Insets(10, 16, 10, 16));
-        cabecera.setAlignment(Pos.CENTER_LEFT);
-        cabecera.getStyleClass().add("barra-superior");
-
-        tituloModulo.getStyleClass().add("titulo-modulo");
-        HBox.setHgrow(tituloModulo, Priority.ALWAYS);
-
-        cabecera.getChildren().add(tituloModulo);
-        cabecera.getChildren().add(cabeceraUsuario);
-        return cabecera;
-    }
-
-    /**
-     * Agrega el boton de usuario al final de la cabecera.
-     *
-     * @param texto texto del boton (nombre del usuario)
-     * @param acciones acciones del menu de usuario
-     */
     public void agregarBotonUsuario(String texto, Runnable... acciones) {
         Button menu = new Button(texto);
         menu.getStyleClass().add("boton-secundario");
@@ -200,7 +170,7 @@ public class ShellPane extends BorderPane {
     }
 
     private void alternarMenuUsuario(Button ancla, String nombre, Runnable... acciones) {
-        MenuFlotante.Entrada[] entradas = new MenuFlotante.Entrada[2 + acciones.length * 2];
+        MenuFlotante.Entrada[] entradas = new MenuFlotante.Entrada[2 + acciones.length];
         int i = 0;
         entradas[i++] = MenuFlotante.encabezado(nombre);
         entradas[i++] = MenuFlotante.separador();

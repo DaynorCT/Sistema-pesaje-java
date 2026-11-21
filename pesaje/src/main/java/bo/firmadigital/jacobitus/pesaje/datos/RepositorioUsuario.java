@@ -9,7 +9,8 @@ public final class RepositorioUsuario {
     private final Sql sql = Database.obtenerInstancia().sql();
 
     private static final String SELECT =
-            "SELECT u.id, p.nombre, p.apellido_paterno, u.email, u.rol, p.telefono, u.estado"
+            "SELECT u.id, p.nombre, p.apellido_paterno, p.apellido_materno, p.ci,"
+                    + " u.email, u.rol, p.telefono, u.estado"
                     + " FROM usuarios u JOIN personas p ON p.id = u.persona_id";
 
     public List<RegistroUsuario> listarTodos() {
@@ -59,6 +60,26 @@ public final class RepositorioUsuario {
                         "UPDATE usuarios SET email = ?, rol = ?, estado = ?, fecha_modificacion = ? WHERE id = ?",
                         correo, rol, estado, fecha, usuarioId);
             }
+            return null;
+        });
+    }
+
+    public void cambiarEstado(int usuarioId, String nuevoEstado) {
+        String fecha = Fechas.ahora();
+        sql.enTransaccion(operaciones -> {
+            Integer personaId = operaciones.consultar(
+                    "SELECT persona_id FROM usuarios WHERE id = ?",
+                    fila -> fila.getInt("persona_id"),
+                    usuarioId).stream().findFirst().orElse(null);
+            if (personaId == null) {
+                throw new ErrorDeBaseDeDatos("Usuario no encontrado: " + usuarioId);
+            }
+            operaciones.actualizar(
+                    "UPDATE usuarios SET estado = ?, fecha_modificacion = ? WHERE id = ?",
+                    nuevoEstado, fecha, usuarioId);
+            operaciones.actualizar(
+                    "UPDATE personas SET estado = ?, fecha_modificacion = ? WHERE id = ?",
+                    nuevoEstado, fecha, personaId);
             return null;
         });
     }

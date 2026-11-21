@@ -23,15 +23,13 @@ public final class CatalogoPane extends PanelAbm<RegistroCatalogo> {
 
         TableColumn<RegistroCatalogo, String> colNombre = new TableColumn<>("Nombre");
         colNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
-        TableColumn<RegistroCatalogo, String> colEstado = new TableColumn<>("Estado");
-        colEstado.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getEstado()));
-        tabla().getColumns().setAll(colNombre, colEstado);
+        tabla().getColumns().setAll(colNombre);
+        anexarColumnaEstado(RegistroCatalogo::getEstado);
 
         agregarCampo(formulario(), 0, "Nombre", nombre);
         agregarCampo(formulario(), 1, "Descripción", descripcion);
         agregarCombo(formulario(), 2, "Estado", estado);
 
-        Runnable cargar = this::cargar;
         alSeleccionar(this::rellenar);
         alNuevo(this::limpiar);
         alGuardar(this::guardar);
