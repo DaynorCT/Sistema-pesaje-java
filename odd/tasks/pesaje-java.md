@@ -132,6 +132,10 @@ E20 (2026-11-21): ShellPane barra = Navegacion.principales(); Catálogo y Config
 E19 (2026-11-21): ABM sin columna Acciones; solo badge Estado; activar/inactivar por combo + Guardar.
 E18 (2026-11-21): ABM con Estado badge + Editar/Activar/Desactivar en todos; toggle sin dialogo; usuario en sesion no se desactiva.
 E17 (2026-11-21): tabla Usuarios alineada a Lazarus (CI, nombres completos, correo, telefono, rol, estado).
+E23 (2026-11-21, T5/T8): el logo de la empresa se ve en la **cabecera derecha** del shell,
+junto al boton de usuario, y se refresca al guardarlo desde Empresas. El shell recibe
+el aviso de forma perezosa (todavia no existe cuando se registran los modulos). 120
+tests verdes.
 E22 (2026-11-21, T10 cierre): la boleta y el reporte ya se muestran en una **vista previa
 dentro de la app** (`DialogoVistaPreviaPdf` + `PrevisualizadorPdf`): se renderiza la
 primera pagina con PDFBox y se abre un dialogo con la vista previa, la ruta y el boton
