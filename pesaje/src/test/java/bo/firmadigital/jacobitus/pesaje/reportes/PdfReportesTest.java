@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.util.Base64;
 import java.util.List;
 
 import org.junit.After;
@@ -22,6 +23,10 @@ import bo.firmadigital.jacobitus.pesaje.datos.Database;
  * texto se puede leer con el extractor de PDFBox.
  */
 public class PdfReportesTest {
+
+    /** PNG de 1x1 pixel transparente. */
+    private static final byte[] PNG_UN_PIXEL = Base64.getDecoder().decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==");
 
     @Rule
     public TemporaryFolder carpeta = new TemporaryFolder();
@@ -82,6 +87,54 @@ public class PdfReportesTest {
         assertTrue(texto.contains("VGI-233"));
         assertTrue(texto.contains("12,000 kg"));
         assertTrue(texto.contains("PESO NETO:"));
+    }
+
+    @Test
+    public void laBoletaIncluyeElLogoDeLaEmpresa() throws Exception {
+        String logo = "data:image/png;base64," + Base64.getEncoder().encodeToString(PNG_UN_PIXEL);
+        base.sql().insertar(
+                "INSERT INTO empresas (nombre_empresa, logo, estado) VALUES (?, ?, 'ACTIVO')",
+                "Transporte Andino", logo);
+        int id = crearPesaje();
+
+        byte[] pdf = BoletaPdf.generar(id);
+
+        // Con logo, la boleta debe seguir trayendo todo el texto: el logo
+        // se dibuja en el mismo flujo de contenido que los datos.
+        String texto = leerTexto(pdf);
+        assertTrue("La boleta debe traer los datos del pesaje", texto.contains("PESO-2026-000123"));
+        assertTrue("La boleta debe traer el bloque de pesos", texto.contains("PESO NETO:"));
+
+        try (org.apache.pdfbox.pdmodel.PDDocument documento =
+                org.apache.pdfbox.Loader.loadPDF(pdf)) {
+            var recursos = documento.getPage(0).getResources();
+            int imagenes = 0;
+            if (recursos != null) {
+                for (org.apache.pdfbox.cos.COSName nombre : recursos.getXObjectNames()) {
+                    imagenes++;
+                }
+            }
+            assertTrue("La boleta deberia traer la imagen del logo", imagenes > 0);
+        }
+    }
+
+    @Test
+    public void laBoletaSeGeneraAunqueElLogoSeaInvalido() throws Exception {
+        // Un logo con la firma de un PNG pero contenido que no se puede
+        // decodificar no debe voltear la generacion de la boleta: se
+        // imprime igual, pero sin logo.
+        String logo = "data:image/png;base64," + Base64.getEncoder().encodeToString(
+                new byte[] {(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00});
+        base.sql().insertar(
+                "INSERT INTO empresas (nombre_empresa, logo, estado) VALUES (?, ?, 'ACTIVO')",
+                "Transporte Andino", logo);
+        int id = crearPesaje();
+
+        byte[] pdf = BoletaPdf.generar(id);
+
+        assertTrue("El PDF no deberia estar vacio", pdf.length > 500);
+        String texto = leerTexto(pdf);
+        assertTrue("La boleta debe traer los datos del pesaje", texto.contains("PESO-2026-000123"));
     }
 
     @Test

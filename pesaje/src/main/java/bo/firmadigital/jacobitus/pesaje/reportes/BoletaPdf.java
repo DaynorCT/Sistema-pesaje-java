@@ -73,6 +73,12 @@ public final class BoletaPdf {
             documento.addPage(pagina);
             double alto = pagina.getMediaBox().getHeight();
 
+            // La imagen del logo se prepara antes de abrir el flujo de
+            // contenido y se dibuja en el mismo flujo que el texto: con un
+            // segundo flujo, PDFBox sobreescribia el contenido de la pagina
+            // y la boleta salia en blanco.
+            PDImageXObject logo = leerLogo(documento, logoBase64);
+
             try (PDPageContentStream contenido = new PDPageContentStream(documento, pagina)) {
                 contenido.beginText();
 
@@ -144,9 +150,11 @@ public final class BoletaPdf {
                 linea(contenido, alto, 126, 15, 266);
                 linea(contenido, alto, 156, 25, 125);
                 linea(contenido, alto, 156, 155, 190);
-            }
 
-            dibujarLogo(documento, pagina, alto, logoBase64);
+                if (logo != null) {
+                    dibujarLogo(contenido, alto, logo);
+                }
+            }
 
             ByteArrayOutputStream salida = new ByteArrayOutputStream();
             documento.save(salida);
@@ -194,30 +202,59 @@ public final class BoletaPdf {
         contenido.stroke();
     }
 
-    private static void dibujarLogo(PDDocument documento, PDPage pagina, double alto,
-            String logoBase64) throws IOException {
+    /**
+     * Prepara la imagen del logo de la empresa.
+     *
+     * @param documento documento donde se incrusta la imagen
+     * @param logoBase64 logo como data URL
+     * @return la imagen, o null si no hay logo o no se puede usar
+     */
+    private static PDImageXObject leerLogo(PDDocument documento, String logoBase64)
+            throws IOException {
         if (logoBase64 == null || logoBase64.isEmpty()) {
-            return;
+            return null;
         }
         int marca = logoBase64.indexOf(";base64,");
         if (marca < 0) {
-            return;
+            return null;
         }
         byte[] bytes;
         try {
             bytes = Base64.getDecoder().decode(logoBase64.substring(marca + 8).trim());
         } catch (IllegalArgumentException e) {
-            return;
+            return null;
         }
         if (bytes.length == 0) {
-            return;
+            return null;
         }
-        PDImageXObject imagen;
+        java.awt.image.BufferedImage buffer;
         try {
-            imagen = LosslessFactory.createFromImage(documento, leerImagen(bytes));
+            buffer = leerImagen(bytes);
         } catch (IOException e) {
-            return;
+            return null;
         }
+        if (buffer == null) {
+            // La imagen no se pudo decodificar: la boleta se imprime igual,
+            // pero sin logo.
+            return null;
+        }
+        try {
+            return LosslessFactory.createFromImage(documento, buffer);
+        } catch (IOException | RuntimeException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Dibuja el logo de la empresa en el flujo de contenido de la pagina.
+     *
+     * @param contenido flujo de contenido de la pagina
+     * @param alto      alto de la pagina en puntos
+     * @param imagen    imagen del logo
+     * @throws IOException si el flujo no acepta la imagen
+     */
+    private static void dibujarLogo(PDPageContentStream contenido, double alto,
+            PDImageXObject imagen) throws IOException {
         double maxAncho = mm(50);
         double maxAlto = mm(35);
         double proporcion = imagen.getWidth() / (double) imagen.getHeight();
@@ -230,10 +267,8 @@ public final class BoletaPdf {
             altoDibujo = maxAlto;
             anchoDibujo = maxAlto * proporcion;
         }
-        try (PDPageContentStream contenido = new PDPageContentStream(documento, pagina)) {
-            contenido.drawImage(imagen, (float) mm(215), (float) (alto - mm(59)),
-                    (float) anchoDibujo, (float) altoDibujo);
-        }
+        contenido.drawImage(imagen, (float) mm(215), (float) (alto - mm(59)),
+                (float) anchoDibujo, (float) altoDibujo);
     }
 
     /**
