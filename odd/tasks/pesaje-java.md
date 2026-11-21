@@ -32,7 +32,7 @@ S5. "este siustea de escrito tiuene todo vr isbtar ya dp en windows" — el sist
 | T8 | S2 | Catálogos CRUD: ABM genérico + empresas, choferes, proveedores, vehículos, usuarios (soft delete, badges, logo) | inline | `ac7e6dd` (ABM; falta logo) |
 | T9 | S2 | Dashboard con estadísticas | inline | `ac7e6dd` |
 | T10 | S2 | Reportes PDF: boleta de pesaje (fppdf→PDFBox) y reporte por rango de fechas/placa | inline | `ac7e6dd` (listado; falta PDF) |
-| T11 | S2 | Sincronización con la web: token+refresh, delta pull por cursor, push idempotente (`client_event_id`), outbox durable, backoff con jitter, LWW por `version`, conflictos | writer | `9e9ab02` (politica) |
+| T11 | S2 | Sincronización con la web: token+refresh, delta pull por cursor, push idempotente (`client_event_id`), outbox durable, backoff con jitter, LWW por `version`, conflictos | writer | `9e9ab02` (politica), `e5f95a2` (motor) |
 | T12 | S2,S3 | Modo integrado: pantalla mínima (conectar→capturar→enviar), menú engranaje, conmutación INTEGRADO/AUTONOMO con contraseña | inline | parcial en `ac7e6dd` (volver a pesaje) |
 | T13 | S5,S3 | Instaladores: `packageApp`/`packageRpm`/`packageArch` del módulo pesaje + guía de compilación en Windows (WiX, MSYS2) | inline | `96901a7` (guías), `15abf16` (jpackage con module-path) |
 | T14 | S2,S3 | Verificación: tests de dominio (parser, pesaje, sync policy, auth), build limpio, smoke de arranque | inline | `15abf16` (smoke `pesaje:run` verde) |
@@ -102,3 +102,23 @@ con combos y neto calculado, y grilla con los pesajes registrados. Se agrega el 
 de vehículo, chofer y proveedor desde la propia pantalla. Verificado con un arranque
 JavaFX que construye los 13 paneles (`PANELES OK`) y con `gradlew pesaje:run` (ventana
 viva). 81 tests verdes.
+E8 (2026-11-20, T11): sincronización verificada de punta a punta contra la web gemela
+(`sistema-pesaje-next` en localhost:3000, con una base de prueba aparte). Pull: 12 filas
+bajadas (2 vehículos, 1 producto, 1 origen, 1 destino, 2 choferes, 1 proveedor, 4
+pesajes) y aplicadas en la base local. Push: el pesaje local llegó a la web
+(`id=8`, `guia=PESO-2026-000008`) y el escritorio adoptó la guía del servidor, de modo que
+los dos lados muestran la misma. La cola quedó vacía (`pendientes=0`). 88 tests verdes.
+E9 (2026-11-20, T11): dos defectos encontrados por esa prueba y corregidos: (1) una fila
+que no se podía aplicar cortaba toda la vuelta de sincronización — ahora cada fila se
+aísla y el resto sigue; (2) un pesaje del servidor sin vehículo violaba el `NOT NULL` del
+esquema local (`pesajes.vehiculo_id`), igual que en el sistema original — ahora se salta y
+queda registrado en `sync_conflictos`.
+D9 (2026-11-20, T11): los pesajes se envían a `POST /api/pesajes` (idempotente por
+`client_event_id`) y los catálogos a `POST /api/sync/:recurso` (resuelve la versión con
+LWW), igual que en el sistema original. El token viaja en la cookie `access_token` porque
+así lo espera la web (`getTokenFromHeader`).
+X1 (2026-11-20, defecto en la web gemela): `POST /api/sync/:recurso` responde 500 al
+crear una fila: en `app/api/sync/[recurso]/route.ts` la variable se llama `userId` pero se
+usa `usuarioId` (línea 134). Afecta al push de catálogos; el pull no se ve afectado. El
+escritorio lo reporta como evento con error y reintenta, y queda listo para cuando se
+corrija.
