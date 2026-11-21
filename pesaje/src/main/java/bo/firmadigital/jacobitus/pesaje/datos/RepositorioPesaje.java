@@ -21,6 +21,34 @@ public final class RepositorioPesaje {
                 limite);
     }
 
+    /**
+     * Lista los pesajes con los nombres de vehiculo, chofer, proveedor,
+     * producto, origen y destino ya resueltos, para mostrarlos en la
+     * grilla de la pantalla de pesaje.
+     *
+     * @param limite cantidad maxima de filas
+     * @return filas de pesajes con nombres resueltos
+     */
+    public List<FilaPesaje> listarListado(int limite) {
+        return sql.consultar(
+                "SELECT p.id, p.guia, p.lote, v.placa AS placa,"
+                        + " TRIM(COALESCE(cper.nombre, '') || ' ' || COALESCE(cper.apellido_paterno, '')) AS chofer,"
+                        + " pr.nombre_empresa AS proveedor, prod.nombre AS producto,"
+                        + " o.nombre AS origen, d.nombre AS destino,"
+                        + " p.peso_bruto, p.tara, p.peso_neto, p.fecha_creacion, p.estado_balanza"
+                        + " FROM pesajes p"
+                        + " LEFT JOIN vehiculos v ON v.id = p.vehiculo_id"
+                        + " LEFT JOIN choferes c ON c.id = p.chofer_id"
+                        + " LEFT JOIN personas cper ON cper.id = c.persona_id"
+                        + " LEFT JOIN proveedores pr ON pr.id = p.proveedor_id"
+                        + " LEFT JOIN productos prod ON prod.id = p.producto_id"
+                        + " LEFT JOIN origenes o ON o.id = p.id_origen"
+                        + " LEFT JOIN destinos d ON d.id = p.id_destino"
+                        + " ORDER BY p.id DESC LIMIT ?",
+                FilaPesaje::deFila,
+                limite);
+    }
+
     public long guardar(Pesaje pesaje, Integer usuarioId) {
         CalculoPesaje.aplicar(pesaje);
         String fecha = Fechas.ahora();
