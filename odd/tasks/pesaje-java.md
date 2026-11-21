@@ -132,6 +132,13 @@ E20 (2026-11-21): ShellPane barra = Navegacion.principales(); Catálogo y Config
 E19 (2026-11-21): ABM sin columna Acciones; solo badge Estado; activar/inactivar por combo + Guardar.
 E18 (2026-11-21): ABM con Estado badge + Editar/Activar/Desactivar en todos; toggle sin dialogo; usuario en sesion no se desactiva.
 E17 (2026-11-21): tabla Usuarios alineada a Lazarus (CI, nombres completos, correo, telefono, rol, estado).
+E25 (2026-11-21, entrega): el repo queda solo con el producto **Sistema de Pesaje**:
+se retiran el modulo `:escritorio`, el submódulo `jacobitus-libreria` y los README de
+build del escritorio (la base intacta sigue en `../jacobitus-escritorio-base`). El
+README de la raiz, `TRABAJO.md`, el nombre del proyecto (`sistema-pesaje`), los iconos
+del instalador (propios, generados desde el logo de CALTEEC; antes eran identicos a
+los del otro producto) y el item de menu ("Sistema completo") dejan de mezclarse con
+el producto de firma digital. 117 tests verdes y `:pesaje:packageApp` genera el .pkg.
 E24 (2026-11-21, T5/T8/T10): el logo del sistema (`assets/images/logo-pesaje.jpg`) es
 una sola fuente de verdad: el build lo copia a los recursos del modulo y se ve en el
 **login**, en la **cabecera**, en el **modo bascula** y en la **boleta** (angulo superior
