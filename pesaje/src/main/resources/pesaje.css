@@ -58,6 +58,12 @@
     -fx-font-weight: bold;
 }
 
+.barra-lateral .item-menu.activo {
+    -fx-background-color: #f6ece6;
+    -fx-text-fill: #9a3412;
+    -fx-font-weight: bold;
+}
+
 .barra-lateral .grupo-menu {
     -fx-text-fill: #8b98a5;
     -fx-font-size: 11px;
