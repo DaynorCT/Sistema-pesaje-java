@@ -148,3 +148,60 @@
 .mensaje-exito {
     -fx-text-fill: #1b6e3c;
 }
+
+.barra-superior {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #f6ece6;
+    -fx-border-width: 0 0 1 0;
+}
+
+.display-peso {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #9a3412;
+    -fx-border-width: 3;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-min-height: 120;
+    -fx-alignment: center;
+}
+
+.separador-horizontal {
+    -fx-background-color: #e0e0e0;
+    -fx-min-height: 1;
+    -fx-max-height: 1;
+}
+
+.tarjeta-sin-padding {
+    -fx-padding: 0;
+}
+
+.menu-flotante {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 8px;
+    -fx-effect: dropshadow(gaussian, rgba(31, 41, 51, 0.12), 10, 0, 0, 2);
+}
+
+.menu-flotante .item-menu {
+    -fx-text-fill: #52616f;
+    -fx-font-size: 13px;
+    -fx-padding: 9 14 9 14;
+    -fx-background-radius: 6px;
+    -fx-cursor: hand;
+}
+
+.menu-flotante .item-menu:hover {
+    -fx-background-color: #f3f4f6;
+}
+
+.menu-flotante .menu-encabezado {
+    -fx-font-weight: bold;
+    -fx-text-fill: #263238;
+}
+
+.menu-flotante .separador-menu {
+    -fx-background-color: #e0e0e0;
+    -fx-min-height: 1;
+    -fx-max-height: 1;
+    -fx-padding: 4 0 4 0;
+}

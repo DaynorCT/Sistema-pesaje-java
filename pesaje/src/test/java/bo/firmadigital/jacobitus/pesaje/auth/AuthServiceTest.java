@@ -101,6 +101,29 @@ public class AuthServiceTest {
     }
 
     @Test
+    public void migraHashSha1APbkdf2AlIniciarSesion() {
+        String legado = "sha1:NTU3YzU1NWNlNzg1ZGViMDZjNjA0NjhhZjViYzk3YTUxMDMyYjFiOA==:"
+                + "Zlg1akJleTdqbmRWaU44VA==";
+        long personaId = base.sql().insertar(
+                "INSERT INTO personas (nombre, correo, estado, fecha_creacion) VALUES (?, ?, ?, ?)",
+                "Legacy", "legacy@sistema.com", "ACTIVO", "2026-11-20 10:00:00");
+        base.sql().insertar(
+                "INSERT INTO usuarios (persona_id, email, password_hash, rol, estado, fecha_creacion)"
+                        + " VALUES (?, ?, ?, ?, ?, ?)",
+                personaId, "legacy@sistema.com", legado, "usuario", "ACTIVO", "2026-11-20 10:00:00");
+
+        ResultadoAutenticacion resultado = auth.autenticar("legacy@sistema.com", "admin123");
+        assertTrue(resultado.esExito());
+
+        String hash = base.sql().consultar(
+                "SELECT password_hash FROM usuarios WHERE email = ?",
+                rs -> rs.getString("password_hash"),
+                "legacy@sistema.com").get(0);
+        assertTrue(Passwords.esHashModerno(hash));
+        assertTrue(Passwords.verificar("admin123", hash));
+    }
+
+    @Test
     public void elUltimoLoginQuedaRegistrado() {
         String clave = base.claveAdministrador();
 

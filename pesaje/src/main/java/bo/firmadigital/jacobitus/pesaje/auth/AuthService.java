@@ -65,6 +65,7 @@ public class AuthService {
             return ResultadoAutenticacion.fallo(EstadoAutenticacion.CONTRASENA_INVALIDA);
         }
 
+        actualizarHashSiLegado(fila.id, contrasena, fila.passwordHash);
         registrarUltimoLogin(fila.id);
         return ResultadoAutenticacion.exito(fila.aUsuarioSesion());
     }
@@ -97,7 +98,29 @@ public class AuthService {
         if (!"ACTIVO".equalsIgnoreCase(fila.estado)) {
             return false;
         }
-        return Passwords.verificar(contrasena, fila.passwordHash);
+        boolean ok = Passwords.verificar(contrasena, fila.passwordHash);
+        if (ok) {
+            actualizarHashSiLegado(fila.id, contrasena, fila.passwordHash);
+        }
+        return ok;
+    }
+
+    /**
+     * Tras un login exitoso con hash SHA1, lo reemplaza por PBKDF2.
+     */
+    private void actualizarHashSiLegado(int usuarioId, String contrasena, String hashAlmacenado) {
+        if (Passwords.esHashModerno(hashAlmacenado)) {
+            return;
+        }
+        if (!Passwords.esHashLegadoSha1(hashAlmacenado)) {
+            return;
+        }
+        try {
+            sql.actualizar("UPDATE usuarios SET password_hash = ? WHERE id = ?",
+                    Passwords.hash(contrasena), usuarioId);
+        } catch (RuntimeException ex) {
+            // El login ya fue exito; si falla la migracion no se bloquea al usuario.
+        }
     }
 
     private void registrarUltimoLogin(int usuarioId) {

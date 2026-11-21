@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "chosen": "02-barra-superior-compacto.html",
+  "handoffs": {
+    "02-barra-superior-compacto.html": {
+      "status": "implemented",
+      "queued": false,
+      "sentAt": "2026-11-21T01:29:46.955Z",
+      "startedAt": "2026-11-21T01:30:07.923Z",
+      "implementedAt": "2026-11-21T01:30:34.420Z",
+      "feature": "odd/tasks/pesaje-java.md"
+    }
+  }
+}

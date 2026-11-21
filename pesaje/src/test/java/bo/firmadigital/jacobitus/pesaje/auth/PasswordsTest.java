@@ -38,6 +38,16 @@ public class PasswordsTest {
     }
 
     @Test
+    public void verificaHashSha1DelSistemaOriginal() {
+        String legado = "sha1:NTU3YzU1NWNlNzg1ZGViMDZjNjA0NjhhZjViYzk3YTUxMDMyYjFiOA==:"
+                + "Zlg1akJleTdqbmRWaU44VA==";
+        assertTrue(Passwords.verificar("admin123", legado));
+        assertFalse(Passwords.verificar("admin124", legado));
+        assertTrue(Passwords.esHashLegadoSha1(legado));
+        assertFalse(Passwords.esHashModerno(legado));
+    }
+
+    @Test
     public void rechazaHashesInvalidos() {
         assertFalse(Passwords.verificar("admin123", null));
         assertFalse(Passwords.verificar("admin123", ""));

@@ -1,12 +1,9 @@
 package bo.firmadigital.jacobitus.pesaje.ui;
 
-import java.net.URL;
-
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.scene.Scene;
-import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import bo.firmadigital.jacobitus.pesaje.auth.AuthService;
@@ -15,13 +12,14 @@ import bo.firmadigital.jacobitus.pesaje.auth.UsuarioSesion;
 import bo.firmadigital.jacobitus.pesaje.config.ConfigSistema;
 import bo.firmadigital.jacobitus.pesaje.datos.Database;
 import bo.firmadigital.jacobitus.pesaje.sync.ServicioSync;
+import bo.firmadigital.jacobitus.pesaje.ui.comun.DialogoContrasena;
+import bo.firmadigital.jacobitus.pesaje.ui.comun.EstilosModal;
 
 /**
  * Aplicacion de escritorio del Sistema de Pesaje.
  *
- * Arranca con la pantalla de login y, al iniciar sesion, muestra el
- * sistema completo. En el primer arranque, cuando se crea la base, se
- * informa la contrasena generada del administrador.
+ * Tras el login abre siempre el modo integrado (ventana compacta). El
+ * sistema completo solo desde el menu del modo integrado (con contrasena).
  */
 public class Aplicacion extends Application {
 
@@ -29,11 +27,15 @@ public class Aplicacion extends Application {
     private static final int ALTO_LOGIN = 460;
     private static final int ANCHO_SISTEMA = 1280;
     private static final int ALTO_SISTEMA = 800;
+    private static final int ANCHO_INTEGRADO = 480;
+    private static final int ALTO_INTEGRADO = 680;
 
     private Stage stage;
     private AuthService authService;
     private UsuarioSesion usuario;
+    private String correoSesion;
     private ShellPane shell;
+    private ModoIntegradoPane modoIntegrado;
     private ConfigSistema config = new ConfigSistema();
     private ServicioSync servicioSync;
 
@@ -61,6 +63,7 @@ public class Aplicacion extends Application {
 
         stage.setScene(escena);
         stage.setResizable(false);
+        stage.setAlwaysOnTop(false);
         stage.show();
 
         panel.getBotonEntrar().setOnAction(event -> iniciarSesion(panel));
@@ -75,18 +78,11 @@ public class Aplicacion extends Application {
             return;
         }
         usuario = resultado.getUsuario();
+        correoSesion = correo;
         prepararSincronizacion(correo, clave);
-        mostrarSistema();
+        mostrarModoIntegrado();
     }
 
-    /**
-     * Prepara la sincronizacion con la web.
-     *
-     * <p>La contrasena en claro solo se usa para pedir el token: la base
-     * local guarda el hash, asi que no se puede recuperar de ahi. Es el
-     * mismo criterio del sistema original, que pide las credenciales de
-     * la web al iniciar sesion.
-     */
     private void prepararSincronizacion(String correo, String clave) {
         servicioSync = null;
         if (config.getUrl() == null || config.getUrl().isEmpty()) {
@@ -98,32 +94,61 @@ public class Aplicacion extends Application {
         }
     }
 
+    private void mostrarModoIntegrado() {
+        if (shell != null) {
+            shell = null;
+        }
+        Runnable abrirSistema = () -> {
+            if (DialogoContrasena.confirmar(stage, "Acceso al sistema completo", authService,
+                    correoSesion)) {
+                if (modoIntegrado != null) {
+                    modoIntegrado.cerrar();
+                }
+                modoIntegrado = null;
+                mostrarSistema();
+            }
+        };
+        modoIntegrado = new ModoIntegradoPane(servicioSync, abrirSistema, this::cerrarSesion);
+        Scene escena = new Scene(modoIntegrado, ANCHO_INTEGRADO, ALTO_INTEGRADO);
+        aplicarEstilos(escena);
+        stage.setScene(escena);
+        stage.setResizable(true);
+        stage.setMinWidth(420);
+        stage.setMinHeight(600);
+        stage.setAlwaysOnTop(config.isAlwaysOnTop());
+        stage.centerOnScreen();
+        Platform.runLater(() -> modoIntegrado.sincronizarAlMostrar());
+    }
+
     private void mostrarSistema() {
+        if (modoIntegrado != null) {
+            modoIntegrado.cerrar();
+            modoIntegrado = null;
+        }
         RegistroModulos.inicializar(usuario, servicioSync);
         shell = new ShellPane();
-        Runnable volver = this::volverAPesaje;
-        Runnable cerrar = this::cerrarSesion;
-        shell.setAlVolverAPesaje(volver);
-        shell.setAlCerrarSesion(cerrar);
-        shell.agregarBotonUsuario(usuario.getNombre(), volver, cerrar);
+        shell.setAlCerrarSesion(this::cerrarSesion);
+        shell.setAlVolverAPesaje(this::volverAModoIntegrado);
+        shell.agregarBotonUsuario(usuario.getNombre(), this::volverAModoIntegrado, this::cerrarSesion);
 
         Scene escena = new Scene(shell, ANCHO_SISTEMA, ALTO_SISTEMA);
         aplicarEstilos(escena);
 
         stage.setScene(escena);
         stage.setResizable(true);
+        stage.setAlwaysOnTop(false);
         stage.centerOnScreen();
     }
 
+    private void volverAModoIntegrado() {
+        if (!DialogoContrasena.confirmar(stage, "Volver al modo báscula", authService, correoSesion)) {
+            return;
+        }
+        mostrarModoIntegrado();
+    }
+
     private void aplicarEstilos(Scene escena) {
-        URL comun = getClass().getResource("/jacobitus.css");
-        if (comun != null) {
-            escena.getStylesheets().add(comun.toExternalForm());
-        }
-        URL propio = getClass().getResource("/pesaje.css");
-        if (propio != null) {
-            escena.getStylesheets().add(propio.toExternalForm());
-        }
+        EstilosModal.aplicarEscena(escena);
     }
 
     private String mensajeDe(bo.firmadigital.jacobitus.pesaje.auth.EstadoAutenticacion estado) {
@@ -139,20 +164,14 @@ public class Aplicacion extends Application {
         }
     }
 
-    /**
-     * Vuelve a la pantalla de pesaje desde el sistema completo.
-     */
-    private void volverAPesaje() {
-        if (shell != null) {
-            shell.navegar(Navegacion.PESAJE);
-        }
-    }
-
-    /**
-     * Cierra la sesion y vuelve a la pantalla de login.
-     */
     private void cerrarSesion() {
+        if (modoIntegrado != null) {
+            modoIntegrado.cerrar();
+            modoIntegrado = null;
+        }
+        shell = null;
         usuario = null;
+        correoSesion = null;
         if (servicioSync != null) {
             servicioSync.close();
             servicioSync = null;

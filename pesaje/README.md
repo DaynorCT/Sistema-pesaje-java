@@ -22,10 +22,27 @@ Desde la raíz del repo:
 ./gradlew :pesaje:jar
 ```
 
+## Un solo lanzador
+
+Hay **un único punto de entrada** para la aplicación de pesaje:
+
+| Entorno | Comando / artefacto |
+|---------|---------------------|
+| Desarrollo | `./gradlew pesaje:run` (equivale a `:pesaje:run`) |
+| Instalador | Un solo programa `sistema-pesaje` (pkg, msi, deb, …) |
+
+No existe otro target Gradle ni otro ejecutable para “modo báscula” vs “modo
+oficina”: tras el login siempre abre el **modo integrado** (ventana compacta). El
+**sistema completo** (menú lateral) solo desde **Menú → Sistema escritorio**,
+con contraseña, en la misma aplicación.
+
+No uses `./gradlew escritorio:run` para pesaje: ese módulo es la app de firma
+digital Jacobitus.
+
 Ejecución en desarrollo:
 
 ```bash
-./gradlew :pesaje:run
+./gradlew pesaje:run
 ```
 
 Tests:
@@ -82,5 +99,7 @@ equivalente de la plataforma.
 }
 ```
 
-`modo_operacion` admite `INTEGRADO` (solo captura y envío del peso al
-sistema web) y `AUTONOMO` (sistema completo).
+`modo_operacion` (`INTEGRADO` / `AUTONOMO`) se mantiene en el archivo por
+compatibilidad con el sistema original; **no elige otra aplicación ni otro
+comando de arranque**. La pantalla inicial tras el login es siempre el modo
+integrado. `alwaysontop` sigue aplicando a esa ventana.

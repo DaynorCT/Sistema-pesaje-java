@@ -4,12 +4,16 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogEvent;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.scene.Node;
+
+import bo.firmadigital.jacobitus.pesaje.ui.comun.EstilosModal;
 
 /**
  * Dialogo breve de captura rapida de un registro.
@@ -31,8 +35,12 @@ public final class DialogoRapido {
     public DialogoRapido(String titulo, String[] etiquetas, String[] valoresIniciales) {
         this.campos = new TextField[etiquetas.length];
         Dialog<Void> dialogo = new Dialog<>();
+        EstilosModal.aplicarDialogo(dialogo);
         dialogo.setTitle(titulo);
+        dialogo.setHeaderText(null);
         dialogo.setResizable(false);
+        dialogo.getDialogPane().getButtonTypes().add(javafx.scene.control.ButtonType.CANCEL);
+        dialogo.setResultConverter(boton -> null);
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -62,9 +70,34 @@ public final class DialogoRapido {
 
         aceptar.setOnAction(e -> {
             aceptado = true;
+            dialogo.setResult(null);
             dialogo.close();
         });
-        cancelar.setOnAction(e -> dialogo.close());
+        cancelar.setOnAction(e -> {
+            dialogo.setResult(null);
+            dialogo.close();
+        });
+
+        javafx.event.EventHandler<DialogEvent> ocultarBarra = evento -> {
+            Node barra = dialogo.getDialogPane().lookup(".button-bar");
+            if (barra != null) {
+                barra.setVisible(false);
+                barra.setManaged(false);
+            }
+            Button cancelSistema = (Button) dialogo.getDialogPane()
+                    .lookupButton(javafx.scene.control.ButtonType.CANCEL);
+            if (cancelSistema != null) {
+                cancelSistema.setVisible(false);
+                cancelSistema.setManaged(false);
+            }
+        };
+        javafx.event.EventHandler<DialogEvent> previo = dialogo.getOnShowing();
+        dialogo.setOnShowing(evento -> {
+            if (previo != null) {
+                previo.handle(evento);
+            }
+            ocultarBarra.handle(evento);
+        });
 
         dialogo.showAndWait();
     }

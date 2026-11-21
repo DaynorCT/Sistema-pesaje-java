@@ -21,6 +21,11 @@ import org.codehaus.jackson.map.ObjectMapper;
  * Cuando la carpeta del ejecutable no es escribible (instaladores en
  * /opt, AppImage, etc.) la configuracion se guarda en la carpeta de datos
  * del usuario, de modo que un fallo de escritura no se pierda en silencio.
+ *
+ * <p>La clave {@code modo_operacion} no define un segundo lanzador: la app
+ * arranca siempre con {@code ./gradlew pesaje:run} o el binario
+ * {@code sistema-pesaje}; el login abre el modo integrado y el shell
+ * completo se alcanza desde el menu de esa ventana.
  */
 public class ConfigSistema {
 

@@ -33,7 +33,7 @@ S5. "este siustea de escrito tiuene todo vr isbtar ya dp en windows" — el sist
 | T9 | S2 | Dashboard con estadísticas | inline | `ac7e6dd` |
 | T10 | S2 | Reportes PDF: boleta de pesaje (fppdf→PDFBox) y reporte por rango de fechas/placa | inline | `72cde86` |
 | T11 | S2 | Sincronización con la web: token+refresh, delta pull por cursor, push idempotente (`client_event_id`), outbox durable, backoff con jitter, LWW por `version`, conflictos | writer | `9e9ab02` (politica), `e5f95a2` (motor) |
-| T12 | S2,S3 | Modo integrado: pantalla mínima (conectar→capturar→enviar), menú engranaje, conmutación INTEGRADO/AUTONOMO con contraseña | inline | parcial en `ac7e6dd` (volver a pesaje) |
+| T12 | S2,S3 | Modo integrado compacto (artboard 02): barra superior, capturar→enviar peso vivo, menú, INTEGRADO/AUTONOMO con contraseña | inline | handoff 02 implementado (sin commit handoff) |
 | T13 | S5,S3 | Instaladores: `packageApp`/`packageRpm`/`packageArch` del módulo pesaje + guía de compilación en Windows (WiX, MSYS2) | inline | `96901a7` (guías), `15abf16` (jpackage con module-path) |
 | T14 | S2,S3 | Verificación: tests de dominio (parser, pesaje, sync policy, auth), build limpio, smoke de arranque | inline | `15abf16` (smoke `pesaje:run` verde) |
 
@@ -122,6 +122,23 @@ crear una fila: en `app/api/sync/[recurso]/route.ts` la variable se llama `userI
 usa `usuarioId` (línea 134). Afecta al push de catálogos; el pull no se ve afectado. El
 escritorio lo reporta como evento con error y reintenta, y queda listo para cuando se
 corrija.
+E16 (2026-11-21): `DialogoAviso` reemplaza `Alert` en modo integrado y contraseña;
+modales con `boton-primario`/`boton-secundario` y `pesaje.css`.
+E15 (2026-11-21): política único lanzador documentada en `pesaje/README.md`;
+`pesaje:run` / instalador `sistema-pesaje`; eliminado `mostrarVistaSegunConfig`.
+E14 (2026-11-21): login siempre abre `ModoIntegradoPane`; ya no respeta `AUTONOMO` en
+config al iniciar sesion; ir al shell no persiste modo en config.
+E13 (2026-11-21, handoff T12): artboard `02-barra-superior-compacto.html` mapeado a
+`ModoIntegradoPane` + clases `pesaje.css` (`barra-superior`, `display-peso`,
+`valor-peso`, `boton-*`, `badge-*`). Ventana 480×680, `alwaysontop` en config. Sin
+previewUrl (app JavaFX de escritorio).
+E12 (2026-11-21, T12 implementación): `ModoIntegradoPane` (480×680, always-on-top
+según config), arranque con `modo_operacion: INTEGRADO`, envío POST
+`/api/pesajes/ultimo-peso`, menú engranaje con contraseña hacia sistema completo.
+UI solo con clases `pesaje.css` / Jacobitus en JavaFX; los HTML en `design/modo-integrado/` son referencia de layout (canvas), no se copian a la app.
+E11 (2026-11-21, T12 diseño): mockups en `design/modo-integrado/` — barra superior
+como referencia Lazarus con paleta Jacobitus; artboards `01-barra-superior-operario` y
+`02-barra-superior-compacto`. Implementación: `ModoIntegradoPane`.
 E10 (2026-11-20, T10): la boleta y el reporte en PDF quedaron implementados con PDFBox y
 verificados generando los archivos y **renderizandolos a imagen**: la boleta respeta el
 diseno del original (carta apaisada, encabezado de tres columnas, dos columnas de datos,

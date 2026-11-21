@@ -107,4 +107,19 @@ public class MotorSyncTest {
         assertTrue(payload.contains("\"chofer_id\":null"));
         assertTrue(payload.contains("\"peso_bruto\":10000"));
     }
+
+    @Test
+    public void publicaPesoEnVivoEnLaWeb() {
+        TransporteFalso transporte = new TransporteFalso();
+        transporte.responder("POST http://servidor/api/auth/token",
+                RespuestaHttp.deCodigo(200, "{\"access_token\":\"abc\",\"refresh_token\":\"r1\"}"));
+        transporte.responder("POST http://servidor/api/pesajes/ultimo-peso",
+                RespuestaHttp.deCodigo(200, "{\"success\":true}"));
+
+        MotorSync motor = new MotorSync(transporte, sesion(transporte),
+                new RepositorioOutbox(), new AplicadorDelta());
+        assertTrue(motor.enviarPesoVivo(12450));
+        assertTrue(transporte.peticiones.stream()
+                .anyMatch(p -> p.contains("/api/pesajes/ultimo-peso")));
+    }
 }

@@ -92,6 +92,26 @@ public final class ServicioSync implements AutoCloseable {
      *
      * @return resultado de la vuelta
      */
+    /**
+     * Envía el peso capturado en la báscula a la web (card en vivo).
+     *
+     * @param peso peso en kilogramos
+     * @return true si el servidor lo aceptó
+     */
+    public boolean enviarPesoVivo(int peso) {
+        try {
+            boolean ok = motor.enviarPesoVivo(peso);
+            if (!ok) {
+                ultimoMensaje = "No se pudo publicar el peso en vivo en la web.";
+            }
+            return ok;
+        } catch (RuntimeException e) {
+            LOG.log(Level.WARNING, "Error al enviar peso en vivo", e);
+            ultimoMensaje = "Error al enviar peso en vivo: " + e.getMessage();
+            return false;
+        }
+    }
+
     public ResultadoSync sincronizarAhora() {
         try {
             ResultadoSync resultado = motor.sincronizar();

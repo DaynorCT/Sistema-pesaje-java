@@ -22,12 +22,15 @@ git clone <repo> sistema-pesaje-java
 cd sistema-pesaje-java
 ```
 
-Compilar y ejecutar:
+Compilar y ejecutar (un solo lanzador en desarrollo):
 
 ```bash
 ./gradlew :pesaje:jar
-./gradlew :pesaje:run
+./gradlew pesaje:run
 ```
+
+El MSI instala **un** acceso directo a `sistema-pesaje`; no hay binarios
+separados para báscula y oficina.
 
 Generar el instalador:
 

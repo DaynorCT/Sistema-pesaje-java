@@ -64,6 +64,35 @@ public final class MotorSync {
     }
 
     /**
+     * Publica el peso capturado para la card de la web.
+     *
+     * @param peso peso en kilogramos
+     * @return true si el servidor aceptó el valor
+     */
+    public boolean enviarPesoVivo(int peso) {
+        if (peso < 0) {
+            return false;
+        }
+        if (!sesion.asegurarToken()) {
+            return false;
+        }
+        Map<String, Object> cuerpo = Json.mapa();
+        cuerpo.put("peso", peso);
+        RespuestaHttp respuesta = transporte.enviar("POST",
+                sesion.getUrlBase() + "/api/pesajes/ultimo-peso",
+                Json.escribir(cuerpo), sesion.cabeceras());
+        if (respuesta.getCodigo() == 401) {
+            sesion.invalidar();
+            if (sesion.asegurarToken()) {
+                respuesta = transporte.enviar("POST",
+                        sesion.getUrlBase() + "/api/pesajes/ultimo-peso",
+                        Json.escribir(cuerpo), sesion.cabeceras());
+            }
+        }
+        return respuesta.esExito();
+    }
+
+    /**
      * Envia los eventos pendientes de la cola local.
      *
      * @param resultado resultado que se va llenando

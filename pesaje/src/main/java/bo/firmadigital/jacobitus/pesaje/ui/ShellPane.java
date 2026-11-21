@@ -7,15 +7,18 @@ import java.util.Map;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 import bo.firmadigital.jacobitus.pesaje.ui.comun.Cerrable;
+import bo.firmadigital.jacobitus.pesaje.ui.comun.MenuFlotante;
 
 /**
  * Ventana principal del sistema: barra lateral con los modulos, barra
@@ -32,6 +35,7 @@ public class ShellPane extends BorderPane {
     private final Map<String, VBox> subMenus = new HashMap<>();
     private final VBox lateral = new VBox();
     private final HBox cabeceraUsuario = new HBox(8);
+    private final MenuFlotante menuUsuario = new MenuFlotante();
 
     private Navegacion moduloActual = Navegacion.INICIO;
     private Runnable alCerrarSesion;
@@ -172,10 +176,10 @@ public class ShellPane extends BorderPane {
         HBox cabecera = new HBox(12);
         cabecera.setPadding(new Insets(10, 16, 10, 16));
         cabecera.setAlignment(Pos.CENTER_LEFT);
-        cabecera.getStyleClass().add("tarjeta");
+        cabecera.getStyleClass().add("barra-superior");
 
         tituloModulo.getStyleClass().add("titulo-modulo");
-        HBox.setHgrow(tituloModulo, javafx.scene.layout.Priority.ALWAYS);
+        HBox.setHgrow(tituloModulo, Priority.ALWAYS);
 
         cabecera.getChildren().add(tituloModulo);
         cabecera.getChildren().add(cabeceraUsuario);
@@ -189,42 +193,23 @@ public class ShellPane extends BorderPane {
      * @param acciones acciones del menu de usuario
      */
     public void agregarBotonUsuario(String texto, Runnable... acciones) {
-        VBox menu = new VBox(2);
-        menu.setPadding(new Insets(8));
-        menu.getStyleClass().add("tarjeta");
-        menu.setVisible(false);
+        Button menu = new Button(texto);
+        menu.getStyleClass().add("boton-secundario");
+        menu.setOnAction(event -> alternarMenuUsuario(menu, texto, acciones));
+        cabeceraUsuario.getChildren().setAll(menu);
+    }
 
-        Label item = new Label(texto);
-        item.getStyleClass().add("item-menu");
-        item.setOnMouseClicked(event -> {
-            StackPane padre = (StackPane) menu.getParent();
-            for (Node nodo : padre.getChildren()) {
-                nodo.setVisible(nodo == menu);
-            }
-        });
-        menu.getChildren().add(item);
-
-        if (acciones.length > 0) {
-            menu.getChildren().add(separador());
-        }
+    private void alternarMenuUsuario(Button ancla, String nombre, Runnable... acciones) {
+        MenuFlotante.Entrada[] entradas = new MenuFlotante.Entrada[2 + acciones.length * 2];
+        int i = 0;
+        entradas[i++] = MenuFlotante.encabezado(nombre);
+        entradas[i++] = MenuFlotante.separador();
         for (Runnable accion : acciones) {
-            Label opcion = new Label(opcionDe(accion));
-            opcion.getStyleClass().add("item-menu");
-            opcion.setOnMouseClicked(event -> {
-                menu.setVisible(false);
-                accion.run();
-            });
-            menu.getChildren().add(opcion);
+            entradas[i++] = MenuFlotante.opcion(opcionDe(accion), accion);
         }
-
-        StackPane contenedor = new StackPane(menu);
-        menu.setOnMouseExited(event -> menu.setVisible(false));
-
-        Label boton = new Label(texto);
-        boton.getStyleClass().add("item-menu");
-        boton.setOnMouseClicked(event -> menu.setVisible(!menu.isVisible()));
-
-        cabeceraUsuario.getChildren().addAll(contenedor, boton);
+        MenuFlotante.Entrada[] compactas = new MenuFlotante.Entrada[i];
+        System.arraycopy(entradas, 0, compactas, 0, i);
+        menuUsuario.alternar(ancla, compactas);
     }
 
     private String opcionDe(Runnable accion) {
@@ -232,16 +217,8 @@ public class ShellPane extends BorderPane {
             return "Cerrar sesión";
         }
         if (accion == alVolverAPesaje) {
-            return "Volver a pesaje";
+            return "Volver al modo báscula";
         }
         return "Acción";
-    }
-
-    private Label separador() {
-        Label separador = new Label();
-        separador.setMaxWidth(Double.MAX_VALUE);
-        separador.setMinHeight(1);
-        separador.setStyle("-fx-background-color: #e0e0e0;");
-        return separador;
     }
 }

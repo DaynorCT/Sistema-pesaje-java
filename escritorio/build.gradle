@@ -5,7 +5,7 @@ import org.gradle.api.tasks.Internal
 plugins {
     id 'java'
     id 'application'
-    id 'org.openjfx.javafxplugin' version '0.0.10'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
     id 'bo.firmadigital.jacobitus.escritorio.java-conventions'
 }
 
@@ -186,9 +186,9 @@ dependencies {
     implementation project(':jacobitus-libreria')
     implementation 'com.dorkbox:SystemTray:4.4'
 
-    implementation 'org.openjfx:javafx-controls:15.0.1'
-    implementation 'org.openjfx:javafx-fxml:15.0.1'
-    implementation 'org.openjfx:javafx-swing:15.0.1'
+    implementation 'org.openjfx:javafx-controls:17.0.10'
+    implementation 'org.openjfx:javafx-fxml:17.0.10'
+    implementation 'org.openjfx:javafx-swing:17.0.10'
 
     implementation 'org.eclipse.jetty:jetty-server:10.0.21'
     implementation 'org.eclipse.jetty:jetty-servlet:10.0.21'
@@ -221,7 +221,7 @@ java {
 }
 
 javafx {
-    version = '15.0.1'
+    version = '17.0.10'
     modules = ['javafx.controls', 'javafx.fxml', 'javafx.graphics', 'javafx.swing', 'javafx.base']
 }
 
@@ -279,13 +279,29 @@ tasks.named('processResources') {
 tasks.named('run', JavaExec) {
     doFirst {
         def runProfile = project.findProperty('profile') ?: 'dev'
+        def fxVersion = '17.0.10'
+        def fxPlatform = (os.isMacOsX() && normalizedArch == 'arm64') ? 'mac-aarch64' : null
+        if (fxPlatform != null) {
+            def fxNativeModules = ['javafx-base', 'javafx-graphics', 'javafx-controls', 'javafx-fxml', 'javafx-swing']
+            def nativeDeps = fxNativeModules.collect { module ->
+                dependencies.create("org.openjfx:${module}:${fxVersion}:${fxPlatform}@jar")
+            }
+            def nativeConfiguration = configurations.detachedConfiguration(nativeDeps as Dependency[])
+            def nativeJars = nativeConfiguration.resolve()
+            def filteredClasspath = classpath.filter { file ->
+                !(file.name ==~ /javafx-.*-${fxVersion}-mac\.jar/)
+            }
+            classpath = files(nativeJars) + filteredClasspath
+        }
         setJvmArgs((getJvmArgs() ?: [])
                 .findAll { arg ->
                             !arg.startsWith('-Djacobitus.version=') &&
                             !arg.startsWith('-Djacobitus.profile=') &&
-                            !arg.startsWith('-Djacobitus.compilacion=')
+                            !arg.startsWith('-Djacobitus.compilacion=') &&
+                            !arg.startsWith('-Djavafx.cachedir=')
                 }
-                + appRuntimeProperties(runProfile))
+                + appRuntimeProperties(runProfile)
+                + ["-Djavafx.cachedir=${layout.buildDirectory.get().asFile}/openjfx-cache"])
     }
 }
 

@@ -1,0 +1,21 @@
+{
+  "title": "Modo integrado — pantalla de báscula",
+  "brief": "Vista mínima del operario con barra superior (título, estado, sincronizar, menú) como Lazarus PesajeIntegrado, paleta Jacobitus.",
+  "feature": "odd/tasks/pesaje-java.md",
+  "artboards": [
+    {
+      "file": "01-barra-superior-operario.html",
+      "title": "Barra superior + registro de peso",
+      "tradeoff": "Igual al Lazarus: tarjeta a la izquierda y espacio libre a la derecha para el monitor de báscula",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "file": "02-barra-superior-compacto.html",
+      "title": "Ventana compacta (always-on-top)",
+      "tradeoff": "Misma barra; contenido centrado y más alto el peso — mejor para ventana flotante",
+      "width": 480,
+      "height": 680
+    }
+  ]
+}

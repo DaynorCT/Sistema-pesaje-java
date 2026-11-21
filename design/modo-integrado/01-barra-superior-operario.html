@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Modo integrado — operario (referencia)</title>
+  <style>
+    :root { --fondo:#f7f8fa; --tarjeta:#fff; --borde:#e0e0e0; --texto:#1f2933; --sec:#5f6c7b; --titulo:#263238; --primario:#9a3412; --exito:#1b6e3c; --exito-suave:#e8f4ec; }
+    * { box-sizing:border-box; margin:0; font-family:system-ui,sans-serif; font-size:13px; color:var(--texto); }
+    body { width:1280px; height:720px; background:var(--fondo); display:flex; flex-direction:column; }
+    .top { height:64px; background:var(--tarjeta); border-bottom:1px solid #f6ece6; display:flex; align-items:center; padding:0 24px; gap:16px; }
+    .top h1 { font-size:18px; font-weight:700; color:var(--titulo); }
+    .estado { flex:1; text-align:right; color:var(--sec); }
+    .estado strong { color:var(--exito); }
+    .btn { border:1px solid var(--borde); background:var(--tarjeta); color:var(--primario); border-radius:6px; padding:8px 16px; font-weight:600; }
+    main { flex:1; padding:24px; display:flex; gap:24px; }
+    .card { width:420px; background:var(--tarjeta); border:1px solid var(--borde); border-radius:8px; }
+    .card h2 { font-size:14px; font-weight:700; padding:12px 20px; border-bottom:1px solid var(--borde); }
+    .body { padding:16px 20px; }
+    .peso { border:3px solid var(--primario); border-radius:8px; min-height:100px; display:flex; align-items:center; justify-content:center; font-size:42px; font-weight:700; margin-bottom:12px; }
+    .libre { flex:1; border:2px dashed var(--borde); border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--sec); text-align:center; padding:24px; }
+    .btn-cta { background:var(--primario); color:#fff; border-color:var(--primario); width:100%; margin-top:8px; padding:10px; }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <h1>Sistema de pesaje</h1>
+    <p class="estado">Balanza <strong>conectada</strong> · Último sync: hace 2 min</p>
+    <button type="button" class="btn">Sincronizar ahora</button>
+    <button type="button" class="btn">Menú</button>
+  </header>
+  <main>
+    <section class="card">
+      <h2>Registro de peso</h2>
+      <div class="body">
+        <div class="peso">12 450 kg</div>
+        <button type="button" class="btn">Conectar</button>
+        <button type="button" class="btn" style="margin-top:8px;width:100%">Capturar peso</button>
+        <button type="button" class="btn btn-cta">Enviar a la web</button>
+      </div>
+    </section>
+    <div class="libre">Área libre (réplica Lazarus)</div>
+  </main>
+</body>
+</html>
