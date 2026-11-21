@@ -204,6 +204,60 @@
     -fx-padding: 0;
 }
 
+.panel-pesaje-medio {
+    -fx-alignment: top-left;
+}
+
+.caja-peso-resumen {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 8 6 8 6;
+    -fx-min-height: 52;
+}
+
+.valor-caja-peso {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #263238;
+}
+
+.etiqueta-mini {
+    -fx-font-size: 11px;
+    -fx-text-fill: #5f6c7b;
+}
+
+.boton-info {
+    -fx-background-color: #2a7ae2;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 6px;
+    -fx-padding: 8 16 8 16;
+}
+
+.boton-info:hover {
+    -fx-background-color: #1f63bd;
+}
+
+.boton-info:disabled {
+    -fx-opacity: 0.5;
+}
+
+.boton-mas {
+    -fx-background-color: #1b6e3c;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 6px;
+    -fx-min-width: 28;
+    -fx-min-height: 28;
+    -fx-padding: 2 8 2 8;
+}
+
+.boton-mas:hover {
+    -fx-background-color: #155a31;
+}
+
 .menu-flotante {
     -fx-background-color: #ffffff;
     -fx-border-color: #e0e0e0;

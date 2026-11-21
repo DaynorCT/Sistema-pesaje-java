@@ -22,11 +22,22 @@ public final class ChoferesPane extends PanelAbm<RegistroChofer> {
 
     public ChoferesPane() {
         super(() -> { });
-        TableColumn<RegistroChofer, String> col = new TableColumn<>("Chofer");
-        col.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().nombreCompleto()));
+        TableColumn<RegistroChofer, String> colNombre = new TableColumn<>("Nombre");
+        colNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().nombreCompleto()));
+        colNombre.setPrefWidth(180);
+        TableColumn<RegistroChofer, String> colCi = new TableColumn<>("CI");
+        colCi.setCellValueFactory(c -> new SimpleStringProperty(
+                c.getValue().getCi() != null ? c.getValue().getCi() : ""));
+        colCi.setPrefWidth(100);
+        TableColumn<RegistroChofer, String> colTel = new TableColumn<>("Teléfono");
+        colTel.setCellValueFactory(c -> new SimpleStringProperty(
+                c.getValue().getTelefono() != null ? c.getValue().getTelefono() : ""));
+        colTel.setPrefWidth(110);
         TableColumn<RegistroChofer, String> colLic = new TableColumn<>("Licencia");
-        colLic.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getLicencia()));
-        tabla().getColumns().setAll(col, colLic);
+        colLic.setCellValueFactory(c -> new SimpleStringProperty(
+                c.getValue().getLicencia() != null ? c.getValue().getLicencia() : ""));
+        colLic.setPrefWidth(120);
+        tabla().getColumns().setAll(colNombre, colCi, colTel, colLic);
         int f = 0;
         agregarCampo(formulario(), f++, "Nombre", nombre);
         agregarCampo(formulario(), f++, "Ap. paterno", apellidoP);

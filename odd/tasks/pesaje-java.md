@@ -122,6 +122,7 @@ crear una fila: en `app/api/sync/[recurso]/route.ts` la variable se llama `userI
 usa `usuarioId` (línea 134). Afecta al push de catálogos; el pull no se ve afectado. El
 escritorio lo reporta como evento con error y reintenta, y queda listo para cuando se
 corrija.
+E20 (2026-11-21): ShellPane barra = Navegacion.principales(); Catálogo y Configuración con MenuFlotante; único disparador ./gradlew pesaje:run.
 E19 (2026-11-21): ABM sin columna Acciones; solo badge Estado; activar/inactivar por combo + Guardar.
 E18 (2026-11-21): ABM con Estado badge + Editar/Activar/Desactivar en todos; toggle sin dialogo; usuario en sesion no se desactiva.
 E17 (2026-11-21): tabla Usuarios alineada a Lazarus (CI, nombres completos, correo, telefono, rol, estado).

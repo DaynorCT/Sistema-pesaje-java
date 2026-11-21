@@ -8,16 +8,18 @@ public final class RegistroProveedor {
     private final int id;
     private final String nombre;
     private final String apellidoPaterno;
+    private final String ci;
     private final String nombreEmpresa;
     private final String descripcion;
     private final String telefono;
     private final String estado;
 
-    public RegistroProveedor(int id, String nombre, String apellidoPaterno, String nombreEmpresa,
-            String descripcion, String telefono, String estado) {
+    public RegistroProveedor(int id, String nombre, String apellidoPaterno, String ci,
+            String nombreEmpresa, String descripcion, String telefono, String estado) {
         this.id = id;
         this.nombre = nombre;
         this.apellidoPaterno = apellidoPaterno;
+        this.ci = ci;
         this.nombreEmpresa = nombreEmpresa;
         this.descripcion = descripcion;
         this.telefono = telefono;
@@ -36,8 +38,17 @@ public final class RegistroProveedor {
         return apellidoPaterno;
     }
 
+    public String getCi() {
+        return ci;
+    }
+
     public String getNombreEmpresa() {
         return nombreEmpresa;
+    }
+
+    public String nombreCompleto() {
+        return (nombre != null ? nombre : "")
+                + (apellidoPaterno != null ? " " + apellidoPaterno : "");
     }
 
     public String getDescripcion() {
@@ -64,6 +75,7 @@ public final class RegistroProveedor {
                 fila.getInt("id"),
                 Sql.texto(fila, "nombre"),
                 Sql.texto(fila, "apellido_paterno"),
+                Sql.texto(fila, "ci"),
                 Sql.texto(fila, "nombre_empresa"),
                 Sql.texto(fila, "descripcion"),
                 Sql.texto(fila, "telefono"),

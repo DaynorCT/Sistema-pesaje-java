@@ -20,9 +20,22 @@ public final class EmpresasPane extends PanelAbm<RegistroEmpresa> {
 
     public EmpresasPane() {
         super(() -> { });
-        TableColumn<RegistroEmpresa, String> col = new TableColumn<>("Empresa");
-        col.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombreEmpresa()));
-        tabla().getColumns().setAll(col);
+        TableColumn<RegistroEmpresa, String> colEmpresa = new TableColumn<>("Empresa");
+        colEmpresa.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombreEmpresa()));
+        colEmpresa.setPrefWidth(180);
+        TableColumn<RegistroEmpresa, String> colActividad = new TableColumn<>("Actividad");
+        colActividad.setCellValueFactory(c -> new SimpleStringProperty(
+                c.getValue().getActividad() != null ? c.getValue().getActividad() : ""));
+        colActividad.setPrefWidth(160);
+        TableColumn<RegistroEmpresa, String> colCorreo = new TableColumn<>("Correo");
+        colCorreo.setCellValueFactory(c -> new SimpleStringProperty(
+                c.getValue().getCorreo() != null ? c.getValue().getCorreo() : ""));
+        colCorreo.setPrefWidth(180);
+        TableColumn<RegistroEmpresa, String> colTelefono = new TableColumn<>("Teléfono");
+        colTelefono.setCellValueFactory(c -> new SimpleStringProperty(
+                c.getValue().getTelefono() != null ? c.getValue().getTelefono() : ""));
+        colTelefono.setPrefWidth(110);
+        tabla().getColumns().setAll(colEmpresa, colActividad, colCorreo, colTelefono);
         anexarColumnaEstado(RegistroEmpresa::getEstado);
         agregarCampo(formulario(), 0, "Nombre", nombre);
         agregarCampo(formulario(), 1, "Actividad", actividad);

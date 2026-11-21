@@ -23,9 +23,22 @@ public final class ProveedoresPane extends PanelAbm<RegistroProveedor> {
 
     public ProveedoresPane() {
         super(() -> { });
-        TableColumn<RegistroProveedor, String> col = new TableColumn<>("Proveedor");
-        col.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().etiqueta()));
-        tabla().getColumns().setAll(col);
+        TableColumn<RegistroProveedor, String> colNombre = new TableColumn<>("Nombre");
+        colNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().nombreCompleto()));
+        colNombre.setPrefWidth(180);
+        TableColumn<RegistroProveedor, String> colCi = new TableColumn<>("CI");
+        colCi.setCellValueFactory(c -> new SimpleStringProperty(
+                c.getValue().getCi() != null ? c.getValue().getCi() : ""));
+        colCi.setPrefWidth(100);
+        TableColumn<RegistroProveedor, String> colTel = new TableColumn<>("Teléfono");
+        colTel.setCellValueFactory(c -> new SimpleStringProperty(
+                c.getValue().getTelefono() != null ? c.getValue().getTelefono() : ""));
+        colTel.setPrefWidth(110);
+        TableColumn<RegistroProveedor, String> colEmpresa = new TableColumn<>("Empresa");
+        colEmpresa.setCellValueFactory(c -> new SimpleStringProperty(
+                c.getValue().getNombreEmpresa() != null ? c.getValue().getNombreEmpresa() : ""));
+        colEmpresa.setPrefWidth(160);
+        tabla().getColumns().setAll(colNombre, colCi, colTel, colEmpresa);
         int f = 0;
         agregarCampo(formulario(), f++, "Nombre", nombre);
         agregarCampo(formulario(), f++, "Ap. paterno", apellidoP);
@@ -53,6 +66,7 @@ public final class ProveedoresPane extends PanelAbm<RegistroProveedor> {
         }
         nombre.setText(r.getNombre() != null ? r.getNombre() : "");
         apellidoP.setText(r.getApellidoPaterno() != null ? r.getApellidoPaterno() : "");
+        ci.setText(r.getCi() != null ? r.getCi() : "");
         telefono.setText(r.getTelefono() != null ? r.getTelefono() : "");
         empresa.setText(r.getNombreEmpresa() != null ? r.getNombreEmpresa() : "");
         descripcion.setText(r.getDescripcion() != null ? r.getDescripcion() : "");

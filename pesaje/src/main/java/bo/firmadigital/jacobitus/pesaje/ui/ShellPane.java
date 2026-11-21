@@ -64,8 +64,10 @@ public class ShellPane extends BorderPane {
     }
 
     private void marcarActivo(Navegacion modulo) {
+        String grupo = modulo.getGrupo();
         itemsMenu.forEach((clave, item) -> {
-            boolean activo = clave == modulo;
+            boolean activo = clave == modulo
+                    || (grupo != null && grupo.equals(clave.getTitulo()));
             if (!item.getStyleClass().contains("item-menu")) {
                 item.getStyleClass().add("item-menu");
             }
@@ -111,10 +113,7 @@ public class ShellPane extends BorderPane {
         fila.setAlignment(Pos.CENTER_LEFT);
         fila.getStyleClass().add("barra-navegacion");
 
-        for (Navegacion modulo : Navegacion.ordenMenu()) {
-            if (esCabeceraGrupo(modulo)) {
-                continue;
-            }
+        for (Navegacion modulo : Navegacion.principales()) {
             Label item = crearItemHorizontal(modulo);
             fila.getChildren().add(item);
         }
@@ -129,11 +128,6 @@ public class ShellPane extends BorderPane {
         HBox contenedor = new HBox(scroll);
         HBox.setHgrow(scroll, Priority.ALWAYS);
         return contenedor;
-    }
-
-    private static boolean esCabeceraGrupo(Navegacion modulo) {
-        List<Navegacion> hijos = Navegacion.deGrupo(modulo.getTitulo());
-        return !hijos.isEmpty() && !Modulos.implementado(modulo);
     }
 
     private Label crearItemHorizontal(Navegacion modulo) {
