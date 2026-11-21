@@ -17,9 +17,9 @@ import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.util.Matrix;
 
+import bo.firmadigital.jacobitus.pesaje.datos.LogoEmpresa;
 import bo.firmadigital.jacobitus.pesaje.datos.RepositorioBoleta;
 import bo.firmadigital.jacobitus.pesaje.datos.RepositorioBoleta.BoletaFila;
-import bo.firmadigital.jacobitus.pesaje.datos.RepositorioEmpresa;
 
 /**
  * Generador de la boleta de pesaje en PDF.
@@ -36,6 +36,17 @@ public final class BoletaPdf {
 
     /** Milimetros por punto de PDF. */
     private static final double MM = 72.0 / 25.4;
+
+    /** Columna derecha del encabezado (como en el original fppdf). */
+    private static final double LOGO_X_MM = 215;
+    /** Borde superior del logo, alineado con «ACREDITADO POR:». */
+    private static final double LOGO_Y_SUPERIOR_MM = 25;
+    /** Ultima Y del recuadro del logo antes del texto de acreditacion (y≈58). */
+    private static final double LOGO_Y_INFERIOR_ENCABEZADO_MM = 57;
+    /** Lado maximo deseado del logo; se reduce si no cabe en hoja o encabezado. */
+    private static final double LOGO_LADO_MAX_DESEADO_MM = 70;
+    /** Margen minimo respecto al borde de la hoja y al texto del encabezado. */
+    private static final double LOGO_MARGEN_MM = 5;
 
     private BoletaPdf() {
     }
@@ -71,6 +82,7 @@ public final class BoletaPdf {
             PDPage pagina = new PDPage(new PDRectangle(carta.getHeight(), carta.getWidth()));
             documento.addPage(pagina);
             double alto = pagina.getMediaBox().getHeight();
+            double anchoPagina = pagina.getMediaBox().getWidth();
 
             // La imagen del logo se prepara antes de abrir el flujo de
             // contenido y se dibuja en el mismo flujo que el texto: con un
@@ -151,7 +163,7 @@ public final class BoletaPdf {
                 linea(contenido, alto, 156, 155, 190);
 
                 if (logo != null) {
-                    dibujarLogo(contenido, alto, logo);
+                    dibujarLogo(contenido, anchoPagina, alto, logo);
                 }
             }
 
@@ -248,26 +260,63 @@ public final class BoletaPdf {
      * Dibuja el logo de la empresa en el flujo de contenido de la pagina.
      *
      * @param contenido flujo de contenido de la pagina
+     * @param ancho     ancho de la pagina en puntos
      * @param alto      alto de la pagina en puntos
      * @param imagen    imagen del logo
      * @throws IOException si el flujo no acepta la imagen
      */
-    private static void dibujarLogo(PDPageContentStream contenido, double alto,
+    private static void dibujarLogo(PDPageContentStream contenido, double ancho, double alto,
             PDImageXObject imagen) throws IOException {
-        double maxAncho = mm(50);
-        double maxAlto = mm(35);
-        double proporcion = imagen.getWidth() / (double) imagen.getHeight();
+        double[] tamano = tamanoLogoEnHoja(ancho, alto, imagen.getWidth(), imagen.getHeight());
+        double anchoDibujo = tamano[0];
+        double altoDibujo = tamano[1];
+        // PDFBox ancla en la esquina inferior izquierda; el original fppdf usa Y desde arriba.
+        double yInferior = alto - mm(LOGO_Y_SUPERIOR_MM) - altoDibujo;
+        contenido.drawImage(imagen, (float) mm(LOGO_X_MM), (float) yInferior,
+                (float) anchoDibujo, (float) altoDibujo);
+    }
+
+    /**
+     * Escala el logo hasta {@link #LOGO_LADO_MAX_DESEADO_MM} manteniendo proporcion,
+     * sin sobrepasar la hoja ni el encabezado.
+     *
+     * @return ancho y alto de dibujo en puntos PDF
+     */
+    private static double[] tamanoLogoEnHoja(double anchoPaginaPt, double altoPaginaPt,
+            int pxAncho, int pxAlto) {
+        double anchoHojaMm = anchoPaginaPt / MM;
+        double altoHojaMm = altoPaginaPt / MM;
+        double cupoAnchoMm = Math.min(LOGO_LADO_MAX_DESEADO_MM,
+                anchoHojaMm - LOGO_X_MM - LOGO_MARGEN_MM);
+        double cupoAltoEncabezadoMm = LOGO_Y_INFERIOR_ENCABEZADO_MM - LOGO_Y_SUPERIOR_MM - LOGO_MARGEN_MM;
+        double cupoAltoHojaMm = altoHojaMm - LOGO_Y_SUPERIOR_MM - LOGO_MARGEN_MM;
+        double cupoAltoMm = Math.min(LOGO_LADO_MAX_DESEADO_MM,
+                Math.min(cupoAltoEncabezadoMm, cupoAltoHojaMm));
+        cupoAnchoMm = Math.max(1, cupoAnchoMm);
+        cupoAltoMm = Math.max(1, cupoAltoMm);
+
+        double maxAncho = mm(cupoAnchoMm);
+        double maxAlto = mm(cupoAltoMm);
+        double proporcion = pxAncho / (double) pxAlto;
         double anchoDibujo;
         double altoDibujo;
-        if (imagen.getWidth() / maxAncho > imagen.getHeight() / maxAlto) {
+        if (pxAncho / maxAncho > pxAlto / maxAlto) {
             anchoDibujo = maxAncho;
             altoDibujo = maxAncho / proporcion;
         } else {
             altoDibujo = maxAlto;
             anchoDibujo = maxAlto * proporcion;
         }
-        contenido.drawImage(imagen, (float) mm(215), (float) (alto - mm(59)),
-                (float) anchoDibujo, (float) altoDibujo);
+        // Segunda pasada por si el otro lado quedo fuera del cupo.
+        if (altoDibujo > maxAlto) {
+            altoDibujo = maxAlto;
+            anchoDibujo = maxAlto * proporcion;
+        }
+        if (anchoDibujo > maxAncho) {
+            anchoDibujo = maxAncho;
+            altoDibujo = maxAncho / proporcion;
+        }
+        return new double[] {anchoDibujo, altoDibujo};
     }
 
     /**
@@ -298,7 +347,7 @@ public final class BoletaPdf {
      * @return logo en base64, o cadena vacia
      */
     private static String logoEmpresa() {
-        return new RepositorioEmpresa().logoActivo();
+        return LogoEmpresa.dataUrlDelSistema();
     }
 
     /**

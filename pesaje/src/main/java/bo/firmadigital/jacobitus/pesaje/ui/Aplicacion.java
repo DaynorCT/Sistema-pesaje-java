@@ -12,8 +12,10 @@ import bo.firmadigital.jacobitus.pesaje.auth.UsuarioSesion;
 import bo.firmadigital.jacobitus.pesaje.config.ConfigSistema;
 import bo.firmadigital.jacobitus.pesaje.datos.Database;
 import bo.firmadigital.jacobitus.pesaje.sync.ServicioSync;
+import bo.firmadigital.jacobitus.pesaje.ui.comun.DialogoAviso;
 import bo.firmadigital.jacobitus.pesaje.ui.comun.DialogoContrasena;
 import bo.firmadigital.jacobitus.pesaje.ui.comun.EstilosModal;
+import bo.firmadigital.jacobitus.pesaje.ui.comun.NavegadorSistema;
 
 /**
  * Aplicacion de escritorio del Sistema de Pesaje.
@@ -125,14 +127,12 @@ public class Aplicacion extends Application {
             modoIntegrado.cerrar();
             modoIntegrado = null;
         }
-        // El shell se resuelve de forma perezosa: todavia no existe cuando
-        // se registran los modulos, pero si cuando se crea el panel de
-        // Empresas (que avisa los cambios de logo).
-        RegistroModulos.inicializar(usuario, servicioSync, () -> shell);
+        RegistroModulos.inicializar(usuario, servicioSync);
         shell = new ShellPane();
         shell.setAlCerrarSesion(this::cerrarSesion);
+        shell.setAlIrAlaWeb(this::abrirSistemaWeb);
         shell.setAlVolverAPesaje(this::volverAModoIntegrado);
-        shell.agregarBotonUsuario(usuario.getNombre(), this::volverAModoIntegrado, this::cerrarSesion);
+        shell.configurarMenuUsuario(usuario);
 
         Scene escena = new Scene(shell, ANCHO_SISTEMA, ALTO_SISTEMA);
         aplicarEstilos(escena);
@@ -148,6 +148,19 @@ public class Aplicacion extends Application {
             return;
         }
         mostrarModoIntegrado();
+    }
+
+    private void abrirSistemaWeb() {
+        String url = config.getUrl();
+        if (url == null || url.isBlank()) {
+            DialogoAviso.error(stage, "Sistema web",
+                    "No hay URL configurada. Revise Configuración o pesaje.json.");
+            return;
+        }
+        if (!NavegadorSistema.abrirUrl(url)) {
+            DialogoAviso.error(stage, "Sistema web",
+                    "No se pudo abrir el navegador para " + url);
+        }
     }
 
     private void aplicarEstilos(Scene escena) {

@@ -162,8 +162,8 @@
 
 .barra-navegacion .item-menu {
     -fx-text-fill: #52616f;
-    -fx-font-size: 13px;
-    -fx-padding: 8 12 8 12;
+    -fx-font-size: 14px;
+    -fx-padding: 10 14 10 14;
     -fx-background-radius: 6px;
     -fx-cursor: hand;
 }
@@ -176,6 +176,17 @@
     -fx-background-color: #f6ece6;
     -fx-text-fill: #9a3412;
     -fx-font-weight: bold;
+}
+
+.menu-flotante .menu-informacion {
+    -fx-text-fill: #8b98a5;
+    -fx-font-size: 12px;
+}
+
+/* Boton de usuario (admin) alineado con los items del menu superior */
+.barra-superior .boton-usuario-cabecera {
+    -fx-font-size: 14px;
+    -fx-padding: 10 14 10 14;
 }
 
 .scroll-menu-superior {
@@ -207,6 +218,14 @@
 
 .tarjeta-sin-padding {
     -fx-padding: 0;
+}
+
+.login-logo {
+    -fx-background-color: #f4f6f8;
+    -fx-background-radius: 8px;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 8px;
+    -fx-padding: 6px;
 }
 
 .panel-pesaje-medio {

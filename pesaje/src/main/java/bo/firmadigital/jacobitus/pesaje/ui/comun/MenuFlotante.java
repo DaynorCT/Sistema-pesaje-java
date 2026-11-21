@@ -42,6 +42,14 @@ public final class MenuFlotante {
                 panel.getChildren().add(titulo);
                 continue;
             }
+            if (entrada.informativo) {
+                Label linea = new Label(entrada.texto);
+                linea.getStyleClass().addAll("subtitulo", "menu-informacion");
+                linea.setMaxWidth(Double.MAX_VALUE);
+                linea.setPadding(new Insets(0, 14, 4, 14));
+                panel.getChildren().add(linea);
+                continue;
+            }
             Label item = new Label(entrada.texto);
             item.getStyleClass().add("item-menu");
             item.setMaxWidth(Double.MAX_VALUE);
@@ -77,15 +85,20 @@ public final class MenuFlotante {
     }
 
     public static Entrada opcion(String texto, Runnable accion) {
-        return new Entrada(texto, accion, false, false);
+        return new Entrada(texto, accion, false, false, false);
     }
 
     public static Entrada encabezado(String texto) {
-        return new Entrada(texto, null, true, false);
+        return new Entrada(texto, null, true, false, false);
     }
 
     public static Entrada separador() {
-        return new Entrada(null, null, false, true);
+        return new Entrada(null, null, false, true, false);
+    }
+
+    /** Linea de solo lectura (rol, correo, etc.). */
+    public static Entrada informacion(String texto) {
+        return new Entrada(texto, null, false, false, true);
     }
 
     private static Region lineaSeparador() {
@@ -100,12 +113,15 @@ public final class MenuFlotante {
         private final Runnable accion;
         private final boolean encabezado;
         private final boolean separador;
+        private final boolean informativo;
 
-        private Entrada(String texto, Runnable accion, boolean encabezado, boolean separador) {
+        private Entrada(String texto, Runnable accion, boolean encabezado, boolean separador,
+                boolean informativo) {
             this.texto = texto;
             this.accion = accion;
             this.encabezado = encabezado;
             this.separador = separador;
+            this.informativo = informativo;
         }
     }
 }

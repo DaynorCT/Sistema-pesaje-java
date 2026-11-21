@@ -26,6 +26,12 @@ tasks.register('copySharedResources', Copy) {
         include 'jacobitus.css'
         include 'logo-agetic.png'
     }
+    // El logo del sistema de pesaje vive en assets/images del repositorio:
+    // es la misma imagen que se ve en el login, en la cabecera, en el modo
+    // bascula y en la boleta.
+    from(rootProject.file('assets/images')) {
+        include 'logo-pesaje.jpg'
+    }
     into sharedResourcesDir
 }
 

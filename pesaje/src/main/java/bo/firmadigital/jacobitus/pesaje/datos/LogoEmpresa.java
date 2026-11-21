@@ -1,6 +1,7 @@
 package bo.firmadigital.jacobitus.pesaje.datos;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Base64;
@@ -33,7 +34,43 @@ public final class LogoEmpresa {
     /** Prefijo del data URL de un JPEG. */
     private static final String PREFIJO_JPEG = "data:image/jpeg;base64,";
 
+    /**
+     * Logo del sistema, en los recursos del modulo.
+     *
+     * Viene de {@code assets/images/logo-pesaje.jpg} del repositorio y es
+     * la misma imagen que muestra el login, la cabecera, el modo bascula y
+     * la boleta.
+     */
+    public static final String RECURSO_SISTEMA = "/logo-pesaje.jpg";
+
     private LogoEmpresa() {
+    }
+
+    /**
+     * Logo del sistema como data URL.
+     *
+     * @return data URL del logo del sistema, o cadena vacia si el recurso
+     *         no esta disponible
+     */
+    public static String dataUrlDelSistema() {
+        try (InputStream entrada = LogoEmpresa.class.getResourceAsStream(RECURSO_SISTEMA)) {
+            if (entrada == null) {
+                return "";
+            }
+            byte[] bytes = entrada.readAllBytes();
+            if (bytes.length == 0) {
+                return "";
+            }
+            if (empiezaCon(bytes, FIRMA_PNG)) {
+                return PREFIJO_PNG + Base64.getEncoder().encodeToString(bytes);
+            }
+            if (empiezaCon(bytes, FIRMA_JPEG)) {
+                return PREFIJO_JPEG + Base64.getEncoder().encodeToString(bytes);
+            }
+            return "";
+        } catch (IOException e) {
+            return "";
+        }
     }
 
     /**

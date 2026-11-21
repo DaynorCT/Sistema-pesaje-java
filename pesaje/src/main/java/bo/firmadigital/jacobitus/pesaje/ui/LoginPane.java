@@ -6,15 +6,20 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+
+import bo.firmadigital.jacobitus.pesaje.datos.LogoEmpresa;
 
 /**
  * Pantalla de inicio de sesion.
  *
- * Reproduce el comportamiento del sistema original: distingue el correo
- * inexistente de la contrasena incorrecta y pide el cambio de contrasena
- * cuando el usuario la tiene vencida.
+ * Distingue el correo inexistente de la contrasena incorrecta, igual que
+ * el sistema original. El logo es el del sistema: el mismo que aparece en
+ * la cabecera y en la boleta.
  */
 public class LoginPane extends VBox {
 
@@ -32,6 +37,12 @@ public class LoginPane extends VBox {
         Label titulo = new Label("Sistema de Pesaje");
         titulo.getStyleClass().add("titulo-modulo");
 
+        ImageView logo = new ImageView(new Image(LogoEmpresa.RECURSO_SISTEMA));
+        logo.setFitWidth(320);
+        logo.setPreserveRatio(true);
+        StackPane cajaLogo = new StackPane(logo);
+        cajaLogo.getStyleClass().add("login-logo");
+
         Label subtitulo = new Label("Ingrese con su usuario local para continuar.");
         subtitulo.getStyleClass().add("subtitulo");
 
@@ -44,7 +55,7 @@ public class LoginPane extends VBox {
         botonEntrar.setDefaultButton(true);
         botonEntrar.setMaxWidth(Double.MAX_VALUE);
 
-        getChildren().addAll(titulo, subtitulo, campoCorreo, campoClave, mensaje, botonEntrar);
+        getChildren().addAll(cajaLogo, titulo, subtitulo, campoCorreo, campoClave, mensaje, botonEntrar);
         setSpacing(10);
     }
 
@@ -89,7 +100,8 @@ public class LoginPane extends VBox {
     public void mostrarAviso(String texto) {
         mensaje.setText(texto == null ? "" : texto);
         mensaje.getStyleClass().remove("mensaje-error");
-        mensaje.getStyleClass().add("mensaje-exito");
+        mensaje.getStyleClass().remove("mensaje-exito");
+        mensaje.getStyleClass().add("subtitulo");
     }
 
     /**

@@ -119,6 +119,14 @@ public class LogoEmpresaTest {
         assertEquals(0, LogoEmpresa.decodificar("data:image/png;base64,%%%").length);
     }
 
+    @Test
+    public void elLogoDelSistemaVieneComoDataUrl() {
+        String dataUrl = LogoEmpresa.dataUrlDelSistema();
+
+        assertTrue("El logo del sistema deberia estar disponible", dataUrl.startsWith("data:image/"));
+        assertTrue("El logo del sistema deberia traer la marca base64", dataUrl.contains(";base64,"));
+    }
+
     private Path escribir(String nombre, byte[] contenido) throws IOException {
         Path archivo = carpeta.getRoot().toPath().resolve(nombre);
         Files.write(archivo, contenido);

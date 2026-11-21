@@ -118,6 +118,14 @@ public final class ModoIntegradoPane extends BorderPane implements Cerrable {
         Label titulo = new Label("Sistema de pesaje");
         titulo.getStyleClass().add("titulo-modulo");
 
+        javafx.scene.image.ImageView logo =
+                new javafx.scene.image.ImageView(new javafx.scene.image.Image(
+                        bo.firmadigital.jacobitus.pesaje.datos.LogoEmpresa.RECURSO_SISTEMA));
+        logo.setFitWidth(190);
+        logo.setPreserveRatio(true);
+        HBox filaTitulo = new HBox(8, logo, titulo);
+        filaTitulo.setAlignment(Pos.CENTER_LEFT);
+
         estadoBalanza.getStyleClass().add("subtitulo");
         estadoBalanzaFuerte.getStyleClass().add("subtitulo");
         pillSync.getStyleClass().addAll("badge", "badge-activo");
@@ -138,7 +146,7 @@ public final class ModoIntegradoPane extends BorderPane implements Cerrable {
         HBox acciones = new HBox(8, filaEstado, sync, menu);
         acciones.setAlignment(Pos.CENTER_LEFT);
 
-        VBox barra = new VBox(8, titulo, acciones);
+        VBox barra = new VBox(8, filaTitulo, acciones);
         barra.setPadding(new Insets(8, 12, 8, 12));
         barra.getStyleClass().add("barra-superior");
         return barra;

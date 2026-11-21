@@ -1,8 +1,8 @@
 package bo.firmadigital.jacobitus.pesaje.ui;
 
-import java.io.ByteArrayInputStream;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import javafx.geometry.Insets;
@@ -19,8 +19,8 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
+import bo.firmadigital.jacobitus.pesaje.auth.UsuarioSesion;
 import bo.firmadigital.jacobitus.pesaje.datos.LogoEmpresa;
-import bo.firmadigital.jacobitus.pesaje.datos.RepositorioEmpresa;
 import bo.firmadigital.jacobitus.pesaje.ui.comun.Cerrable;
 import bo.firmadigital.jacobitus.pesaje.ui.comun.MenuFlotante;
 
@@ -40,16 +40,22 @@ public class ShellPane extends BorderPane {
 
     private Navegacion moduloActual = Navegacion.INICIO;
     private Runnable alCerrarSesion;
+    private Runnable alIrAlaWeb;
     private Runnable alVolverAPesaje;
 
     public ShellPane() {
         setTop(construirCabecera());
         setCenter(contenido);
+        actualizarLogoSistema();
         navegar(Navegacion.INICIO);
     }
 
     public void setAlCerrarSesion(Runnable accion) {
         this.alCerrarSesion = accion;
+    }
+
+    public void setAlIrAlaWeb(Runnable accion) {
+        this.alIrAlaWeb = accion;
     }
 
     public void setAlVolverAPesaje(Runnable accion) {
@@ -65,31 +71,22 @@ public class ShellPane extends BorderPane {
         tituloModulo.setText(modulo.getTitulo());
         contenido.getChildren().setAll(Modulos.crear(modulo));
         marcarActivo(modulo);
-        actualizarLogoEmpresa();
     }
 
     /**
-     * Actualiza el logo de la empresa en la cabecera, a la derecha del menu.
+     * Muestra el logo del sistema en la cabecera, a la derecha del menu.
      *
-     * El logo es el que se cargo desde la pantalla de Empresas; si no hay
-     * logo, la cabecera queda sin imagen.
+     * El logo viene con la aplicacion (el mismo del login y de la
+     * boleta); si el recurso no esta, la cabecera queda sin imagen.
      */
-    public void actualizarLogoEmpresa() {
-        try {
-            byte[] bytes = LogoEmpresa.decodificar(new RepositorioEmpresa().logoActivo());
-            if (bytes.length == 0) {
-                logoEmpresa.setImage(null);
-                logoEmpresa.setVisible(false);
-                return;
-            }
-            logoEmpresa.setImage(new Image(new ByteArrayInputStream(bytes)));
-            logoEmpresa.setVisible(true);
-        } catch (RuntimeException e) {
-            // El logo es un dato opcional: si no se puede leer, el sistema
-            // sigue mostrando la cabecera sin logo.
-            logoEmpresa.setImage(null);
+    public void actualizarLogoSistema() {
+        Image imagen = new Image(LogoEmpresa.RECURSO_SISTEMA);
+        if (imagen.isError() || imagen.getWidth() <= 0) {
             logoEmpresa.setVisible(false);
+            return;
         }
+        logoEmpresa.setImage(imagen);
+        logoEmpresa.setVisible(true);
     }
 
     private void marcarActivo(Navegacion modulo) {
@@ -120,19 +117,18 @@ public class ShellPane extends BorderPane {
         filaPrincipal.setPadding(new Insets(10, 16, 6, 16));
         filaPrincipal.setAlignment(Pos.CENTER_LEFT);
 
-        ImageView logo = new ImageView(new Image("/logo-agetic.png"));
-        logo.setFitHeight(32);
-        logo.setPreserveRatio(true);
-
-        logoEmpresa.setFitHeight(28);
+        logoEmpresa.setFitHeight(50);
         logoEmpresa.setPreserveRatio(true);
         logoEmpresa.setVisible(false);
-        cabeceraUsuario.getChildren().add(logoEmpresa);
+
+        cabeceraUsuario.setAlignment(Pos.CENTER_RIGHT);
+        cabeceraUsuario.minHeightProperty().bind(logoEmpresa.fitHeightProperty());
 
         HBox modulos = construirMenuHorizontal();
         HBox.setHgrow(modulos, Priority.ALWAYS);
+        HBox.setMargin(modulos, new Insets(0, 0, 0, 20));
 
-        filaPrincipal.getChildren().addAll(logo, modulos, cabeceraUsuario);
+        filaPrincipal.getChildren().addAll(logoEmpresa, modulos, cabeceraUsuario);
 
         tituloModulo.getStyleClass().add("titulo-modulo");
         HBox filaTitulo = new HBox(tituloModulo);
@@ -143,8 +139,9 @@ public class ShellPane extends BorderPane {
     }
 
     private HBox construirMenuHorizontal() {
-        HBox fila = new HBox(4);
+        HBox fila = new HBox(6);
         fila.setAlignment(Pos.CENTER_LEFT);
+        fila.minHeightProperty().bind(logoEmpresa.fitHeightProperty());
         fila.getStyleClass().add("barra-navegacion");
 
         for (Navegacion modulo : Navegacion.principales()) {
@@ -154,12 +151,14 @@ public class ShellPane extends BorderPane {
 
         ScrollPane scroll = new ScrollPane(fila);
         scroll.setFitToHeight(true);
+        scroll.prefHeightProperty().bind(logoEmpresa.fitHeightProperty());
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.getStyleClass().add("scroll-menu-superior");
         scroll.setPannable(true);
 
         HBox contenedor = new HBox(scroll);
+        contenedor.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(scroll, Priority.ALWAYS);
         return contenedor;
     }
@@ -190,33 +189,54 @@ public class ShellPane extends BorderPane {
         menuGrupo.alternar(ancla, entradas);
     }
 
-    public void agregarBotonUsuario(String texto, Runnable... acciones) {
-        Button menu = new Button(texto);
-        menu.getStyleClass().add("boton-secundario");
-        menu.setOnAction(event -> alternarMenuUsuario(menu, texto, acciones));
-        cabeceraUsuario.getChildren().setAll(logoEmpresa, menu);
+    /**
+     * Boton de usuario en la cabecera y menu con rol, nombre, web y cierre.
+     */
+    public void configurarMenuUsuario(UsuarioSesion usuario) {
+        String nombre = usuario.getNombre();
+        Button menu = new Button(nombre);
+        menu.getStyleClass().addAll("boton-secundario", "boton-usuario-cabecera");
+        menu.setOnAction(event -> alternarMenuUsuario(menu, usuario));
+        cabeceraUsuario.getChildren().setAll(menu);
     }
 
-    private void alternarMenuUsuario(Button ancla, String nombre, Runnable... acciones) {
-        MenuFlotante.Entrada[] entradas = new MenuFlotante.Entrada[2 + acciones.length];
-        int i = 0;
-        entradas[i++] = MenuFlotante.encabezado(nombre);
-        entradas[i++] = MenuFlotante.separador();
-        for (Runnable accion : acciones) {
-            entradas[i++] = MenuFlotante.opcion(opcionDe(accion), accion);
-        }
-        MenuFlotante.Entrada[] compactas = new MenuFlotante.Entrada[i];
-        System.arraycopy(entradas, 0, compactas, 0, i);
-        menuUsuario.alternar(ancla, compactas);
+    private void alternarMenuUsuario(Button ancla, UsuarioSesion usuario) {
+        menuUsuario.alternar(ancla,
+                MenuFlotante.encabezado(usuario.getNombre()),
+                MenuFlotante.informacion(etiquetaRol(usuario.getRol())),
+                MenuFlotante.separador(),
+                MenuFlotante.opcion("Ir al sistema web", this::irAlaWeb),
+                MenuFlotante.opcion("Volver al modo báscula", this::volverAlModoBascula),
+                MenuFlotante.opcion("Cerrar sesión", this::cerrarSesion));
     }
 
-    private String opcionDe(Runnable accion) {
-        if (accion == alCerrarSesion) {
-            return "Cerrar sesión";
+    private void irAlaWeb() {
+        if (alIrAlaWeb != null) {
+            alIrAlaWeb.run();
         }
-        if (accion == alVolverAPesaje) {
-            return "Volver al modo báscula";
+    }
+
+    private void volverAlModoBascula() {
+        if (alVolverAPesaje != null) {
+            alVolverAPesaje.run();
         }
-        return "Acción";
+    }
+
+    private void cerrarSesion() {
+        if (alCerrarSesion != null) {
+            alCerrarSesion.run();
+        }
+    }
+
+    private static String etiquetaRol(String rol) {
+        if (rol == null || rol.isEmpty()) {
+            return "Rol: —";
+        }
+        String normalizado = rol.trim().toLowerCase(Locale.ROOT);
+        if (normalizado.isEmpty()) {
+            return "Rol: —";
+        }
+        return "Rol: " + Character.toUpperCase(normalizado.charAt(0))
+                + normalizado.substring(1);
     }
 }
