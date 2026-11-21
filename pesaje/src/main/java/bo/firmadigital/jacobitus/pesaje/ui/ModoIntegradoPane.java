@@ -154,7 +154,7 @@ public final class ModoIntegradoPane extends BorderPane implements Cerrable {
 
     private void alternarMenuFlotante(Button ancla) {
         menuFlotante.alternar(ancla,
-                MenuFlotante.opcion("Sistema escritorio", alSistemaCompleto),
+                MenuFlotante.opcion("Sistema completo", alSistemaCompleto),
                 MenuFlotante.separador(),
                 MenuFlotante.opcion("Configurar balanza", () -> abrirConfigBalanza(ancla)),
                 MenuFlotante.separador(),

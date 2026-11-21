@@ -1,21 +1,71 @@
 <p align="center">
-  <a href="https://agetic.gob.bo/" target="blank"><img src="./assets/images/logo-agetic.png" alt="AGETIC" /></a>
+  <img src="./assets/images/logo-pesaje.jpg" alt="Sistema de Pesaje" />
 </p>
 
 <div align="center">
-  <h1>Jacobitus Escritorio</h1>
+  <h1>Sistema de Pesaje</h1>
 </div>
 
-## Sistema Operativo
+Sistema de escritorio para el registro de pesajes con báscula RS232: captura
+de peso bruto y tara, catálogos, boletas y reportes en PDF, y sincronización
+con el sistema web.
 
-- [Debian](README-DEBIAN.md)
-- [Fedora](README-FEDORA.md)
-- [Windows x64](README-WINDOWS-X64.md)
-- [Windows x32](README-WINDOWS-X32.md)
-- [MacOS procesador Intel](README-MACOS-X64.md)
-- [MacOS procesador Apple](README-MACOS-ARM64.md)
+Es un producto propio de **AGETIC**, construido sobre la base técnica de
+Jacobitus Escritorio (Gradle multi-módulo, JavaFX, `jpackage`, `Config`,
+`jacobitus.css`), pero **autónomo**: el módulo `:pesaje` no depende de
+`:escritorio` ni de la librería nativa de firma digital, y se compila y se
+empaqueta por separado.
 
-## Licencia
+## Módulos
 
-[LICENCIA PÚBLICA GENERAL](LICENSE.md)<br>
-de Consideraciones y Registro de Software Libre en Bolivia<br>(LPG-Bolivia)
+| Módulo | Qué es |
+|---|---|
+| `:pesaje` | La aplicación: Java 17 + JavaFX + SQLite + PDFBox 3 |
+
+## Requisitos
+
+- OpenJDK 17 (o superior) con `jpackage`
+- Gradle 7.6.2 (viene con el wrapper del repo)
+
+No hace falta MSYS2/MinGW: este proyecto no compila código nativo.
+
+## Compilar y ejecutar
+
+```bash
+./gradlew :pesaje:jar
+./gradlew pesaje:run
+```
+
+Tests:
+
+```bash
+./gradlew :pesaje:test
+```
+
+## Instalador
+
+```bash
+./gradlew :pesaje:packageApp --app-profile=prod
+```
+
+| Sistema | Artefacto |
+|---|---|
+| Windows | `pesaje/dist/sistema-pesaje-<version>-x64.msi` |
+| macOS | `pesaje/dist/sistema-pesaje-<version>-<arch>.pkg` |
+| Linux | `pesaje/dist/sistema-pesaje-<version>-x64.deb` |
+
+El MSI incluye el runtime de Java embebido: el cliente no instala Java.
+
+## Documentación
+
+| Documento | Contenido |
+|---|---|
+| `pesaje/README.md` | Guía de uso, configuración y empaquetado |
+| `pesaje/README-WINDOWS.md` | Instalador de Windows (WiX) |
+| `odd/tasks/pesaje-java.md` | Documento de la feature: specs, tareas y evidencia |
+
+## Datos
+
+La base SQLite y el `config.json` viven en la carpeta de datos del usuario:
+`%APPDATA%\SistemaPesaje` (Windows), `~/Library/Application Support/SistemaPesaje`
+(macOS), `~/.local/share/SistemaPesaje` (Linux).
