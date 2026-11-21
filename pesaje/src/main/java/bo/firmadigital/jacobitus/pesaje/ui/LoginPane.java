@@ -44,7 +44,7 @@ public class LoginPane extends VBox {
         StackPane cajaLogo = new StackPane(logo);
         cajaLogo.getStyleClass().add("login-logo");
 
-        Label subtitulo = new Label("Ingrese con su usuario local para continuar.");
+        Label subtitulo = new Label("Ingrese con su usuario y contraseña para continuar.");
         subtitulo.getStyleClass().add("subtitulo");
 
         campoCorreo.setPromptText("Correo electrónico");
